@@ -268,7 +268,7 @@ if __name__ == "__main__":
         AC.ExportXL(df)
         AccCount = 1
         AccList = []
-    else: AccOunt = None
+    else: AccCount = None
     ManifestDirs(root_dir, 1)
     if fix_flag:
         os.makedirs("../meta")
