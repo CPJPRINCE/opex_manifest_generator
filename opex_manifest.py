@@ -3,10 +3,9 @@ import pandas as pd
 import sys
 import hashlib
 import os
-from AutoClassification import __main__ as AC
+import auto_classification as AC
 from sys import platform
 import argparse
-from time import sleep
 
 parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
 parser.add_argument('folderpath',default=os.getcwd())
@@ -136,15 +135,17 @@ def AutoAccessionIdentifier(path,identifer):
     if not os.path.isdir(path):
         global AccCount
         if args.autoclass == "Both":
-            AccRef = str(prefixAcc) + "-0-" + str(AccCount)
-        else: AccRef = str(prefix) + "-0-" + str(AccCount)
+            AccRef = str(prefixAcc) + "-DIG-" + str(AccCount)
+        else: AccRef = str(prefix) + "-DIG-" + str(AccCount)
         AccCount += 1
     else:
         AccRef = "Dir"
     identifer.text = AccRef
     identifer.set("type",type)
+    global AccList
+    AccList.append(AccRef)
 
-def AddPropertiesMetadata(x,root,df):
+def AddPropertiesMetadata(x,root,df=None):
     try:
         prop = ET.SubElement(root,"{" + opex + "}Properties")
         title = ET.SubElement(prop,"{" + opex + "}Title")
@@ -205,7 +206,7 @@ def ManifestDirs(x, c):
     #First For Loop is Create File Level Opex's, if Fixity or Auto-Classification options are selected. If no Options are selected, this section is ignored.
      
     for f in os.listdir(x):
-        if not f.startswith('.') and not f.endswith('_AutoClass.xlsx') and not f.endswith('_Fixities.txt'):
+        if not f.startswith('.') and not f.endswith('_AutoClass.xlsx') and not f.endswith('_Fixities.txt') and not f.endswith('_EmptyDirectoriesRemoved.txt'):
             Path = os.path.join(rpath,f)
             Path = WinPathCheck(Path)
             if os.path.isdir(Path): pass
@@ -219,7 +220,7 @@ def ManifestDirs(x, c):
 
     for f in os.listdir(x):
         print(f"Generating Manifest: {c}",end="\r")
-        if not f.startswith('.') and not f.endswith('AutoClass.xlsx') and not f.endswith('_Fixities.txt'):
+        if not f.startswith('.') and not f.endswith('_AutoClass.xlsx') and not f.endswith('_Fixities.txt') and not f.endswith('_EmptyDirectoriesRemoved.txt'):
             Path = os.path.join(rpath,f)
             Path = WinPathCheck(Path)
             if os.path.isdir(Path):
@@ -254,16 +255,30 @@ if __name__ == "__main__":
     if root_dir.endswith("\\"): root_dir = root_dir.removesuffix("\\")
     if empty_flag:
         AC.remove_empty_folders(root_dir)
-    if class_flag:
+    if args.autoclass == "Catalog" :
+        df = AC.AutoClass(root_dir,prefix)
+        AC.ExportXL(df)
+        AccCount = None
+    elif args.autoclass == "Accession":
+        df = None
+        AccCount = 1
+        AccList = []
+    elif args.autoclass == "Both":
         df = AC.AutoClass(root_dir)
         AC.ExportXL(df)
-    if args.autoclass == "Accession" or args.autoclass =="Both":
         AccCount = 1
-    else: AccCount = None
+        AccList = []
+    else: AccOunt = None
     ManifestDirs(root_dir, 1)
     if fix_flag:
-        with open(root_dir + "/" + os.path.basename(root_dir) + "_Fixities.txt", 'w',encoding="UTF-8") as writer:
+        os.makedirs("../meta")
+        with open("../meta/" + os.path.basename(root_dir) + "_Fixities.txt", 'w',encoding="UTF-8") as writer:
             for (path,fixity) in zip(PathList,FixityList):
                 writer.write("{0};{1}\n".format(path,fixity))
+    if args.autoclass == "Both" or args.autoclass == "Accession":
+        with open("../meta/" + os.path.basename(root_dir) + "_AccessionList.txt", 'w', encoding="UTF-8") as writer:
+            for (path,AccRef) in zip(PathList, AccList):
+                print(AccRef)
+                writer.write("{0};{1}\n".format(path,AccRef))
 
     print('\nComplete!')
