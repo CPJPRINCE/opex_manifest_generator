@@ -16,7 +16,8 @@ parser.add_argument("-fx","--fixity",required=False,action='store_true')
 parser.add_argument("-rm","--empty",required=False,action='store_true')
 parser.add_argument("-f","--force",required=False,action='store_true')
 parser.add_argument("-o","--output",required=False,nargs='+')
-parser.add_argument("--clear-opex",required=False,action='store_true')
+parser.add_argument("--clearopex",required=False,action='store_true')
+parser.add_argument("-alg","--algorithm",required=False,default="SHA-1",choices=['SHA-1','MD5','SHA-256','SHA-512'])
 args = parser.parse_args()
 
 print('Processing Directory: ' + args.folderpath)
@@ -42,46 +43,87 @@ if args.prefix:
     else:
         for a in args.prefix: prefix = str(Path(a).with_suffix(""))
         print('Prefix is set as: ' + prefix)
-    class_flag = True
-else: class_flag = False
-
-
-#if args.autoaccession:
-#    print('Auto-Accession is activated')
 
 if args.fixity:
     print('Fixity is activated')
-    fix_flag = True
-else: fix_flag = False
 
-if args.empty:
-    print('Will remove empty directories')
-    empty_flag = True
-else: empty_flag = False
+BUFF_SIZE = 4096
 
-BUF_SIZE = 65536
+alg = args.algorithm
 
-alg = "SHA-1"
+opex = "http://www.openpreservationexchange.org/opex/v1.2"
 
-if alg == "SHA-1": hash = hashlib.sha1(); alglib = "sha1" 
-elif alg == "MD5": hash = hashlib.md5(); alglib = "md5"
-elif alg == "SHA-256": hash = hashlib.sha256(); alglib = "sha256"
-elif alg == "SHA-512": hash = hashlib.sha512(); alglib = "sha512"
-else: hash = hashlib.sha1()
+def main():
+    # for x in ['/home/christopher/Downloads/AlphaBay.txt','/home/christopher/Downloads/AccessionLinking.py']:
+    #     HashGen(x)
+    # raise SystemExit()
+    global PathList
+    PathList = []
+    global FixityList
+    FixityList = []
+    root_dir = str(args.folderpath)
+    if root_dir.endswith("\\"): root_dir = root_dir.removesuffix("\\")
+    if args.clearopex:
+        clear_opex(root_dir)
+    if args.empty:
+        AC.remove_empty_folders(root_dir)
+    if args.autoclass == "Catalog" :
+        df = AC.auto_class(root_dir,prefix=prefix)
+    elif args.autoclass == "Accession":
+        df = AC.auto_class(root_dir,accession=prefix)
+    elif args.autoclass == "Both":
+        df = AC.auto_class(root_dir,prefix=prefix,accession=prefixAcc)
+    else: pass
+    if args.output: output_path = args.output
+    else: output_path = root_dir
+    if args.autoclass:
+        AC.export_xl(df,output_path)
+    global c
+    c = 1
+    manifest_dirs(root_dir, df)
+    if args.fixity:
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        output_filename = os.path.join(output_path,"meta", os.path.basename(root_dir) + "_Fixities.txt", )
+        with open(output_filename,'w',encoding="UTF-8") as writer:
+            for (path,fixity) in zip(PathList,FixityList):
+                writer.write("{0};{1}\n".format(path,fixity))
+    print('\nComplete!')
+
+def clear_opex(path):
+    walk = list(os.walk(path))
+    for d,_,f in walk[::-1]:
+        for f in f:
+            file = os.path.join(d,f)
+            if str(file).endswith('.opex'):
+                os.remove(file)
+                print(f'Removed: {file}') #fileprint(os.path.join(d,sd,f))
 
 def HashGen(x):
-    print(f'Generating Fixity for: {x}',end="\r") 
-    with open(x,'rb') as f:
-        d = hashlib.file_digest(f,alglib)
-    return d.hexdigest().upper()
+    if alg == "SHA-1": hash = hashlib.sha1(); alglib = "sha1" 
+    elif alg == "MD5": hash = hashlib.md5(); alglib = "md5"
+    elif alg == "SHA-256": hash = hashlib.sha256(); alglib = "sha256"
+    elif alg == "SHA-512": hash = hashlib.sha512(); alglib = "sha512"
+    else: hash = hashlib.sha1(); alglib = "sha1"
+    print(f'Generating Fixity for: {x}')#,end="\r") 
+    h = hashlib.sha1(open(x,'rb').read()).hexdigest()
+    with open(x,"rb") as f:
+        while True:
+            buff = f.read(BUFF_SIZE)
+            if not buff:
+                break
+            hash.update(buff)
+        f.close()
+    return hash.hexdigest().upper()
 
-def WinPathCheck(path):
+#Checks if OS is windows and if chacter length is 256 characters or more. If longer uses "\\\\?\\" to resolve path.
+def win_256_check(path):
     if len(path) > 255 and sys.platform == "win32":
         path = "\\\\?\\" + path
     else: path = path
     return path
 
-def FixityXMLGen(x):
+def fixity_xml_generator(x):
     root = ET.Element("{" + opex + "}OPEXMetadata",nsmap={"opex":"http://www.openpreservationexchange.org/opex/v1.2"})
     transfer = ET.SubElement(root,"{" + opex + "}Transfer")
     fixi = ET.SubElement(transfer,"{" + opex + "}Fixities")
@@ -122,7 +164,8 @@ def AutoAccessionIdentifier(x,df,identifer):
         type = "code"
     idx = df.index[df['Name'] == x]
     if idx.empty:
-        ArcRef = "ERROR"
+        AccRef = "ERROR"
+        print(AccRef)
     else:
         AccRef = df.loc[idx].Accession_Reference.item()
     identifer.text = AccRef
@@ -154,7 +197,7 @@ def AddPropertiesMetadata(x,root,df=None):
 
 def FixityOpex(x):
     try:
-        r = FixityXMLGen(x)
+        r = fixity_xml_generator(x)
         OpexWriter(x,r)
     except Exception as e:
         print(e)
@@ -169,13 +212,13 @@ def IdentifierOpex(x,df):
 
 def FixityIdentifierOpex(x,df):
     try:
-        r = FixityXMLGen(x)
+        r = fixity_xml_generator(x)
         AddPropertiesMetadata(x,r,df)
         OpexWriter(x,r)
     except Exception as e:
         print(e)
 
-def manifest_dirs(x, c):
+def manifest_dirs(x,df):
     os.chdir(x)
     rpath = os.getcwd()
     root = ET.Element("{" + opex + "}OPEXMetadata",nsmap={"opex":"http://www.openpreservationexchange.org/opex/v1.2"})
@@ -183,7 +226,7 @@ def manifest_dirs(x, c):
     mani = ET.SubElement(transfer,"{" + opex + "}Manifest")
     fold = ET.SubElement(mani,"{" + opex + "}Folders")
     files = ET.SubElement(mani,"{" + opex + "}Files")
-    if class_flag: 
+    if args.autoclass: 
         AddPropertiesMetadata(x, root, df)
 
     #1st For Loop is Create File Level Opex's, if Fixity or Auto-Classification options are selected. If no options are selected, no action is taken in loop.
@@ -194,24 +237,24 @@ def manifest_dirs(x, c):
             and not f.endswith('_EmptyDirsRemoved.txt')\
             and not f == 'meta':
             Path = os.path.join(rpath,f)
-            Path = WinPathCheck(Path)
+            Path = win_256_check(Path)
             if os.path.isdir(Path): pass
             else: 
-                if fix_flag and class_flag: FixityIdentifierOpex(Path,df)
-                elif class_flag: IdentifierOpex(Path, df)
-                elif fix_flag: FixityOpex(Path)
+                if args.fixity and args.autoclass: FixityIdentifierOpex(Path,df)
+                elif args.autoclass: IdentifierOpex(Path, df)
+                elif args.fixity: FixityOpex(Path)
                 else: pass
     
     #2nd For Loop is to create folder level manifests.
-
+    global c
     for f in os.listdir(x):
-        print(f"Generating Manifest: {c}",end="\r")
+        print(f"Generating Manifest: {c}")#, end="\r)"
         if not f.startswith('.') and not f.endswith('_AutoClass.xlsx') \
             and not f.endswith('_Fixities.txt')\
             and not f.endswith('_EmptyDirsRemoved.txt')\
             and not f == 'meta':
             Path = os.path.join(rpath,f)
-            Path = WinPathCheck(Path)
+            Path = win_256_check(Path)
             if os.path.isdir(Path):
                 folder = ET.SubElement(fold,"{" + opex + "}Folder")
                 folder.text = str(f)
@@ -223,44 +266,17 @@ def manifest_dirs(x, c):
                     file.set("size",str(os.path.getsize(Path)))
                 file.text = str(f)
         else: pass
-
-    c += 1
+        c += 1
+    c +=1
     Path = f'{os.path.join(x, os.path.basename(x))}.opex'
-    Path = WinPathCheck(Path)
+    Path = win_256_check(Path)
     OpexWriter(Path, root)
     
     #3rd For Loop is iterate recurively through folders.
     for f in os.listdir(x):
         if not f.startswith('.') and not f == 'meta':
             Path = os.path.join(rpath,f)
-            if os.path.isdir(Path): manifest_dirs(Path, c)
-
-PathList = []
-FixityList = []
+            if os.path.isdir(Path): manifest_dirs(Path, df)
 
 if __name__ == "__main__":
-    opex = "http://www.openpreservationexchange.org/opex/v1.2"
-    root_dir = str(args.folderpath)
-    if root_dir.endswith("\\"): root_dir = root_dir.removesuffix("\\")
-    if empty_flag:
-        AC.remove_empty_folders(root_dir)
-    if args.autoclass == "Catalog" :
-        df = AC.auto_class(root_dir,prefix=prefix)
-    elif args.autoclass == "Accession":
-        df = AC.auto_class(root_dir,accession=prefix)
-    elif args.autoclass == "Both":
-        df = AC.auto_class(root_dir,prefix=prefix,accession=prefixAcc)
-    else: pass
-    if args.output: output_path = args.output
-    else: output_path = root_dir
-    if args.autoclass:
-        AC.export_xl(df,output_path)
-    manifest_dirs(root_dir, 1)
-    if fix_flag:
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        output_filename = os.path.join(output_path,"meta", os.path.basename(root_dir) + "_Fixities.txt", )
-        with open(output_filename,'w',encoding="UTF-8") as writer:
-            for (path,fixity) in zip(PathList,FixityList):
-                writer.write("{0};{1}\n".format(path,fixity))
-    print('\nComplete!')
+    main()
