@@ -73,7 +73,7 @@ def main():
         df = AC.auto_class(root_dir,accession=prefix)
     elif args.autoclass == "Both":
         df = AC.auto_class(root_dir,prefix=prefix,accession=prefixAcc)
-    else: pass
+    else: df = None
     if args.output: output_path = args.output
     else: output_path = root_dir
     if args.autoclass:
@@ -218,7 +218,7 @@ def FixityIdentifierOpex(x,df):
     except Exception as e:
         print(e)
 
-def manifest_dirs(x,df):
+def manifest_dirs(x,df=None):
     os.chdir(x)
     rpath = os.getcwd()
     root = ET.Element("{" + opex + "}OPEXMetadata",nsmap={"opex":"http://www.openpreservationexchange.org/opex/v1.2"})

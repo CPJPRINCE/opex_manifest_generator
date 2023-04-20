@@ -195,6 +195,9 @@ def export_xl(df,output_path):
     if os.path.exists(output_path):
         pass
     else: os.makedirs(output_path)
+    if os.path.exists(os.path.join(output_path,"meta")):
+        pass
+    else: os.makedirs(os.path.join(output_path,"meta"))
     output_filename = os.path.join(output_path,"meta",str(os.path.basename(output_path)) + "_AutoClass.xlsx")
     with pd.ExcelWriter(output_filename,mode='w') as writer:
         df.to_excel(writer)
@@ -203,6 +206,9 @@ def export_txt(list,output_path):
     if os.path.exists(output_path):
         pass
     else: os.makedirs(output_path)
+    if os.path.exists(os.path.join(output_path,"meta")):
+        pass
+    else: os.makedirs(os.path.join(output_path,"meta"))
     output_filename = os.path.join(output_path, "meta", str(os.path.basename(output_path)) + "_EmptyDirsRemoved.txt")
     with open(output_filename,'w') as writer:
         for line in list:
