@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OPEXMetadata xmlns="http://www.openpreservationexchange.org/opex/v1.2">
+    <Transfer>
+        <Manifest>
+            <Files>
+                <File size="837925472" type="content">PS1919.mp4</File>
+                <File type="metadata">PS1919.mp4.opex</File>
+            </Files>
+        </Manifest>
+    </Transfer>
+</OPEXMetadata>
