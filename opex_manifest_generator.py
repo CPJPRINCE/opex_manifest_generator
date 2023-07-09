@@ -1,12 +1,15 @@
+#!/usr/bin/python3
+
 import lxml.etree as ET
-import pandas as pd
 import sys
 import hashlib
 import os
-import auto_classification as AC
+import auto_classification_generator as AC
 from sys import platform
 import argparse
 from pathlib import Path
+from datetime import datetime
+from time import sleep 
 
 parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
 parser.add_argument('folderpath',default=os.getcwd())
@@ -16,14 +19,11 @@ parser.add_argument("-fx","--fixity",required=False,action='store_true')
 parser.add_argument("-rm","--empty",required=False,action='store_true')
 parser.add_argument("-f","--force",required=False,action='store_true')
 parser.add_argument("-o","--output",required=False,nargs='+')
-parser.add_argument("--clearopex",required=False,action='store_true')
+parser.add_argument("--clear-opex",required=False,action='store_true')
 parser.add_argument("-alg","--algorithm",required=False,default="SHA-1",choices=['SHA-1','MD5','SHA-256','SHA-512'])
 args = parser.parse_args()
 
 print('Processing Directory: ' + args.folderpath)
-
-if args.folderpath.endswith("\\"):
-    args.folderpath = args.folderpath.removesuffix("\\")
 
 if args.autoclass:
     if not args.prefix:
@@ -32,28 +32,32 @@ if args.autoclass:
         
 if args.prefix:
     if args.autoclass == "Both":
-        print(len(args.prefix))
-        if len(args.prefix) < 2 or len(args.prefix) > 2: print('"Both" option is selected, please pass only two prefixes: [-p CATALOGPREFIX ACCPREFIX]'); raise SystemExit
+        if len(args.prefix) < 2 or len(args.prefix) > 2: print('"Both" option is selected, please pass only two prefixes: [-p CATALOG_PREFIX ACCESSION_PREFIX]'); raise SystemExit
         for n,a in enumerate(args.prefix):
-            if a.endswith("/"): a = str(Path(a).with_suffix(""))
-            else: 
-                if n == 0: prefix = a
-                else: prefixAcc = a
+            a = str(Path(a))
+            if n == 0: prefix = a
+            else: prefixAcc = a
         print(f"Prefixes are set as, Catalog; {prefix}; Acc: {prefixAcc}")
     else:
-        for a in args.prefix: prefix = str(Path(a).with_suffix(""))
+        for a in args.prefix: 
+            prefix = str(Path(a))
         print('Prefix is set as: ' + prefix)
+    sleep(2)
 
 if args.fixity:
     print('Fixity is activated')
 
+def print_running_time(start_time):
+    print(f'Complete, running time was: {datetime.now() - start_time}')
+    sleep(1)
+
 BUFF_SIZE = 4096
-
-alg = args.algorithm
-
-opex = "http://www.openpreservationexchange.org/opex/v1.2"
+OPEXNS = "http://www.openpreservationexchange.org/opex/v1.2"
 
 def main():
+    start_time = datetime.now()
+    print('Starting Opex Manifest Generator...'); sleep(1)
+    print(f'Start at: {start_time}');sleep(2)
     # for x in ['/home/christopher/Downloads/AlphaBay.txt','/home/christopher/Downloads/AccessionLinking.py']:
     #     HashGen(x)
     # raise SystemExit()
@@ -61,10 +65,16 @@ def main():
     PathList = []
     global FixityList
     FixityList = []
-    root_dir = str(args.folderpath)
-    if root_dir.endswith("\\"): root_dir = root_dir.removesuffix("\\")
-    if args.clearopex:
+    global root_dir
+    root_dir = os.path.abspath(args.folderpath)
+    if args.clear_opex:
         clear_opex(root_dir)
+        if args.autoclass or args.fixity or args.force or args.output:
+            pass
+        else: 
+            print('Cleared OPEXES. No additional arguments passed, so ending program.'); sleep(1)
+            print_running_time(start_time)
+            raise SystemExit()
     if args.empty:
         AC.remove_empty_folders(root_dir)
     if args.autoclass == "Catalog" :
@@ -75,39 +85,45 @@ def main():
         df = AC.auto_class(root_dir,prefix=prefix,accession=prefixAcc)
     else: df = None
     if args.output: output_path = args.output
-    else: output_path = root_dir
+    else: output_path = os.path.abspath(root_dir)
     if args.autoclass:
-        AC.export_xl(df,output_path)
+        #print(root_dir)
+        AC.export_xl(df,output_path,tree_root=os.path.relpath(root_dir))
     global c
     c = 1
-    manifest_dirs(root_dir, df)
+    generate_manifest_dirs(root_dir, df)
+
     if args.fixity:
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        output_filename = os.path.join(output_path,"meta", os.path.basename(root_dir) + "_Fixities.txt", )
+        if not os.path.exists(os.path.join(output_path,"meta")):
+            os.makedirs(os.path.join(output_path,"meta"))
+        output_filename = os.path.abspath(os.path.join(output_path,"meta", os.path.basename(root_dir) + "_Fixities.txt"))
         with open(output_filename,'w',encoding="UTF-8") as writer:
             for (path,fixity) in zip(PathList,FixityList):
-                writer.write("{0};{1}\n".format(path,fixity))
-    print('\nComplete!')
+                #print(path,fixity)
+                writer.write(f"{path};{fixity}\n")
+        print(f'Saved Fixity File to: {output_filename}')
+    print_running_time(start_time)
 
-def clear_opex(path):
-    walk = list(os.walk(path))
-    for d,_,f in walk[::-1]:
-        for f in f:
-            file = os.path.join(d,f)
-            if str(file).endswith('.opex'):
-                os.remove(file)
-                print(f'Removed: {file}') #fileprint(os.path.join(d,sd,f))
+def clear_opex(root_path):
+    walk = list(os.walk(root_path))
+    for dir,_,file in walk[::-1]:
+        for file in file:
+            file_path = os.path.join(dir,file)
+            if str(file_path).endswith('.opex'):
+                os.remove(file_path)
+                print(f'Removed: {file_path}') #fileprint(os.path.join(d,sd,f))
 
-def HashGen(x):
-    if alg == "SHA-1": hash = hashlib.sha1(); alglib = "sha1" 
-    elif alg == "MD5": hash = hashlib.md5(); alglib = "md5"
-    elif alg == "SHA-256": hash = hashlib.sha256(); alglib = "sha256"
-    elif alg == "SHA-512": hash = hashlib.sha512(); alglib = "sha512"
+def hash_generator(file_path):
+    if args.algorithm == "SHA-1": hash = hashlib.sha1(); alglib = "sha1" 
+    elif args.algorithm == "MD5": hash = hashlib.md5(); alglib = "md5"
+    elif args.algorithm == "SHA-256": hash = hashlib.sha256(); alglib = "sha256"
+    elif args.algorithm == "SHA-512": hash = hashlib.sha512(); alglib = "sha512"
     else: hash = hashlib.sha1(); alglib = "sha1"
-    print(f'Generating Fixity for: {x}')#,end="\r") 
-    h = hashlib.sha1(open(x,'rb').read()).hexdigest()
-    with open(x,"rb") as f:
+    print(f'Generating Fixity for: {file_path}')#,end="\r") 
+    #h = hashlib.sha1(open(file_path,'rb').read()).hexdigest()
+    with open(file_path,"rb") as f:
         while True:
             buff = f.read(BUFF_SIZE)
             if not buff:
@@ -120,44 +136,48 @@ def HashGen(x):
 def win_256_check(path):
     if len(path) > 255 and sys.platform == "win32":
         path = "\\\\?\\" + path
-    else: path = path
+    else: pass
     return path
 
 def fixity_xml_generator(x):
-    root = ET.Element("{" + opex + "}OPEXMetadata",nsmap={"opex":"http://www.openpreservationexchange.org/opex/v1.2"})
-    transfer = ET.SubElement(root,"{" + opex + "}Transfer")
-    fixi = ET.SubElement(transfer,"{" + opex + "}Fixities")
-    fix = ET.SubElement(fixi,"{" + opex + "}Fixity")
-    hash = HashGen(x)
-    fix.set("type", alg)
+    root = ET.Element("{" + OPEXNS + "}OPEXMetadata",nsmap={"opex":OPEXNS})
+    transfer = ET.SubElement(root,"{" + OPEXNS + "}Transfer")
+    fixi = ET.SubElement(transfer,"{" + OPEXNS + "}Fixities")
+    fix = ET.SubElement(fixi,"{" + OPEXNS + "}Fixity")
+    hash = hash_generator(x)
+    fix.set("type", args.algorithm)
     fix.set("value",hash)
     PathList.append(x)
     FixityList.append(hash)
     return root
 
-def OpexWriter(x,root):
-    if x.endswith('.opex'): x = x
+def write_opex(x,root):
+    if x.endswith('.opex'): pass
     else: x = str(x) + ".opex"
     if os.path.exists(x) and not args.force:
-        print("Opex exists. Avoiding Override")
+        print(f"Opex exists: {x}, but force option is not set: Avoiding override")
         pass
     else:
-        Opex = ET.tostring(root,pretty_print=True,xml_declaration=True,encoding="UTF-8",standalone=True)
+        opex = ET.tostring(root,pretty_print=True,xml_declaration=True,encoding="UTF-8",standalone=True)
         with open(f'{x}','w',encoding="UTF-8") as writer:
-            writer.write(Opex.decode('UTF-8'))
-            if args.force and os.path.exists(x): print(f"Forcing Override to: {x}")
-            else: print('Saved File to: ' + x)
+            writer.write(opex.decode('UTF-8'))
+            if args.force and os.path.exists(x): print(f"Force Option Set. Forcing Override to: {x}")
+            else: print('Saved Opex File to: ' + x)
 
-def AutoClassicationIdentifier(x,df,identifier):
+def auto_classification_lookup(x,df,identifier):
     idx = df.index[df['Name'] == x]
-    if idx.empty:
-        ArcRef = "ERROR"
+    global root_dir
+    if x == root_dir:
+        ArcRef = prefix
     else:
-        ArcRef = df.loc[idx].Archive_Reference.item()
+        if idx.empty:
+            ArcRef = "ERROR"
+        else:
+            ArcRef = df.loc[idx].Archive_Reference.item()
     identifier.text = ArcRef
     identifier.set("type","code")
 
-def AutoAccessionIdentifier(x,df,identifer):
+def auto_accession_counter(x,df,identifer):
     if args.autoclass == "Both":
         type = "AccRef"
     else:
@@ -171,112 +191,119 @@ def AutoAccessionIdentifier(x,df,identifer):
     identifer.text = AccRef
     identifer.set("type",type)
 
-def AddPropertiesMetadata(x,root,df=None):
+def add_metadata_properties(x,rootxml,df=None):
     try:
-        prop = ET.SubElement(root,"{" + opex + "}Properties")
-        title = ET.SubElement(prop,"{" + opex + "}Title")
+        prop = ET.SubElement(rootxml,"{" + OPEXNS + "}Properties")
+        title = ET.SubElement(prop,"{" + OPEXNS + "}Title")
         title.text = str(os.path.basename(x))
-        desc = ET.SubElement(prop,"{" + opex + "}Description")
+        desc = ET.SubElement(prop,"{" + OPEXNS + "}Description")
         desc.text = str(os.path.basename(x))
-        security = ET.SubElement(prop,"{" + opex + "}SecurityDescriptor")
+        security = ET.SubElement(prop,"{" + OPEXNS + "}SecurityDescriptor")
         security.text = "open"
-        idents = ET.SubElement(prop,"{" + opex + "}Identifiers")
-        ident = ET.SubElement(idents,"{" + opex + "}Identifier")
+        identifers = ET.SubElement(prop,"{" + OPEXNS + "}Identifiers")
+        identifer = ET.SubElement(identifers,"{" + OPEXNS + "}Identifier")
         if args.autoclass == "Catalog":
-            AutoClassicationIdentifier(x,df,ident)
+            auto_classification_lookup(x,df,identifer)
         elif args.autoclass == "Accession":
-            AutoAccessionIdentifier(x,df,ident)
+            auto_accession_counter(x,df,identifer)
         elif args.autoclass == "Both":
             print('Running AutoClass')
-            AutoClassicationIdentifier(x,df,ident)
-            ident = ET.SubElement(idents,"{" + opex + "}Identifier")
-            AutoAccessionIdentifier(x,df,ident)
+            auto_classification_lookup(x,df,identifer)
+            identifer = ET.SubElement(identifers,"{" + OPEXNS + "}Identifier")
+            auto_accession_counter(x,df,identifer)
         else: print('Unknown Option... I dunno what\'s goin\' on?')
     except Exception as e:
         print(e)
 
-def FixityOpex(x):
+def generate_opex_fixity(x):
     try:
-        r = fixity_xml_generator(x)
-        OpexWriter(x,r)
+        root = fixity_xml_generator(x)
+        write_opex(x,root)
     except Exception as e:
         print(e)
 
-def IdentifierOpex(x,df):
+def generate_opex_identifer(x,df):
     try: 
-        r = ET.Element("{" + opex + "}OPEXMetadata",nsmap={"opex":"http://www.openpreservationexchange.org/opex/v1.2"})
-        AddPropertiesMetadata(x,r,df)
-        OpexWriter(x,r)
+        root = ET.Element("{" + OPEXNS + "}OPEXMetadata",nsmap={"opex":OPEXNS})
+        add_metadata_properties(x,root,df)
+        write_opex(x,root)
     except Exception as e:
         print(e)
 
-def FixityIdentifierOpex(x,df):
+def generate_opex_identifierandfixity(x,df):
     try:
-        r = fixity_xml_generator(x)
-        AddPropertiesMetadata(x,r,df)
-        OpexWriter(x,r)
+        root = fixity_xml_generator(x)
+        add_metadata_properties(x,root,df)
+        write_opex(x,root)
     except Exception as e:
         print(e)
 
-def manifest_dirs(x,df=None):
-    os.chdir(x)
-    rpath = os.getcwd()
-    root = ET.Element("{" + opex + "}OPEXMetadata",nsmap={"opex":"http://www.openpreservationexchange.org/opex/v1.2"})
-    transfer = ET.SubElement(root,"{" + opex + "}Transfer")
-    mani = ET.SubElement(transfer,"{" + opex + "}Manifest")
-    fold = ET.SubElement(mani,"{" + opex + "}Folders")
-    files = ET.SubElement(mani,"{" + opex + "}Files")
+def generate_manifest_dirs(root_path,df=None):
+    os.chdir(root_path)
+    root_path = os.getcwd()
+    root = ET.Element("{" + OPEXNS + "}OPEXMetadata",nsmap={"opex":OPEXNS})
+    transfer = ET.SubElement(root,"{" + OPEXNS + "}Transfer")
+    mani = ET.SubElement(transfer,"{" + OPEXNS + "}Manifest")
+    fold = ET.SubElement(mani,"{" + OPEXNS + "}Folders")
+    files = ET.SubElement(mani,"{" + OPEXNS + "}Files")
     if args.autoclass: 
-        AddPropertiesMetadata(x, root, df)
+        add_metadata_properties(root_path, root, df)
+    """
+    Below Loop was previously three loops, condensed for speed and because looping three times was unneccessary.
+    Loop is only triggered if Fixity or Auto-Classification options are selected. If no options are selected, no action is taken in loop.
+    """
+    global c 
+    for f in os.listdir(root_path):
+        print(f"Generating Manifest: {c}", end="\r")
 
-    #1st For Loop is Create File Level Opex's, if Fixity or Auto-Classification options are selected. If no options are selected, no action is taken in loop.
-     
-    for f in os.listdir(x):
+        """
+        ***TWO LOOPS ARE NECCESSARY TO GENERATE OPEXES FOR FILES THEN INCLUDE THEM IN FOLDER OPEXES,
+        ***UNLESS A BETTER WAY?
+
+        If Condition to determine whether to account for File /  
+        Currently ignore conditions are:
+            File is Hidden / starts with '.'
+            Has _AutoClass.xlsx in name
+            Has _Fixities.xlsx in name
+            Has _EmptyDirsRemoved.xlsx in name
+            Or is titled 'Meta'
+        Looking to make ignore conditions more dynamic and customizable."""
+        
         if not f.startswith('.') and not f.endswith('_AutoClass.xlsx') \
             and not f.endswith('_Fixities.txt') \
             and not f.endswith('_EmptyDirsRemoved.txt')\
-            and not f == 'meta':
-            Path = os.path.join(rpath,f)
-            Path = win_256_check(Path)
-            if os.path.isdir(Path): pass
-            else: 
-                if args.fixity and args.autoclass: FixityIdentifierOpex(Path,df)
-                elif args.autoclass: IdentifierOpex(Path, df)
-                elif args.fixity: FixityOpex(Path)
-                else: pass
-    
-    #2nd For Loop is to create folder level manifests.
-    global c
-    for f in os.listdir(x):
-        print(f"Generating Manifest: {c}")#, end="\r)"
-        if not f.startswith('.') and not f.endswith('_AutoClass.xlsx') \
-            and not f.endswith('_Fixities.txt')\
+            and not 'meta' in f:
+                file_path = os.path.join(root_path,f)
+                file_path = win_256_check(file_path)
+                if os.path.isdir(file_path):
+                    folder = ET.SubElement(fold,"{" + OPEXNS + "}Folder")
+                    folder.text = str(f)
+                    #Recursive Function - Iterates through rest of directories until meeting a file. 
+                    if not f.startswith('.') and not f == 'meta': generate_manifest_dirs(file_path, df)                  
+                else: 
+                    # Option Conditions - If Fixity and/or Identifer are enabled. 
+                    if args.fixity and args.autoclass: generate_opex_identifierandfixity(file_path,df)
+                    elif args.autoclass: generate_opex_identifer(file_path, df)
+                    elif args.fixity: generate_opex_fixity(file_path)
+                    else: pass
+                    # Creates the files element of the Opex Manifest.
+    for f in os.listdir(root_path):
+        file_path = os.path.join(root_path,f)
+        file_path = win_256_check(file_path)
+        if not os.path.isdir(file_path) and not f.startswith('.') and not f.endswith('_AutoClass.xlsx') \
+            and not f.endswith('_Fixities.txt') \
             and not f.endswith('_EmptyDirsRemoved.txt')\
-            and not f == 'meta':
-            Path = os.path.join(rpath,f)
-            Path = win_256_check(Path)
-            if os.path.isdir(Path):
-                folder = ET.SubElement(fold,"{" + opex + "}Folder")
-                folder.text = str(f)
-            else: 
-                file = ET.SubElement(files,"{" + opex + "}File")
-                if Path.endswith('.opex'): file.set("type","metadata")
+            and not 'meta' in f:
+                file = ET.SubElement(files,"{" + OPEXNS + "}File")
+                if file_path.endswith('.opex'): file.set("type","metadata")
                 else:
                     file.set("type","content")
-                    file.set("size",str(os.path.getsize(Path)))
+                    file.set("size",str(os.path.getsize(file_path)))
                 file.text = str(f)
-        else: pass
-        c += 1
-    c +=1
-    Path = f'{os.path.join(x, os.path.basename(x))}.opex'
-    Path = win_256_check(Path)
-    OpexWriter(Path, root)
-    
-    #3rd For Loop is iterate recurively through folders.
-    for f in os.listdir(x):
-        if not f.startswith('.') and not f == 'meta':
-            Path = os.path.join(rpath,f)
-            if os.path.isdir(Path): manifest_dirs(Path, df)
+                c += 1
+    opex_path = f'{os.path.join(root_path, os.path.basename(root_path))}.opex'
+    opex_path = win_256_check(opex_path)
+    write_opex(opex_path, root)
 
 if __name__ == "__main__":
     main()
