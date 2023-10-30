@@ -2,8 +2,8 @@ import lxml.etree as ET
 import sys
 import hashlib
 import os
-from auto_classification_generator_v2 import ClassificationGenerator as AC
-from auto_classification_generator_v2 import export_txt, export_xl, define_output_directory
+from auto_classification_generator import ClassificationGenerator as AC
+from auto_classification_generator import export_txt, export_xl, define_output_directory
 from sys import platform
 import argparse
 from pathlib import Path
