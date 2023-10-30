@@ -1,209 +1,226 @@
-#! /usr/bin/env python3
 import os
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
 import argparse
+import time
 
-def main():
-    cwd = os.path.abspath(args.tree_root)
-    global output_path
-    if not args.output:
-        output_path = os.path.abspath(args.tree_root)
-        print(f'No output path selected, defaulting to current directory: {output_path}')
-    else: 
-        output_path = os.path.abspath(args.output)
-        print(f'Output path set to: {output_path}')
-    if args.empty:
-        print('Removing Empty Directories\n')
-        remove_empty_folders(os.path.abspath(cwd))
-    df = auto_class(cwd,prefix=args.prefix,accession=args.accession)
-    export_xl(df,output_path,tree_root=cwd)
-    print('Auto-Classification is complete!')
-    print(f'Program ran for: {datetime.now() - start_time}')
-
-def accession_numbering(dir,prefix_accession):
-    global acc_count 
-    if os.path.isdir(dir):
-        accession_ref = prefix_accession + "-Dir"
-    else:
-        accession_ref = prefix_accession + "-" + str(acc_count)
-        acc_count += 1
-    return accession_ref
-
-def list_dirs(CWD,ROOTLEVEL,accession=None):
-    ref = 1
-    try:
-        listdir = os.listdir(CWD)
-        #Sorts the list Alphabetically and Ignores: 1. Hidden Directories starting with '.', 2. '.opex' files, 3. Folders titled 'meta', 4. Script file 5. Output file. 
-        listdir = sorted([f for f in listdir if not f.startswith('.') \
-                        and not f.endswith('.opex') \
-                        and f != 'meta'\
-                        and f != os.path.basename(__file__) \
-                        and not f.endswith('_AutoClass.xlsx') and not f.endswith('_autoclass.xlsx')\
-                        and not f.endswith('_EmptyDirectoriesRemoved.txt')])
-        # Counts the number of Seperators in the current file.
-        level = CWD.count(os.sep)
-        # Subracts the previous count from ROOTLEVEL to give the current level of the file (USed to compose the Archive reference).
-        level = level-ROOTLEVEL
-        for file in listdir:
-            # Processing and appending the metadata to lists.
-            fpath = os.path.join(CWD,file)
-            full_path = os.path.abspath(fpath)
-            #Stats
-            stat = os.stat(fpath)
-            #Optional Accessoin Reference - Currently the Archive Reference
-            if accession:
-                list_accession.append(accession_numbering(fpath,accession))
-            if os.path.isdir(fpath): type = "Dir"
-            else: type = "File"
-            class_dict = {'RelativeName': str(fpath).replace(path_root,""),
-                          'FullName':str(full_path),
-                          'Basename': os.path.basename(fpath),
-                          'Extension':os.path.splitext(fpath)[1],
-                          'Parent':str(Path(full_path).parent),
-                          'Attribute':type,
-                          'Size':stat.st_size,
-                          'CreateDate':datetime.fromtimestamp(stat.st_ctime),
-                          'ModifiedDate': datetime.fromtimestamp(stat.st_mtime),
-                          'AccessDate':datetime.fromtimestamp(stat.st_atime),
-                          'Level':level,
-                          'Ref_Section':ref}
-            record_list.append(class_dict)
-            ref = ref+1
-            if os.path.isdir(fpath): list_dirs(fpath,ROOTLEVEL,accession)
-            
-            
-
-    except Exception as e:
-        print(e)
-        print("Error Occured for directory/file: {}".format(listdir))
-        pass
-
-# ref_loop function loops through the.
-
-def ref_loop(REF, PARENT, TRACK, LEVEL, df, NEWREF=None, PREFIX=None):
-    # Indexes the Parent of a file against the Name (Giving the Loc of the Parent)
-    idx = df.index[df['FullName'] == PARENT]
-    # If top-level has been reached, IE Index fails to match...
-    if idx.size == 0:
-        # If the Level is 0, (IE it's the top-most reference being Indexed - no ref_loop involved), NEWREF is REF
-        if LEVEL == 0:
-            NEWREF = str(REF)
-        # If the Level is not 0, IE the ref-level has reached the top-most reference, NEWREF is NEWREF (The constructed Reference from the loop.)
-        else:
-            NEWREF = NEWREF
-        if PREFIX:
-            PREFIX_NEWREF = str(PREFIX) + "/" + str(NEWREF)
-            list_newref.append(PREFIX_NEWREF)
-        else:
-            PREFIX=None
-            #NEWREF is appended to the NewRef list.
-            list_newref.append(NEWREF)
-    # Action if the top-level has not been reached.
-    # Parent Reference and the Name of Parent (PARENTPARENT) are retrieved to continue the loop 
-    else:
-        PARENTREF = df.loc[idx].Ref_Section.item()
-        PARENTPARENT = df.loc[idx].Parent.item()
-        # If TRACK is 1, IE the first iteration, it will append, REF 
-        if TRACK == 1:
-            NEWREF = str(PARENTREF) + "/" + str(REF)
-        # If TRACK isn't 1, IE any 'below' iteration, it will append NEWREF to PARENT. 
-        else:
-            NEWREF = str(PARENTREF) + "/" + str(NEWREF)
-        #PARENT of PARENT becomes PARENT, for lookup, this allows the loop to lookup the next file.  
-        PARENT = PARENTPARENT
-        TRACK = TRACK+1
-        #Loop iterates over itself - note that the loop is only being activated in else condition
-        # IE when the top-level HASN'T been reached. 
-        ref_loop(REF, PARENT, TRACK, LEVEL, df, NEWREF, PREFIX)
-
-def auto_class(cwd,prefix=None,accession=None):
-    cwd = os.path.abspath(cwd)
-    # ROOTLEVEL gives an intial count of the Root Directories Seperators.
-    rootlevel = cwd.count(os.sep)
-    global path_root
-    path_root = os.path.dirname(cwd)
-    list_dirs(cwd,rootlevel,accession)
-
-    # A Dataframe is created from the various lists appended in the list_dirs function.
-    # A merge on Parent agasint Name (Path) then occurs. Pulling through the Parent's details to that row. 
-    # Duplicate data dropped and / Parent_Ref requires data to be to be filled in..  
-
-    df = pd.DataFrame(record_list)
-    
-    df = df.merge(df[['FullName','Ref_Section']],how='left',left_on='Parent',right_on='FullName')
-    df = df.drop(['FullName_y'], axis=1)
-    df = df.rename(columns={'Ref_Section_x':'Ref_Section','Ref_Section_y':'Parent_Ref','FullName_x':'FullName'})
-    df['Parent_Ref'] = df['Parent_Ref'].fillna(0).astype(int)
-    df = df.astype({'Parent_Ref': int})
-    df.index.name = "Index"
-    #Lists of References, Parent and Levels are exported to lists for iterating in ref_loop
-    list_ref = df['Ref_Section'].values.tolist()
-    list_parent = df['Parent'].values.tolist()
-    list_level = df['Level'].values.tolist()
-    #c is a count / total of items in list_ref, for a simple progress bar.
-    count = 0
-    tot = len(list_ref)
-    #Iteration over the list of Refs, Parents and Levels.
-    for R,P,L in zip(list_ref,list_parent,list_level):
-        T = 1
-        count += 1        
-        print(f"Generating Auto Classification for: {count} / {tot}",end="\r")                
-        ref_loop(R,P,T,L,df,PREFIX=prefix)
-    df['Archive_Reference'] = list_newref
-    if accession:
-        df['Accession_Reference'] = list_accession
-    return df
-
-def path_check(path):
-    if os.path.exists(path): pass
-    else: os.makedirs(path)
-
-def export_xl(df,output_path,output_suffix="_AutoClass.xlsx",tree_root=None):
-    if not tree_root: tree_root = os.path.abspath(output_path)
-    else: tree_root = os.path.abspath(tree_root)
-    output_path = os.path.abspath(output_path)
-    path_check(output_path)
-    path_check(os.path.join(output_path,"meta"))
-    output_filename = os.path.join(output_path,"meta",str(os.path.basename(tree_root)) + output_suffix)
-    with pd.ExcelWriter(output_filename,mode='w') as writer: df.to_excel(writer)
-    print(f"Saved to: {output_filename}")
-    return output_filename
-
-def export_txt_list(list,output_path,output_suffix="_EmptyDirsRemoved.txt",tree_root=None):
-    if not tree_root: tree_root = output_path
-    else: tree_root = os.path.abspath(tree_root)
-    output_path = os.path.abspath(output_path)    
-    path_check(output_path)
-    path_check(os.path.join(output_path,"meta"))
-    output_filename = os.path.join(output_path, "meta", str(os.path.basename(tree_root)) + output_suffix)
-    with open(output_filename,'w') as writer:
-        for line in list: writer.write(f"{line}\n")
-
-def remove_empty_folders(remove_path):
-    elist = []
-    walk = list(os.walk(remove_path))
-    for path, _, _ in walk[::-1]:
-        if len(os.listdir(path)) == 0:
-            elist.append(path)
-            os.rmdir(path)
-    if elist: 
-        global output_path
-        export_txt_list(elist, output_path)
-    else: print('No directories removed!')
-
-if __name__ == "__main__":
-    record_list = []
-    acc_count = 1
-    list_newref = []
-    list_accession = []
-    start_time = datetime.now() 
+def parse_args():
     parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
-    parser.add_argument('tree_root',nargs='?', default=os.getcwd())
+    parser.add_argument('root',nargs='?', default=os.getcwd())
     parser.add_argument("-p","--prefix",required=False, nargs='?')
     parser.add_argument("-rm","--empty",required=False,action='store_true')
-    parser.add_argument("-acc","--accession",required=False,nargs='?')
+    parser.add_argument("-acc","--accession",required=False,choices=[None,'Dir','File'],default=None)
     parser.add_argument("-o","--output",required=False,nargs='?')
-    args = parser.parse_args()    
-    main()
+    parser.add_argument("-s","--start-ref",required=False,nargs='?',default=1)
+    parser.add_argument("-m","--meta-flag",required=False,action='store_true',default=True)
+    args = parser.parse_args()
+    return args
+
+def path_check(path):
+    if os.path.exists(path):
+        pass
+    else: os.makedirs(path)
+
+class ClassificationGenerator():
+    def __init__(self, root, output_path=os.getcwd(), prefix=None, start_ref=1, empty_flag=None, accession_flag=None, meta_flag=True):
+        self.root = os.path.abspath(root)
+        self.root_level = self.root.count(os.sep)
+        self.root_path = os.path.dirname(self.root)         
+        self.output_path = output_path
+        self.empty_flag = empty_flag
+        self.prefix = prefix
+        self.start_ref = int(start_ref)
+        self.reference_list = []
+        self.record_list = []
+        self.accession_flag = accession_flag
+        self.accession_list = []
+        self.accession_count = start_ref
+        self.accessoin_prefix = self.prefix
+        self.empty_list = []
+        self.meta_flag = meta_flag
+    
+    def remove_empty_directories(self):
+        confirm_delete = input('You have selected the Remove Empty Folder\'s Option... This process is not reversible \n Please confirm Y to continue: ')
+        if not confirm_delete in {"Y","y"}:
+            print('You have not selected Y... Running self destruct program...')
+            for n in reversed(range(10)):
+                print(f'Self In: {n}',end="\r")
+                time.sleep(1)
+                raise SystemExit()
+        walk = list(os.walk(self.root))
+        for path, _, _ in walk[::-1]:
+            if len(os.listdir(path)) == 0:
+                self.empty_list.append(path)
+                os.rmdir(path)
+                print(f'Removed Directory: {path}')
+        if self.empty_list: 
+            output_txt = define_output_directory(self.output_path,self.root,self.meta_flag,output_suffix="_EmptyDirectoriesRemoved.txt")
+            self.export_txt(self.empty_list, output_txt)
+        else: print('No directories removed!')
+
+    def filter_directories(self,directory):    #Sorts the list Alphabetically and Ignores: 1. Hidden Directories starting with '.', 2. '.opex' files, 3. Folders titled 'meta', 4. Script file 5. Output file. 
+        list_directories = sorted([f for f in os.listdir(directory) if not f.startswith('.') \
+            and not f.endswith('.opex') \
+            and f != 'meta'\
+            and f != os.path.basename(__file__) \
+            and not f.endswith('_AutoClass.xlsx') and not f.endswith('_autoclass.xlsx')\
+            and not f.endswith('_EmptyDirectoriesRemoved.txt')])
+        return list_directories
+
+    def list_directories(self,directory,ref=1):
+        ref = int(ref)
+        try:
+            list_directory = self.filter_directories(directory)
+            level = directory.count(os.sep) - self.root_level  # Counts the number of Seperators in the current file and subtracts from rootlevels (giving current level).
+            for file in list_directory:
+                # Processing and appending the metadata to lists.
+                file_path = os.path.join(directory,file)
+                full_path = os.path.abspath(file_path)
+                file_stats = os.stat(file_path)                                 #Stats
+                if self.accession_flag:                                                   #Optional Accessoin Reference - Archive Reference is always generated. 
+                    acc_ref = self.accession_running_number(file_path)
+                    self.accession_list.append(acc_ref)
+                if os.path.isdir(file_path): file_type = "Dir"
+                else: file_type = "File"
+                class_dict = {'RelativeName': str(file_path).replace(self.root_path,""),
+                              'FullName':str(full_path),
+                              'Basename': os.path.basename(file_path),
+                              'Extension':os.path.splitext(file_path)[1],
+                              'Parent':str(Path(full_path).parent),
+                              'Attribute':file_type,
+                              'Size':file_stats.st_size,
+                              'CreateDate':datetime.fromtimestamp(file_stats.st_ctime),
+                              'ModifiedDate': datetime.fromtimestamp(file_stats.st_mtime),
+                              'AccessDate':datetime.fromtimestamp(file_stats.st_atime),
+                              'Level':level,
+                              'Ref_Section':ref}
+                self.record_list.append(class_dict)
+                ref = int(ref) + int(1)
+                if os.path.isdir(file_path): self.list_directories(file_path,ref=1)
+                
+        except Exception as e:
+            print(e)
+            print("Error Occured for directory/file: {}".format(list_directory))
+            pass
+        
+    def init_dataframe(self):
+        self.list_directories(self.root,self.start_ref) # Lists Directories..
+        df = pd.DataFrame(self.record_list)                                                                             # A Dataframe is created from record dictionary IE List of Directories.
+        df = df.merge(df[['FullName','Ref_Section']],how='left',left_on='Parent',right_on='FullName')                   # The dataframe is merged on itself, Parent is merged 'left' on FullName
+                                                                                                                        # This is in effect looks up and pulls thorugh the Parent row's data to the Child Row 
+        df = df.drop(['FullName_y'], axis=1)                                                                            # Fullname_y is dropped - as it's not needed
+        df = df.rename(columns={'Ref_Section_x':'Ref_Section','Ref_Section_y':'Parent_Ref','FullName_x':'FullName'})    # Rename occurs to realign columns
+        df['Parent_Ref'] = df['Parent_Ref'].fillna(0)                                                                   # Any Blank rows in Parent Ref set to 0                                                      
+        df = df.astype({'Parent_Ref': int})                                                                             # Parent Ref is set as Type int
+        df.index.name = "Index"
+        self.list_loop = df[['Ref_Section','Parent','Level']].values.tolist()                                           # Reference Section, Parent and Levels are exported to lists for iterating in ref_loop
+        self.df = df
+        self.init_reference_loop()
+        return self.df
+    
+    def init_reference_loop(self):
+        c = 1                       
+        tot = len(self.list_loop)
+        #print(tot)
+        for REF,PARENT,LEVEL in self.list_loop:
+            #print(REF,PARENT,LEVEL)
+            c += 1
+            print(f"Generating Auto Classification for: {c} / {tot}",end="\r") # For a simple progress bar....
+            TRACK = 1  
+            self.reference_loop(REF,PARENT,TRACK,LEVEL)  #Start's Reference Loop - Recursive Function, so operates on it's own!
+        self.df['Archive_Reference'] = self.reference_list
+        if self.accession_flag:
+            self.df['Accession_Reference'] = self.accession_list
+        return self.df
+    def reference_loop(self, REF, PARENT, TRACK, LEVEL, NEWREF=None):
+        try:
+            #print(REF,PARENT,LEVEL)
+            idx = self.df.index[self.df['FullName'] == PARENT]          # Indexes the Parent of a file against the FullName (Giving the index number of the Parent)
+            if idx.size == 0:                               # If Index fails / is 0. then the Top-Level of tree has been reached.
+                
+                if LEVEL == 0: NEWREF = str(REF)            # If the Level is 0, (IE it's the top-most reference being Indexed - no ref_loop involved), NEWREF is REF
+                else: NEWREF = NEWREF                       # If the Level is not 0, IE the ref-level has reached the top-most reference, NEWREF is NEWREF (The constructed Reference from the loop.)
+                if self.prefix:                             # If a Prefix is given; add Prefix to the previously given New Reference.
+                    PREFIX_NEWREF = str(self.prefix) + "/" + str(NEWREF)
+                    self.reference_list.append(PREFIX_NEWREF)                       # PREFIXNEW
+                else: self.reference_list.append(NEWREF)                            # NEWREF is appended to the new_reference_list.
+                        
+            else:                                                                       # Else if Index is successful / Top-Level has not been reached.
+                PARENTREF = self.df.loc[idx].Ref_Section.item()                         # Indexes / returns the 'Ref_Section' and 'Parent' columns of the Dataframe against idx
+                SUBPARENT = self.df.loc[idx].Parent.item() 
+                if TRACK == 1: NEWREF = str(PARENTREF) + "/" + str(REF)                 # If TRACK is 1, IE the first iteration, REF is concatenated with PARENTREF 
+                else: NEWREF = str(PARENTREF) + "/" + str(NEWREF)                       # If TRACK isn't 1, IE any later iteration. NEWREF is concatenated with PARENTREF
+                PARENT = SUBPARENT                                                      # PARENT becomes PARENTPARENT, IE Parent of the Parent 
+                                                                                        # This is key, as it allows the loop to lookup the ?above? file.  
+                TRACK = TRACK+1                                                         # TRACK is advanced 
+                self.reference_loop(REF, PARENT, TRACK, LEVEL, NEWREF)                  # Acts as a recursive function - loop is only being activated in else condition
+                                                                                        # IE when the top-level HASN'T been reached.
+        except Exception as e:
+            print('Passed?')
+            print(e)
+            pass 
+        
+    def main(self):
+        if self.empty_flag: self.remove_empty_directories()
+        self.init_dataframe()
+        output_xl = define_output_directory(self.output_path,self.root,meta_flag=self.meta_flag)
+        self.export_xl(output_xl)
+                    
+    def accession_running_number(self,dir):
+        if os.path.isdir(dir):
+            if self.accession_flag == "File": accession_ref = self.accessoin_prefix + "-Dir"
+            elif self.accession_flag == "Dir": 
+                accession_ref = self.accessoin_prefix + "-" + str(self.accession_count)
+                self.accession_count += 1
+        else:
+            if self.accession_flag == "Dir": accession_ref = self.accessoin_prefix + "-File"
+            elif self.accession_flag == "File": 
+                accession_ref = self.accessoin_prefix + "-" + str(self.accession_count)
+                self.accession_count += 1
+        return accession_ref
+
+def define_output_directory(output_path,root_name,meta_flag=True,output_suffix="_AutoClass.xlsx"):
+    path_check(output_path)
+    if meta_flag:
+        path_check(os.path.join(output_path,"meta"))
+        output_dir = os.path.join(output_path,"meta",str(os.path.basename(root_name)) + output_suffix)
+    else: output_dir = os.path.join(output_path,str(os.path.basename(root_name)) + output_suffix)
+    return output_dir
+
+def export_txt(txt_list,output_filename):
+    try: 
+        with open(output_filename,'w') as writer:
+            for line in txt_list:
+                writer.write(f"{line}\n")
+    except Exception as e:
+        print(e)
+        print('Waiting 10 Seconds to try again...')
+        time.sleep(10)
+        export_txt(txt_list,output_filename)
+    finally:
+        print(f"Saved to: {output_filename}")
+
+def export_xl(df,output_filename):
+    try:
+        with pd.ExcelWriter(output_filename,mode='w') as writer:
+            df.to_excel(writer)
+    except Exception as e:
+        print(e)
+        print('Waiting 10 Seconds to try again...')
+        time.sleep(10)
+        export_xl(df,output_filename)
+    finally:
+        print(f"Saved to: {output_filename}")
+
+if __name__ == "__main__":
+    args = parse_args()
+    if isinstance(args.root,str): args.root = args.root.strip("\"").rstrip("\\")
+    if not args.output:
+        args.output = os.path.abspath(args.root)
+        print(f'No output path selected, defaulting to root Directory: {args.output}')
+    else:
+        args.output = os.path.abspath(args.output)
+        print(f'Output path set to: {args.output}')
+    ClassificationGenerator(args.root,output_path=args.output,prefix=args.prefix,empty_flag=args.empty,accession_flag=args.accession,start_ref=args.start_ref,meta_flag=args.meta_flag).main()
+    print('Complete!')
