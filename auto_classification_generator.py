@@ -5,25 +5,8 @@ from datetime import datetime
 import argparse
 import time
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
-    parser.add_argument('root',nargs='?', default=os.getcwd())
-    parser.add_argument("-p","--prefix",required=False, nargs='?')
-    parser.add_argument("-rm","--empty",required=False,action='store_true')
-    parser.add_argument("-acc","--accession",required=False,choices=[None,'Dir','File'],default=None)
-    parser.add_argument("-o","--output",required=False,nargs='?')
-    parser.add_argument("-s","--start-ref",required=False,nargs='?',default=1)
-    parser.add_argument("-m","--meta-flag",required=False,action='store_true',default=True)
-    args = parser.parse_args()
-    return args
-
-def path_check(path):
-    if os.path.exists(path):
-        pass
-    else: os.makedirs(path)
-
 class ClassificationGenerator():
-    def __init__(self, root, output_path=os.getcwd(), prefix=None, start_ref=1, empty_flag=None, accession_flag=None, meta_flag=True):
+    def __init__(self, root, output_path=os.getcwd(), prefix=None, accprefix=None,start_ref=1, empty_flag=None, accession_flag=None,meta_flag=True):
         self.root = os.path.abspath(root)
         self.root_level = self.root.count(os.sep)
         self.root_path = os.path.dirname(self.root)         
@@ -36,7 +19,8 @@ class ClassificationGenerator():
         self.accession_flag = accession_flag
         self.accession_list = []
         self.accession_count = start_ref
-        self.accessoin_prefix = self.prefix
+        if accprefix: self.accession_prefix = accprefix
+        else: self.accession_prefix = prefix; print(self.accession_prefix)
         self.empty_list = []
         self.meta_flag = meta_flag
     
@@ -67,44 +51,48 @@ class ClassificationGenerator():
             and not f.endswith('_AutoClass.xlsx') and not f.endswith('_autoclass.xlsx')\
             and not f.endswith('_EmptyDirectoriesRemoved.txt')])
         return list_directories
-
+    
+    def parse_directory_dict(self,file_path,level,ref):
+        full_path = os.path.abspath(file_path)
+        file_stats = os.stat(file_path)                                 #Stats
+        if self.accession_flag:                                                   #Optional Accession Reference - Archive Reference is always generated. 
+            acc_ref = self.accession_running_number(file_path)
+            self.accession_list.append(acc_ref)
+        if os.path.isdir(file_path): file_type = "Dir"
+        else: file_type = "File"
+        class_dict = {'RelativeName': str(file_path).replace(self.root_path,""),
+                        'FullName':str(full_path),
+                        'Basename': os.path.basename(file_path),
+                        'Extension':os.path.splitext(file_path)[1],
+                        'Parent':str(Path(full_path).parent),
+                        'Attribute':file_type,
+                        'Size':file_stats.st_size,
+                        'CreateDate':datetime.fromtimestamp(file_stats.st_ctime),
+                        'ModifiedDate': datetime.fromtimestamp(file_stats.st_mtime),
+                        'AccessDate':datetime.fromtimestamp(file_stats.st_atime),
+                        'Level':level,
+                        'Ref_Section':ref}
+        self.record_list.append(class_dict)
+        return class_dict
+        
     def list_directories(self,directory,ref=1):
         ref = int(ref)
         try:
             list_directory = self.filter_directories(directory)
-            level = directory.count(os.sep) - self.root_level  # Counts the number of Seperators in the current file and subtracts from rootlevels (giving current level).
+            level = directory.count(os.sep) - self.root_level + 1 # Counts the number of Seperators in the current file and subtracts from rootlevels (giving current level).
             for file in list_directory:
+                file_path = os.path.join(directory,file)        
                 # Processing and appending the metadata to lists.
-                file_path = os.path.join(directory,file)
-                full_path = os.path.abspath(file_path)
-                file_stats = os.stat(file_path)                                 #Stats
-                if self.accession_flag:                                                   #Optional Accessoin Reference - Archive Reference is always generated. 
-                    acc_ref = self.accession_running_number(file_path)
-                    self.accession_list.append(acc_ref)
-                if os.path.isdir(file_path): file_type = "Dir"
-                else: file_type = "File"
-                class_dict = {'RelativeName': str(file_path).replace(self.root_path,""),
-                              'FullName':str(full_path),
-                              'Basename': os.path.basename(file_path),
-                              'Extension':os.path.splitext(file_path)[1],
-                              'Parent':str(Path(full_path).parent),
-                              'Attribute':file_type,
-                              'Size':file_stats.st_size,
-                              'CreateDate':datetime.fromtimestamp(file_stats.st_ctime),
-                              'ModifiedDate': datetime.fromtimestamp(file_stats.st_mtime),
-                              'AccessDate':datetime.fromtimestamp(file_stats.st_atime),
-                              'Level':level,
-                              'Ref_Section':ref}
-                self.record_list.append(class_dict)
+                self.parse_directory_dict(file_path,level,ref)
                 ref = int(ref) + int(1)
                 if os.path.isdir(file_path): self.list_directories(file_path,ref=1)
-                
         except Exception as e:
             print(e)
             print("Error Occured for directory/file: {}".format(list_directory))
             pass
         
     def init_dataframe(self):
+        self.parse_directory_dict(file_path=self.root,level=0,ref=0)
         self.list_directories(self.root,self.start_ref) # Lists Directories..
         df = pd.DataFrame(self.record_list)                                                                             # A Dataframe is created from record dictionary IE List of Directories.
         df = df.merge(df[['FullName','Ref_Section']],how='left',left_on='Parent',right_on='FullName')                   # The dataframe is merged on itself, Parent is merged 'left' on FullName
@@ -133,24 +121,30 @@ class ClassificationGenerator():
         if self.accession_flag:
             self.df['Accession_Reference'] = self.accession_list
         return self.df
+    
     def reference_loop(self, REF, PARENT, TRACK, LEVEL, NEWREF=None):
         try:
-            #print(REF,PARENT,LEVEL)
-            idx = self.df.index[self.df['FullName'] == PARENT]          # Indexes the Parent of a file against the FullName (Giving the index number of the Parent)
+            idx = self.df.index[self.df['FullName'] == PARENT]          # Indexes the Parent of a file against the FullName (Giving the index number of 
             if idx.size == 0:                               # If Index fails / is 0. then the Top-Level of tree has been reached.
-                
-                if LEVEL == 0: NEWREF = str(REF)            # If the Level is 0, (IE it's the top-most reference being Indexed - no ref_loop involved), NEWREF is REF
-                else: NEWREF = NEWREF                       # If the Level is not 0, IE the ref-level has reached the top-most reference, NEWREF is NEWREF (The constructed Reference from the loop.)
-                if self.prefix:                             # If a Prefix is given; add Prefix to the previously given New Reference.
-                    PREFIX_NEWREF = str(self.prefix) + "/" + str(NEWREF)
-                    self.reference_list.append(PREFIX_NEWREF)                       # PREFIXNEW
-                else: self.reference_list.append(NEWREF)                            # NEWREF is appended to the new_reference_list.
+                if LEVEL == 0: 
+                    NEWREF = str(REF)            # If the Level is 0, (IE it's the top-most reference being Indexed - no ref_loop involved), NEWREF is REF
+                    if self.prefix: NEWREF = str(self.prefix)
+                else: 
+                    NEWREF = str(NEWREF)                       # If the Level is not 0, IE the ref-level has reached the top-most reference, NEWREF is NEWREF (The constructed Reference from the loop.)
+                    if self.prefix: NEWREF = str(self.prefix) + "/" + str(NEWREF)                             # If a Prefix is given; add Prefix to the previously given New Reference.
+                        
+                self.reference_list.append(NEWREF)                               # NEWREF is appended to the new_reference_list.
                         
             else:                                                                       # Else if Index is successful / Top-Level has not been reached.
                 PARENTREF = self.df.loc[idx].Ref_Section.item()                         # Indexes / returns the 'Ref_Section' and 'Parent' columns of the Dataframe against idx
+                if PARENTREF == 0:
+                    if TRACK == 1: NEWREF = str(REF)                 # If TRACK is 1, IE the first iteration, REF is concatenated with PARENTREF 
+                    else: NEWREF = str(NEWREF)                       # If TRACK isn't 1, IE any later iteration. NEWREF is concatenated with PARENTREF                    
+                else:
+                    if TRACK == 1: NEWREF = str(PARENTREF) + "/" + str(REF)                 # If TRACK is 1, IE the first iteration, REF is concatenated with PARENTREF 
+                    else: NEWREF = str(PARENTREF) + "/" + str(NEWREF)                       # If TRACK isn't 1, IE any later iteration. NEWREF is concatenated with PARENTREF
+                    
                 SUBPARENT = self.df.loc[idx].Parent.item() 
-                if TRACK == 1: NEWREF = str(PARENTREF) + "/" + str(REF)                 # If TRACK is 1, IE the first iteration, REF is concatenated with PARENTREF 
-                else: NEWREF = str(PARENTREF) + "/" + str(NEWREF)                       # If TRACK isn't 1, IE any later iteration. NEWREF is concatenated with PARENTREF
                 PARENT = SUBPARENT                                                      # PARENT becomes PARENTPARENT, IE Parent of the Parent 
                                                                                         # This is key, as it allows the loop to lookup the ?above? file.  
                 TRACK = TRACK+1                                                         # TRACK is advanced 
@@ -165,19 +159,17 @@ class ClassificationGenerator():
         if self.empty_flag: self.remove_empty_directories()
         self.init_dataframe()
         output_xl = define_output_directory(self.output_path,self.root,meta_flag=self.meta_flag)
-        self.export_xl(output_xl)
+        export_xl(df=self.df,output_filename=output_xl)
                     
-    def accession_running_number(self,dir):
-        if os.path.isdir(dir):
-            if self.accession_flag == "File": accession_ref = self.accessoin_prefix + "-Dir"
-            elif self.accession_flag == "Dir": 
-                accession_ref = self.accessoin_prefix + "-" + str(self.accession_count)
-                self.accession_count += 1
-        else:
-            if self.accession_flag == "Dir": accession_ref = self.accessoin_prefix + "-File"
-            elif self.accession_flag == "File": 
-                accession_ref = self.accessoin_prefix + "-" + str(self.accession_count)
-                self.accession_count += 1
+    def accession_running_number(self,file_path):
+        if self.accession_flag == "File":
+            if os.path.isdir(file_path): accession_ref = self.accession_prefix + "-Dir"
+            else: accession_ref = self.accession_prefix + "-" + str(self.accession_count); self.accession_count += 1
+        elif self.accession_flag == "Dir":
+            if os.path.isdir(file_path): self.accession_prefix + "-" + str(self.accession_count); self.accession_count += 1
+            else: accession_ref = accession_ref = self.accession_prefix + "-Dir"
+        elif self.accession_flag == "All":
+            self.accession_prefix + "-" + str(self.accession_count); self.accession_count += 1
         return accession_ref
 
 def define_output_directory(output_path,root_name,meta_flag=True,output_suffix="_AutoClass.xlsx"):
@@ -212,6 +204,23 @@ def export_xl(df,output_filename):
         export_xl(df,output_filename)
     finally:
         print(f"Saved to: {output_filename}")
+        
+def parse_args():
+    parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
+    parser.add_argument('root',nargs='?', default=os.getcwd())
+    parser.add_argument("-p","--prefix",required=False, nargs='?')
+    parser.add_argument("-rm","--empty",required=False,action='store_true')
+    parser.add_argument("-acc","--accession",required=False,choices=[None,'Dir','File','All'],default=None)
+    parser.add_argument("-o","--output",required=False,nargs='?')
+    parser.add_argument("-s","--start-ref",required=False,nargs='?',default=1)
+    parser.add_argument("-m","--meta-flag",required=False,action='store_true',default=True)
+    args = parser.parse_args()
+    return args
+
+def path_check(path):
+    if os.path.exists(path):
+        pass
+    else: os.makedirs(path)
 
 if __name__ == "__main__":
     args = parse_args()
@@ -222,5 +231,6 @@ if __name__ == "__main__":
     else:
         args.output = os.path.abspath(args.output)
         print(f'Output path set to: {args.output}')
+        
     ClassificationGenerator(args.root,output_path=args.output,prefix=args.prefix,empty_flag=args.empty,accession_flag=args.accession,start_ref=args.start_ref,meta_flag=args.meta_flag).main()
     print('Complete!')
