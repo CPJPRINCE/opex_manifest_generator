@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdpr xmlns="http://www.preservica.com/gdpr/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <!-- The dates in this fragment should be ISO-8601 timestamps e.g. 2030-01-01T09:00:00Z -->
+    <personaldata></personaldata>
+    <recordobjected></recordobjected>
+    <recordobjecteddate></recordobjecteddate>
+    <recipientdisclosurecategory></recipientdisclosurecategory>
+    <timelimitforerasure></timelimitforerasure>
+</gdpr>

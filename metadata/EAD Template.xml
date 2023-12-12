@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ead:ead xmlns:ead="urn:isbn:1-931666-22-9" xmlns="urn:isbn:1-931666-22-9"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:isbn:1-931666-22-9 http://www.loc.gov/ead/ead.xsd">
+
+ <eadheader>
+   <eadid></eadid>
+  <filedesc>
+   <titlestmt>
+    <titleproper></titleproper>
+   </titlestmt>
+  </filedesc>
+  <profiledesc>
+   <creation>
+    <date></date>
+   </creation>
+   <descrules></descrules>
+  </profiledesc>
+ </eadheader>
+
+ <archdesc level="series">
+  <did>
+   <unittitle></unittitle>
+   <unitdate label="Accumulation"></unitdate>
+   <unitdate label="Created"></unitdate>
+   <origination label="Creator"></origination>
+   <physdesc></physdesc>
+   <langmaterial></langmaterial>
+  </did>
+
+  <bioghist>
+   <head>Biography or History</head>
+   <p></p>
+  </bioghist>
+  <custodhist>
+   <head>Custodial history</head>
+   <p></p>
+  </custodhist>
+  <acqinfo>
+   <head>Acquisition Information</head>
+   <p></p>
+  </acqinfo>
+  <scopecontent>
+   <head>Scope and content</head>
+   <p></p>
+  </scopecontent>
+  <appraisal>
+   <head>Appraisal Information</head>
+   <p></p>
+  </appraisal>
+  <accruals>
+   <head>Accruals</head>
+   <p></p>
+  </accruals>
+  <arrangement>
+   <head>Arrangement</head>
+   <p></p>
+  </arrangement>
+  <accessrestrict>
+   <head>Conditions governing access</head>
+   <p></p>
+  </accessrestrict>
+  <userestrict>
+   <head>Conditions Governing Use</head>
+   <p></p>
+  </userestrict>
+  <phystech>
+   <head>Physical Characteristics and Technical Requirements</head>
+   <p></p>
+  </phystech>
+  <otherfindaid>
+   <head>Other Finding Aid</head>
+   <p></p>
+  </otherfindaid>
+  <originalsloc>
+   <head>Location of Originals</head>
+   <p></p>
+  </originalsloc>
+  <altformavail>
+   <head>Alternative Form Available</head>
+   <p></p>
+  </altformavail>
+  <relatedmaterial>
+   <head>Related Material</head>
+   <p></p>
+  </relatedmaterial>
+  <bibliography>
+   <head>Bibliography</head>
+   <p></p>
+  </bibliography>
+  <odd>
+   <head>Other Descriptive Data</head>
+   <note>
+    <p></p>
+   </note>
+  </odd>
+  <processinfo>
+   <head>Processing Information</head>
+   <p></p>
+  </processinfo>
+ </archdesc>
+</ead:ead>
