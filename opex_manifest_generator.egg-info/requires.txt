@@ -1,0 +1,4 @@
+auto_classification_generator
+pandas
+openpyxl
+lxml

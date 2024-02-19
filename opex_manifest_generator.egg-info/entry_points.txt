@@ -1,0 +1,2 @@
+[console_scripts]
+opex_generate = opex_manifest_generator.cli:run_cli
