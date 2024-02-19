@@ -355,5 +355,3 @@ class OpexFile(OpexManifestGenerator):
             opex_path = self.OMG.write_opex(self.file_path,self.xmlroot)
             if self.OMG.zip_flag:
                 zip_opex(self.file_path,opex_path)
-    
-#Checks if OS is windows and if chacter length is 256 characters or more. If longer uses "\\\\?\\" to resolve path.
