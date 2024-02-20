@@ -25,7 +25,7 @@ The Program also Making use of The Auto Classification Generator, a host of othe
 A key feature of the program, is that the Auto Class spreadsheet can also act as an input, meaning you can utilise the generated spreadsheet to assign metadata to your files and folders. Currently this allows:
 - Assignment of title, description, and security status fields.  
 - Assignment of standard and custom xml metadata templates. \**Custom XML's require a small bit of setup*
-- These fields are all 'drop-in', so only required data 
+- These fields are all 'drop-in', so only the fields as they are required need to be added. 
 
 All these features can be combined to create extensive and robust Opex files for transfer.
 
