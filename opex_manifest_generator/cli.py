@@ -9,6 +9,7 @@ import argparse
 import os
 import time
 from opex_manifest_generator.opex_manifest import OpexManifestGenerator
+from opex_manifest_generator import __version__
 
 def parse_args():
     parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
@@ -28,12 +29,18 @@ def parse_args():
     parser.add_argument("-i","--input",required=False)
     parser.add_argument("-z","--zip", required=False,action='store_true')
     parser.add_argument("-fmt", "--output-format",required=False,default="xlsx", choices=['xlsx','csv'])
+    parser.add_argument("--version",required=False,action='store_true')
     args = parser.parse_args()
     return args
 
 def run_cli():
     args = parse_args()
     os.chdir(args.root)
+
+    if args.version: 
+        print(__version__)
+        raise SystemExit
+    
     print(f"Running Opex Generation on: {args.root}")
     if not args.output:
         args.output = os.path.abspath(args.root)
@@ -58,11 +65,28 @@ def run_cli():
                 if n == 0: args.prefix = str(a)
                 else: prefix_acc = str(a)
             print(f"Prefixes are set as: \t Catalog: {args.prefix} \t Acc: {prefix_acc}")
-        else:
+        elif args.autoclass in {"accession","a","accession-generic","ag"}:
+            for a in args.prefix:
+                prefix_acc = args.prefix
+            print('Prefix is set as: ' + args.prefix)                        
+        elif args.autoclass in {"catalog","c","catalog-generic","cg"}:
             prefix_acc = None
             for a in args.prefix: 
                 args.prefix = str(a)
-            print('Prefix is set as: ' + args.prefix)                        
+            print('Prefix is set as: ' + args.prefix)
+        elif args.autoclass in {"generic","g"}:
+            pass
+        else:
+            print('''An invalid option has been selected, please select a valid option: 
+                  {c, catalog
+                   a, accession
+                   b, both
+                   g, generic
+                   cg, catalog-generic
+                   ag, accesion-generic
+                   bg, both-generic}''')    
+            time.sleep(3)
+            raise SystemExit               
     if args.fixity:
         print(f'Fixity is activated, using {args.algorithm} algorithm')
     time.sleep(3)

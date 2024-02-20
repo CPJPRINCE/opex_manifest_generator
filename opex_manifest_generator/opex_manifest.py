@@ -17,6 +17,7 @@ import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype
 from opex_manifest_generator.hash import HashGenerator
 from opex_manifest_generator.common import *
+import stat
 
 class OpexManifestGenerator():
     def __init__(self,
@@ -294,6 +295,7 @@ class OpexDir(OpexManifestGenerator):
     def filter_directories(self,directory):    #Sorts the list Alphabetically and Ignores: 1. Hidden Directories starting with '.', 2. '.opex' files, 3. Folders titled 'meta', 4. Script file 5. Output file. 
         list_directories = sorted([win_256_check(os.path.join(directory,f)) for f in os.listdir(directory) \
         if not f.startswith('.') \
+        or (stat(os.stat(f).st_file_attributes) & stat.FILE_ATTRIBUTE_HIDDEN) \
         and f != 'meta'\
         and f != os.path.basename(__file__) \
         and not f.endswith('_AutoClass.xlsx') and not f.endswith('_autoclass.xlsx')\
