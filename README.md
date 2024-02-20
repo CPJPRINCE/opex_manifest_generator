@@ -10,7 +10,7 @@ This tool was primarily intended to allow users, to undertake larger uploads saf
 - Manual Ingest
 - Starter/UX2 Ingest uploads (Both File and Folder)
 
-## Additional features:
+## Additional features
 
 There are a number of additional feature's utilised including:
 - Generating Fixities for files, with SHA1, MD5, SHA256, SHA512 (Default is SHA1)
@@ -92,14 +92,14 @@ Another tool, the Auto Classification Generator, is built-in to this program. Wh
 
 Compared to `auto_class`, see here for details, instead of exporting to a spreadsheet, directly embed the references into the Opex file. To avoid potential conflicts, the behaviour differs when compared to utilising the standalone command.
 
-## Filtering note.
+## Filtering note
 
 Currently a number of filters are applied to certain files / folders.
 
 1) Hidden directories / files and those starting with '.' are not included.
 2) Folder's titled 'meta' are not inlcuded.
 
-## Basic Generation.
+## Basic Generation
 
 To generate an auto classification code, for a given folder, with prefix `ARCH` simply run:
 
@@ -170,7 +170,7 @@ Once the above is setup, and all the data added; to create the OPEX's simply add
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m exact`
 
-## Options:
+## Options
 
 The following options are currently avilable to run the program with, and can be utilised in various combinations with each other, although some combinations will clash:
 
