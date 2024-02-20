@@ -17,7 +17,7 @@ There are a number of additional feature's utilised including:
 - OPEX's can also be cleared, for repeated / ease of use.
 - OPEX's can be zipped with the file, for imports use with Starter/UX2/Manual ingest methods
 
-The Program also Making use of The Auto Classification Generator, a host of other feature's are available.
+The Program also makes use of The Auto Classification Generator, a host of other feature's are available.
 - Reference's can be automatically generated and embedded into the Opex, with assignable prefixes.
 - This can utilise either the Catalog or Accession mode, or both!
 - Clear and log empty folders.
