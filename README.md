@@ -1,6 +1,6 @@
 ﻿# Opex Manifest Generator Tool
 
-The Opex Manifest Generator is a pythom programme for generating OPEX files for use with Preservica and system's compatable with the OPEX standard. It will recursively go through a 'root' directory and generate an OPEX files for each folder or, depending on specified options, files.
+The Opex Manifest Generator is a Python programme for generating OPEX files for use with Preservica and system's compatible with the OPEX standard. It will recursively go through a 'root' directory and generate an OPEX files for each folder or, depending on specified options, files.
 
 ## Why use this tool?
 
@@ -17,7 +17,7 @@ There are a number of additional feature's utilised including:
 - OPEX's can also be cleared, for repeated / ease of use.
 - OPEX's can be zipped with the file, for imports use with Starter/UX2/Manual ingest methods
 
-The Program also makes use of The Auto Classification Generator, a host of other feature's are available.
+The Program also makes use of the Auto Classification Generator, allowing for:
 - Reference's can be automatically generated and embedded into the Opex, with assignable prefixes.
 - This can utilise either the Catalog or Accession mode, or both!
 - Clear and log empty folders.
@@ -86,18 +86,18 @@ Mistakes happen! So, the clear option will remove all existing Opex's in a direc
 
 Running this command with no additional options will end the program after clearing the Opex's; if other options are enabled it will proceed with the generation.
 
-## Use with the Auto Classification Generator
-
-Another tool, the Auto Classification Generator, is built-in to this program. While use of this is optional, making use of it allows for some embedding Archival References into the identifer and for Custom imports.
-
-Compared to `auto_class`, see here for details, instead of exporting to a spreadsheet, directly embed the references into the Opex file. To avoid potential conflicts, the behaviour differs when compared to utilising the standalone command.
-
 ## Filtering note
 
 Currently a number of filters are applied to certain files / folders.
 
 1) Hidden directories / files and those starting with '.' are not included.
 2) Folder's titled 'meta' are not inlcuded.
+
+## Use with the Auto Classification Generator
+
+Another tool, the Auto Classification Generator, is built-in to this program. While use of this is optional, making use of it allows for some embedding Archival References into the identifer and for Custom imports.
+
+Compared to `auto_class`, see here for details, instead of exporting to a spreadsheet, directly embed the references into the Opex file. To avoid potential conflicts, the behaviour differs when compared to utilising the standalone command.
 
 ## Basic Generation
 
