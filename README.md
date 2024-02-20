@@ -4,7 +4,7 @@ The Opex Manifest Generator is a Python programme for generating OPEX files for 
 
 ## Why use this tool?
 
-This tool was primarily intended to allow users, to undertake larger uploads safetly utilising bulk ingests, utilising the Opex Ingest Workflow, with Folder Manifest's checked to ensure safe transfer. However, it has been tested as functioning with:
+This tool was primarily intended to allow users, to undertake larger uploads safely utilising bulk ingests, utilising the Opex Ingest Workflow, with Folder Manifest's checked to ensure safe transfer. However, it has been tested as functioning with:
 - Bulk / Opex Ingest Workflow
 - PUT Tool / Auto Ingest Workflows
 - Manual Ingest
@@ -91,11 +91,11 @@ Running this command with no additional options will end the program after clear
 Currently a number of filters are applied to certain files / folders.
 
 1) Hidden directories / files and those starting with '.' are not included.
-2) Folder's titled 'meta' are not inlcuded.
+2) Folder's titled 'meta' are not included.
 
 ## Use with the Auto Classification Generator
 
-Another tool, the Auto Classification Generator, is built-in to this program. While use of this is optional, making use of it allows for some embedding Archival References into the identifer and for Custom imports.
+Another tool, the Auto Classification Generator, is built-in to this program. While use of this is optional, making use of it allows for some embedding Archival References into the identifier and for Custom imports.
 
 Compared to `auto_class`, see here for details, instead of exporting to a spreadsheet, directly embed the references into the Opex file. To avoid potential conflicts, the behaviour differs when compared to utilising the standalone command.
 
@@ -105,9 +105,9 @@ To generate an auto classification code, for a given folder, with prefix `ARCH` 
 
 `opex_generate -c catalog -p "ARCH" C:\Users\Christopher\Downloads`
 
-This will generate Opex's with an identifier "code" added to each of the files. As described in the Auto Class module, the reference codes will take the hierachy of the directories.
+This will generate Opex's with an identifier "code" added to each of the files. As described in the Auto Class module, the reference codes will take the hierarchy of the directories.
 
-To utilise the "Accession" mode of the program:
+To utilising the "Accession" mode of the program:
 
 `opex_generate -c accession -p "2024" C:\Users\Christopher\Downloads`
 
@@ -138,21 +138,21 @@ To create the spreadsheet base spreadsheet:
 
 `opex_generate -c catalog -p "ARCH" -ex "C:\Users\Christopher\Downloads"` or `auto_class -p "ARCH" "C:\Users\Christopher\Downloads"` to avoid unnecessary OPEX creation.
 
-In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column header has to match exactly, including captialisation; these fields would then be filled in with the relevant data.
+In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column header has to match exactly, including capitalisation; these fields would then be filled in with the relevant data.
 
-Once filled in; to intialise the generation: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
+Once filled in; to initialise the generation: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
 
 Ensure that the root directory matches the original directory of the export. In the above case this would be: `opex_generate -i "C:\Users\Christopher\Downloads\meta\Downloads_AutoClass.xlsx" "C:\Users\Christopher\Downloads"`
 
-Please note, if there are any changes to the hierachy data after the export of the intial spreadsheet, the data may not be assigned correctly.
+Please note, if there are any changes to the hierarchy data after the export of the initial spreadsheet, the data may not be assigned correctly.
 
 #### XML Metadata
 
-To utilise an import with XML Metadata templates, first the XML template has to be stord the source 'metadata' directory. DC, MODS, GPDR, and EAD templates come with the package, but custom templates can be added and will work 'out-the-box', as long as they are functioning within Preservica. *I will likely change the destination of this directory for easier use.
+To utilise an import with XML Metadata templates, first the XML template has to be stored in the source 'metadata' directory. DC, MODS, GPDR, and EAD templates come with the package, but custom templates can be added and will work 'out-the-box', as long as they are functioning within Preservica. *I will likely change the destination of this directory for easier use.
 
 After exporting an Auto Class spreadsheet, add in additional columns to the spreadsheet; like the XIP data, all fields are optional, and can added on a 'drop-in' basis. You can add in the column header in two ways: 'exactly' or 'flatly'.
 
-An Exactly match requires that the full path from the XML document is added to the column, with parent to childs seperated by a `/`; 'flatly' requires only a the matching end tag. For example, the below will match to the same `recordIdentifer` field in the mods template:
+An Exactly match requires that the full path from the XML document is added to the column, with parent to child separated by a `/`; 'flatly' requires only a the matching end tag. For example, the below will match to the same `recordIdentifer` field in the mods template:
 
 ```
 Exactly:
@@ -162,17 +162,17 @@ Flatly:
 mods:recordIdentifier
 ```
 
-In both cases, the header has to match both namespace and tag and is case sensistive. While using the flat method is easier, be aware that if there's non-unique tags, such as `mods:note`, the flat method will only import to the first match, which might not be it's intended destination. When using the 'exactly' and you havenon-unique tags, again such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
+In both cases, the header has to match both namespace and tag and is case sensitive. While using the flat method is easier, be aware that if there's non-unique tags, such as `mods:note`, the flat method will only import to the first match, which might not be it's intended destination. When using the 'exactly' and you have non-unique tags, again such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
 
-This is all probably easier done, than said :\). For convience *I've also included* (Note to self: ADD THEM!), spreadsheet templates of DC, MODS, GDPR and EAD, with thier explict names in the headers.
+This is all probably easier done, than said :\). For convenance nce *I've also included* (Note to self: ADD THEM!), spreadsheet templates of DC, MODS, GDPR and EAD, with their explicit names in the headers.
 
-Once the above is setup, and all the data added; to create the OPEX's simply add `-m` with the choosen method of import `flat|exact`, so:
+Once the above is setup, and all the data added; to create the OPEX's simply add `-m` with the chosen method of import `flat|exact`, so:
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m exact`
 
 ## Options
 
-The following options are currently avilable to run the program with, and can be utilised in various combinations with each other, although some combinations will clash:
+The following options are currently available to run the program with, and can be utilised in various combinations with each other, although some combinations will clash:
 
 ```
 Options:
@@ -208,7 +208,7 @@ Options:
                             Description fields with the folder/file's name,
                             if used in conjunction with one of the above options:
                             {generic-catalog,generic-accession, generic-both}
-                            it will do both simutaneously.
+                            it will do both simultaneously.
                             For more details on these see the 
                             auto_classification_generator page.
         
@@ -246,7 +246,7 @@ Options:
                             {example:path/example:to/example:thing}
                             Flat only requires the final tag match.
                             IE {example:thing}. However, for more complex sets
-                            of metadata, Flat will not function corrrectly. 
+                            of metadata, Flat will not function correctly. 
                             Enabled -m without specification will use exact,
                             method.
                                 
@@ -261,17 +261,17 @@ Options:
                             behaviour will not create a new spreadsheet.
 
         -fmt,   --format    Set whether to export as a CSV or XLSX file.           {csv,xlsx}
-                            Otherwise defualts to xlsx.
+                            Otherwise defaults to xlsx.
 ```
 
 ## Future Developments
 
 - Adjust Accession so the different modes can utilised from Opex.
 - Add SourceID as option for use with Auto Class Spreadsheets.
-- Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow cutom setting of identifier...
+- Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...
 - Zipping to conform to PAX, 
 - Add an option / make it a default for Metadata XML's to be located in a specified directory rather than in the package.
-- In theory, this tool should be compatiable with any system that makes use of the OPEX standard. But in theory Communism works, in theory.
+- In theory, this tool should be compatible with any system that makes use of the OPEX standard. But in theory Communism works, in theory.
 
 ## Developers
 
