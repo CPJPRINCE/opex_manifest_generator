@@ -6,6 +6,8 @@ opex_manifest_generator/cli.py
 opex_manifest_generator/common.py
 opex_manifest_generator/hash.py
 opex_manifest_generator/opex_manifest.py
+opex_manifest_generator/test_cli.py
+opex_manifest_generator/version.py
 opex_manifest_generator.egg-info/PKG-INFO
 opex_manifest_generator.egg-info/SOURCES.txt
 opex_manifest_generator.egg-info/dependency_links.txt

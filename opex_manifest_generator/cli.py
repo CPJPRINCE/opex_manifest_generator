@@ -9,7 +9,7 @@ import argparse
 import os
 import time
 from opex_manifest_generator.opex_manifest import OpexManifestGenerator
-from opex_manifest_generator import __version__
+from opex_manifest_generator.version import __version__
 
 def parse_args():
     parser = argparse.ArgumentParser(description="OPEX Manifest Generator for Preservica Uploads")
@@ -29,17 +29,13 @@ def parse_args():
     parser.add_argument("-i","--input",required=False)
     parser.add_argument("-z","--zip", required=False,action='store_true')
     parser.add_argument("-fmt", "--output-format",required=False,default="xlsx", choices=['xlsx','csv'])
-    parser.add_argument("--version",required=False,action='store_true')
+    parser.add_argument("-v", "--version",action='version',version='%(prog)s {version}'.format(version=__version__))
     args = parser.parse_args()
     return args
 
 def run_cli():
     args = parse_args()
     os.chdir(args.root)
-
-    if args.version: 
-        print(__version__)
-        raise SystemExit
     
     print(f"Running Opex Generation on: {args.root}")
     if not args.output:

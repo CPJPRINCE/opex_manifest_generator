@@ -115,7 +115,7 @@ Or to both:
 
 `opex_generate -c both -p "ARCH" "2024" C:\Users\Christopher\Downloads`
 
-To note: when using the catalog or accession option, the key `"code"` is used as the identifier. When using `both`, the Catalog Reference is given the key `code` and the 'Accession' given the key: `accref`. I will make this adjustable in a future update.
+To note: when using the catalog or accession option, the key `code` is used as the identifier. When using `both`, the Catalog Reference is given the key `code` and the 'Accession' given the key: `accref`. I will make this adjustable in a future update.
 
 It's possible to also create a 'generic' set of metadata which will take the Title, Description from the basename of the folder/file and set the Security Status to 'Open'. 
 
