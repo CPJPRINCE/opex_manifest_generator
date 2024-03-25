@@ -68,7 +68,7 @@ class OpexManifestGenerator():
         print(f'Running time: {datetime.now() - self.start_time}')
         time.sleep(1)
     
-    def meta_df_lookup(self,file_path):
+    def meta_df_lookup(self,file_path: str):
         idx = self.df.index[self.df['FullName'] == file_path]
         try:
             if self.title_flag:
@@ -90,7 +90,10 @@ class OpexManifestGenerator():
             security = None
         return title,description,security
     
-    def df_lookup(self,file_path,code_name="code",accession_flag=None):
+    def ignore_remove_df_lookup(self,file_path):
+        pass
+
+    def ident_df_lookup(self,file_path,code_name="code",accession_flag=None):
         idx = self.df.index[self.df['FullName'] == file_path]
         if idx.empty: reference = "ERROR"
         else: 
@@ -98,9 +101,18 @@ class OpexManifestGenerator():
                 reference = self.df.loc[idx].Accession_Reference.item()
             else: 
                 reference = self.df.loc[idx].Archive_Reference.item()
-        self.identifier.text = reference
-        self.identifier.set("type",code_name)
-                        
+        if isinstance(reference,float): pass
+        else:
+            self.identifier.text = reference
+            self.identifier.set("type",code_name)
+
+        column_headers = self.df.columns.values.tolist()
+        for header in column_headers:
+            if 'Identifier' in header:
+                self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier") 
+                reference = self.df.at[idx, header.rsplit[':'][-1]].item()         
+                print(reference)
+
     def write_opex(self,file_path,opexxml):
         opex_path = str(file_path) + ".opex"
         if os.path.exists(opex_path) and not self.force_flag:
@@ -227,17 +239,17 @@ class OpexManifestGenerator():
                 self.securityxml = ET.SubElement(self.properties,f"{{{self.opexns}}}SecurityDescriptor")
                 self.securityxml.text = str(security)
             if self.autoclass_flag in {"catalog","c","catalog-generic","cg"}:
-                self.df_lookup(file_path,code_name=code)
+                self.ident_df_lookup(file_path,code_name=code)
             elif self.autoclass_flag in {"accession","a","accession-generic","ag"}:
-                self.df_lookup(file_path,accession_flag=True)
+                self.ident_df_lookup(file_path,accession_flag=True)
             elif self.autoclass_flag in {"both","b","both-generic","bg"}:
-                self.df_lookup(file_path,code_name=code)
+                self.ident_df_lookup(file_path,code_name=code)
                 self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier")           
-                self.df_lookup(file_path,code_name="accref",accession_flag=True)
+                self.ident_df_lookup(file_path,code_name="accref",accession_flag=True)
             elif self.autoclass_flag in {"generic","g"}:
                 self.properties.remove(self.identifiers)
             elif self.input:
-                self.df_lookup(file_path)                
+                self.ident_df_lookup(file_path)                
 
     def genererate_opex_fixity(self):
         self.fixity = ET.SubElement(self.fixities,f"{{{self.opexns}}}Fixity")        
