@@ -15,7 +15,8 @@ def zip_opex(file_path,opex_path):
             z.write(opex_path,os.path.basename(opex_path))
     else: print(f'A zip file already exists for: {zip_file}')
 
-def win_256_check(path):
+def win_256_check(path: str):
     if len(path) > 255 and sys.platform == "win32":
-        path = "\\\\?\\" + path
+        if path.startswith(u'\\\\?\\'): path = path
+        else: path = u"\\\\?\\" + path
     return path
