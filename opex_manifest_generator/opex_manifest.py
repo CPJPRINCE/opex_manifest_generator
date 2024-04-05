@@ -114,7 +114,7 @@ class OpexManifestGenerator():
                 else: os.remove(file_path)
                 return True
             else: return False
-    
+                
     def ignore_df_lookup(self,file_path: str):
         idx = self.df.index[self.df['FullName'] == file_path]
         if idx.empty: return False
@@ -133,15 +133,15 @@ class OpexManifestGenerator():
                 source_xml = ET.SubElement(xml_element,f"{{{self.opexns}}}SourceID")
                 source_xml.text = str(sourceid)
 
-    def hash_df_lookup(self,file_path):
+    def hash_df_lookup(self,file_path,xml_fixities):
         idx = self.df.index[self.df['FullName'] == file_path]
         if idx.empty: pass
         else:
             if "Hash" in self.column_headers and "Algorithm" in self.column_headers:
-                self.fixity = ET.SubElement(self.fixities,f"{{{self.opexns}}}Fixity")        
+                self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")        
                 self.hash = self.df["Hash"].loc[idx].item()
                 self.algorithm = self.df["Algorithm"].loc[idx].item()
-                self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(self.file_path) # Double Check...
+                self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
                 self.fixity.set("type", self.algorithm)
                 self.fixity.set("value",self.hash)
             else: pass
@@ -219,7 +219,9 @@ class OpexManifestGenerator():
         if 'Security' in self.df: self.security_flag = True
         if 'SourceID' in self.df: self.sourceid_flag = True
         if 'Ignore' in self.df: self.ignore_flag = True
-        if 'Hash' in self.df and 'Algorithm' in self.df: self.hash_from_spread = True
+        if 'Hash' in self.df and 'Algorithm' in self.df:
+            self.hash_from_spread = True
+            print("Hash detected in Spreadsheet; taking hashes from spreadsheet");time.sleep(3)
 
     def print_descriptive_xmls(self):
         for file in os.listdir(self.metadata_dir):
@@ -330,17 +332,17 @@ class OpexManifestGenerator():
             self.properties.remove(self.identifiers)
         elif self.autoclass_flag or self.input:
             self.ident_df_lookup(file_path)
-        if not self.identifiers: self.properties.remove(self.identifiers)
-        if not self.properties: xmlroot.remove(self.properties)
+        if self.identifiers is None: self.properties.remove(self.identifiers)
+        if self.properties is None: xmlroot.remove(self.properties)
 
 
     def genererate_opex_fixity(self,file_path):
         self.fixity = ET.SubElement(self.fixities,f"{{{self.opexns}}}Fixity")        
-        self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path) # Double Check...
+        self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
         self.fixity.set("type", self.algorithm)
         self.fixity.set("value",self.hash)
         self.OMG.list_fixity.append([self.algorithm,self.hash,file_path])
-        self.OMG.list_path.append(file_path)        
+        self.OMG.list_path.append(file_path)
 
     def main(self):
         print(f"Start time: {self.start_time}")        
@@ -465,7 +467,7 @@ class OpexFile(OpexManifestGenerator):
                     self.OMG.sourceid_df_lookup(self.transfer,self.file_path)
                 if self.OMG.algorithm:
                     self.fixities = ET.SubElement(self.transfer,f"{{{self.opexns}}}Fixities")
-                    if self.OMG.hash_from_spread: self.OMG.hash_df_lookup(self.file_path)
+                    if self.OMG.hash_from_spread: self.OMG.hash_df_lookup(self.file_path,self.fixities)  
                     else: self.genererate_opex_fixity(self.file_path)            
             if self.OMG.autoclass_flag or self.OMG.input:
                 if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag: self.title,self.description,self.security = self.OMG.meta_df_lookup(file_path) 
