@@ -330,8 +330,8 @@ class OpexManifestGenerator():
             self.properties.remove(self.identifiers)
         elif self.autoclass_flag or self.input:
             self.ident_df_lookup(file_path)
-        if self.identifiers is None: self.properties.remove(self.identifiers)
-        if self.properties is None: xmlroot.remove(self.properties)
+        if not self.identifiers: self.properties.remove(self.identifiers)
+        if not self.properties: xmlroot.remove(self.properties)
 
 
     def genererate_opex_fixity(self,file_path):
@@ -465,7 +465,7 @@ class OpexFile(OpexManifestGenerator):
                     self.OMG.sourceid_df_lookup(self.transfer,self.file_path)
                 if self.OMG.algorithm:
                     self.fixities = ET.SubElement(self.transfer,f"{{{self.opexns}}}Fixities")
-                    if self.hash_from_spread: self.hash_df_lookup(self.file_path)
+                    if self.OMG.hash_from_spread: self.OMG.hash_df_lookup(self.file_path)
                     else: self.genererate_opex_fixity(self.file_path)            
             if self.OMG.autoclass_flag or self.OMG.input:
                 if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag: self.title,self.description,self.security = self.OMG.meta_df_lookup(file_path) 
