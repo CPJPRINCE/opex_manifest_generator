@@ -211,7 +211,7 @@ class OpexManifestGenerator():
                 file_path = win_256_check(os.path.join(dir,file))   
                 if str(file_path).endswith('.opex'):
                     os.remove(file_path)
-                    print(f'Cleared Opex: {file_path}') #fileprint(os.path.join(d,sd,f))
+                    print(f'Cleared Opex: {file_path}')
     
     def set_flags(self):
         if 'Title' in self.df: self.title_flag = True
@@ -220,7 +220,20 @@ class OpexManifestGenerator():
         if 'SourceID' in self.df: self.sourceid_flag = True
         if 'Ignore' in self.df: self.ignore_flag = True
         if 'Hash' in self.df and 'Algorithm' in self.df: self.hash_from_spread = True
-        
+
+    def print_descriptive_xmls(self):
+        for file in os.listdir(self.metadata_dir):
+            path = os.path.join(self.metadata_dir,file)
+            print(path)
+            xml_file = ET.parse(path)
+            root_element = ET.QName(xml_file.find('.'))
+            root_element_ln = root_element.localname
+            for elem in xml_file.findall(".//"):
+                elem_path = xml_file.getelementpath(elem)
+                elem = ET.QName(elem)
+                elem_lnpath = elem_path.replace(f"{{{elem.namespace}}}",root_element_ln + ":")
+                print(elem_lnpath)
+
     def init_generate_descriptive_metadata(self):
         self.xml_files = []
         for file in os.listdir(self.metadata_dir):
