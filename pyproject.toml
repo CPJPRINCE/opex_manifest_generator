@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "opex_manifest_generator"
-version = "1.1.2"
+version = "1.1.3"
 authors = [
     {name="Christopher Prince", email="c.pj.prince@gmail.com"}
     ]
@@ -21,6 +21,3 @@ Homepage = "https://github.com/CPJPRINCE/opex_manifest_generator"
 Issues = "https://github.com/CPJPRINCE/opex_manifest_generator/issues"
 [project.scripts]
 opex_generate = "opex_manifest_generator.cli:run_cli"
-
-[tool.hatch.build]
-include = ['metadata']
