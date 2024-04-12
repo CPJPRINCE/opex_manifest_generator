@@ -240,7 +240,7 @@ class OpexManifestGenerator():
     def init_generate_descriptive_metadata(self):
         self.xml_files = []
         for file in os.scandir(self.metadata_dir):
-            if file.endswith('xml'):
+            if file.name.endswith('xml'):
                 """
                 Generates info on the elements of the XML Files placed in the Metadata directory.
                 Composed as a list of dictionaries.
