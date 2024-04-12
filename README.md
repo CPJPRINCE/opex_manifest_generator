@@ -126,7 +126,7 @@ Alternatively you can do both Catalogue / Accession at the same time:
 
 `opex_generate -c both -p "ARCH" "2024" C:\Users\Christopher\Downloads`
 
-To note: when using the `catalog` option, the key `code` is always used by default. When using `accession` the default key is `accref`. This is currently not adjustable, see [here](###XIP-Metadata---Identifiers) for utilising other keys. 
+To note: when using the `catalog` option, the key `code` is always used by default. When using `accession` the default key is `accref`. This is currently not adjustable, see [here](#XIP-Metadata---Identifiers) for utilising other keys. 
 
 It's possible to also create a `generic` set of metadata which will take the XIP metadata for the Title and Description fields, from the basename of the folder/file. It will also set the Security Status to "open".
 
