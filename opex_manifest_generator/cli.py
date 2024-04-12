@@ -19,7 +19,6 @@ def parse_args():
     parser.add_argument("-p","--prefix",required=False, nargs='+')
     parser.add_argument("-fx","--fixity",required=False,const="SHA-1",default=None, nargs='?', choices=['NONE','SHA-1','MD5','SHA-256','SHA-512'],type=str.upper)
     parser.add_argument("-rme","--remove-empty",required=False,action='store_true',default=False)
-    parser.add_argument("-f","--force",required=False,action='store_true',default=False)
     parser.add_argument("-o","--output",required=False,nargs=1)
     parser.add_argument("-clr","--clear-opex",required=False,action='store_true',default=False)
     parser.add_argument("-s","--start-ref",required=False,nargs='?',default=1)
@@ -103,7 +102,6 @@ def run_cli():
                           autoclass_flag=args.autoclass,
                           prefix=args.prefix,
                           acc_prefix=acc_prefix,
-                          force_flag=args.force,
                           empty_flag=args.remove_empty,
                           remove_flag=args.remove,
                           clear_opex_flag=args.clear_opex,
