@@ -147,7 +147,9 @@ To create the spreadsheet base spreadsheet:
 
 `opex_generate -c catalog -p "ARCH" -ex "C:\Users\Christopher\Downloads"` or `auto_class -p "ARCH" "C:\Users\Christopher\Downloads"` to avoid unnecessary OPEX creation.
 
-In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers have to match exactly, including capitalisation; these fields would then be filled in with the relevant data.
+In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers have to match exactly, and are case-sensitive; these fields would then be filled in with the relevant data.
+
+![ScreenshotXIPColumns](assets/Column Headers.png)
 
 Once the cells are filled in with data; to initialise the generation run: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
 
@@ -155,7 +157,7 @@ Ensure that the root directory matches the original directory of the export. In 
 
 To note, the column headers are drop-in, drop-out, meaning you can the columns as and when you need them. You can also leave blank data,the cell you leave blank will simply not these will not be assigned.
 
-To also note, the `Security` must match an existing tag in your system, exactly by it's name.
+To also note, the `Security` must match an existing tag in your system. This is case-sensitive, so "Closed" will NOT match to a tag called "closed".
 
 To also also note, if there are any changes to the hierarchy data, such as a file/folder (not including a 'meta' folder) being removed or added, after the export of the initial spreadsheet, the data may not be assigned correctly.
 
@@ -163,17 +165,32 @@ To also also note, if there are any changes to the hierarchy data, such as a fil
 
 Custom Identifiers can be added by naming columns: `"Archive_Reference", "Accession_Reference", "Identifier", or "Identifer:Keyname"`.
 
+![Identifier Screenshot](Identifiers Headers.png)
+
 If named `Archive_Reference` or `Identifier` the keyname will default to `code`, if named `Accession_Reference` the keyname will default to `accref`. Using the Auto Classification Generator will always generate a column called `Archive_Reference`, you can simply rename or remove this column if not needed. 
 
 To add a custom identifier import, do so like so: `Identifier:MyCodeName`. As many identifier's as needed can be added.
 
 No additional parameter's need to be set in the command line when using Identifier's, addition is detected by default.
 
+### XIP Metadata - Hashes
+
+If you utilise the Auto Classification's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if the columns `Hash` and `Algorithm` are both present the program will read the hashes from the spreadsheet instead of generating them.
+
+![Hash Screenshot](assets/Hash Headers.png)
+
+*To note, currently interruption / resuming is not supported with the Auto_Class Tool
+
+
 ### XML Metadata - Basic Templates
 
 To utilise an import with XML Metadata templates, first the XML template has to be stored in the source 'metadata' directory. DC, MODS, GPDR, and EAD templates come with the package.
 
-After exporting an Auto Class spreadsheet, add in additional columns to the spreadsheet; like the XIP data, all fields are optional, and can added on a 'drop-in' basis. You can add in the column header in two ways: 'exactly' or 'flatly'.
+After exporting an Auto Class spreadsheet, add in additional columns to the spreadsheet; like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
+
+![XML Headers](assets/XML Headers.png)
+
+You can add in the column header in two ways: 'exactly' or 'flatly'.
 
 An Exactly match requires that the full path from the XML document is added to the column, with parent to child separated by a `/`; 'flatly' requires only a the matching end tag. For example, the below will match to the same `recordIdentifer` field in the mods template:
 
@@ -185,11 +202,11 @@ Flatly:
 mods:recordIdentifier
 ```
 
-In both cases, the header has to match both namespace and tag and isI case sensitive. While using the flat method is easier, be aware that if there's non-unique tags, such as `mods:note`, the flat method will only import to the first match, which might not be it's intended destination.
+In both cases, the header has to match both namespace and tag. This is also case sensitive. While using the flat method is easier, be aware that if there's non-unique tags, such as `mods:note`, the flat method will only import to the first match, which might not be it's intended destination.
 
 When using the 'exactly' and you have non-unique tags, again such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
 
-This is all probably easier done, than said :\). For convenience I've also included *(Note to self: ADD THEM!)*, spreadsheet templates of DC, MODS, GDPR and EAD, with their explicit names in the headers.
+This is all probably easier done, than said :\). For convenience I've also included templates for DC, MODS, GDPR and EAD, with their explicit names in the headers [here](opex_manifest_generator/samples/spreads).
 
 Once the above is setup, and all the data added; to create the OPEX's simply add `-m` with the chosen method of import `flat|exact`, so:
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
@@ -204,6 +221,17 @@ Any custom template can be added to the metadata folder and it will work 'out of
 All that is necessary to do, is add the XML Template document and then add it to the 'metadata' folder within the site-package files within the program. Then in the spreadsheet you simply need to add neccesary column headers - you can utilise either flat or exact methods as described above. You can then save this as a template for reuse.
 
 *In the future I will likely allow the destination of this directory to be set by an option or adjustable in one way or aanother, for use without having to go into the Site-Packages.*
+
+
+### Custom Spreadsheets - Quick Note
+
+You technically don't have to utilise the AutoClass tool at all.
+
+The only requirement for the input override, is the presence of the `FullName` column. With an accurate path to the file you're acting on.
+
+![FullName Column](assets/FullName%20Column.png)
+
+Other columns can be added 
 
 #### Additional Information
 
@@ -319,9 +347,9 @@ Options:
 ## Future Developments
 
 - Adjust Accession so the different modes can utilised from Opex.
-- Add SourceID as option for use with Auto Class Spreadsheets.
-- Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...
-- Zipping to conform to PAX, 
+- Add SourceID as option for use with Auto Class Spreadsheets. *Added!*
+- Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier... *Added!*
+- Zipping to conform to PAX
 - Add an option / make it a default for Metadata XML's to be located in a specified directory rather than in the package.
 - In theory, this tool should be compatible with any system that makes use of the OPEX standard. But in theory Communism works, in theory.
 
@@ -332,7 +360,7 @@ You should also be able to embed the program into Python a Script. Though be war
 ```
 from opex_manifest_generator import OpexManifestGenerator as OMG
  
-OMG(root="/my/directory/path", fixity_flag= True, algorithm = "SHA-256").main()
+OMG(root="/my/directory/path", algorithm = "SHA-256").main()
 
 ```
 
