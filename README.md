@@ -165,7 +165,7 @@ To also also note, if there are any changes to the hierarchy data, such as a fil
 
 Custom Identifiers can be added by naming columns: `"Archive_Reference", "Accession_Reference", "Identifier", or "Identifer:Keyname"`.
 
-![Identifier Screenshot](Identifiers%20Headers.png)
+![Identifier Screenshot](assets/Hash%20Headers.png)
 
 If named `Archive_Reference` or `Identifier` the keyname will default to `code`, if named `Accession_Reference` the keyname will default to `accref`. Using the Auto Classification Generator will always generate a column called `Archive_Reference`, you can simply rename or remove this column if not needed. 
 
