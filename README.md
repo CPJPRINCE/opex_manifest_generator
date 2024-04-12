@@ -149,7 +149,7 @@ To create the spreadsheet base spreadsheet:
 
 In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers have to match exactly, and are case-sensitive; these fields would then be filled in with the relevant data.
 
-![ScreenshotXIPColumns](assets/Column Headers.png)
+![ScreenshotXIPColumns](assets/Column%20Headers.png)
 
 Once the cells are filled in with data; to initialise the generation run: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
 
@@ -165,7 +165,7 @@ To also also note, if there are any changes to the hierarchy data, such as a fil
 
 Custom Identifiers can be added by naming columns: `"Archive_Reference", "Accession_Reference", "Identifier", or "Identifer:Keyname"`.
 
-![Identifier Screenshot](Identifiers Headers.png)
+![Identifier Screenshot](Identifiers%20Headers.png)
 
 If named `Archive_Reference` or `Identifier` the keyname will default to `code`, if named `Accession_Reference` the keyname will default to `accref`. Using the Auto Classification Generator will always generate a column called `Archive_Reference`, you can simply rename or remove this column if not needed. 
 
@@ -177,7 +177,7 @@ No additional parameter's need to be set in the command line when using Identifi
 
 If you utilise the Auto Classification's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if the columns `Hash` and `Algorithm` are both present the program will read the hashes from the spreadsheet instead of generating them.
 
-![Hash Screenshot](assets/Hash Headers.png)
+![Hash Screenshot](assets/Hash%20Headers.png)
 
 *To note, currently interruption / resuming is not supported with the Auto_Class Tool
 
@@ -188,7 +188,7 @@ To utilise an import with XML Metadata templates, first the XML template has to 
 
 After exporting an Auto Class spreadsheet, add in additional columns to the spreadsheet; like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
 
-![XML Headers](assets/XML Headers.png)
+![XML Headers](assets/XML%20Headers.png)
 
 You can add in the column header in two ways: 'exactly' or 'flatly'.
 
