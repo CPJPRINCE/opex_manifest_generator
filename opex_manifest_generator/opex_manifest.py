@@ -74,133 +74,177 @@ class OpexManifestGenerator():
         print(f'Running time: {datetime.now() - self.start_time}')
         time.sleep(1)
     
-    def index_df_lookup(self,file_path: str):
-        idx = self.df['FullName'].index[self.df['FullName'] == file_path]
-        return idx 
+    def index_df_lookup(self, path: str):
+        idx = self.df['FullName'].index[self.df['FullName'] == path]
+        return idx
 
-    def meta_df_lookup(self, file_path: str, idx):
-        #idx = self.df.index[self.df['FullName'] == file_path]
-        if idx.empty:
-            title = None
-            description = None
-            security = None
-        else:
-            try:
-                if self.title_flag:
-                    title = self.df['Title'].loc[idx].item()
-                    if str(title).lower() in {"nan","nat"}: title = None
-                else: title = None
-                if self.description_flag: 
-                    description = self.df['Description'].loc[idx].item()
-                    if str(description).lower() in {"nan","nat"}: description = None
-                else: description = None
-                if self.security_flag: 
-                    security = self.df['Security'].loc[idx].item()
-                    if str(security).lower() in {"nan","nat"}: security = None
-                else: security = None
-            except Exception as e:
-                print(e)
-                raise SystemError()
-        return title,description,security
-    
-    def remove_df_lookup(self, file_path: str,idx):
-        #idx = self.df.index[self.df['FullName'] == file_path]
-        if idx.empty: return False
-        else:
-            remove = self.df['Removals'].loc[idx].item()
-            if str(remove).lower() in {"nan","nat"}: return False
-            elif bool(remove):
-                print(f"Removing: {file_path}")
-                # Not functioning correctly
-                if os.path.isdir(file_path): shutil.rmtree(dir)
-                else: os.remove(file_path)
-                return True
-            else: return False
-                
-    def ignore_df_lookup(self, file_path: str, idx):
-        #idx = self.df.index[self.df['FullName'] == file_path]
-        if idx.empty: return False
-        else: ignore = self.df['Ignore'].loc[idx].item()
-        if str(ignore).lower() in {"nan","nat"}: return False
-        elif str(ignore).lower() in {"true"}: return True
-        else: return False
-
-    def sourceid_df_lookup(self, xml_element, file_path: str, idx):
-        #idx = self.df.index[self.df['FullName'] == file_path]
-        if idx.empty: pass
-        else:
-            sourceid = self.df['SourceID'].loc[idx].item()
-            if str(sourceid) in {"nan","nat"}: pass
+    def meta_df_lookup(self, idx):
+        try:
+            if idx.empty:
+                title = None
+                description = None
+                security = None
             else:
-                source_xml = ET.SubElement(xml_element,f"{{{self.opexns}}}SourceID")
-                source_xml.text = str(sourceid)
+                    if self.title_flag:
+                        title = self.df['Title'].loc[idx].item()
+                        if str(title).lower() in {"nan","nat"}: title = None
+                    else: title = None
+                    if self.description_flag: 
+                        description = self.df['Description'].loc[idx].item()
+                        if str(description).lower() in {"nan","nat"}: description = None
+                    else: description = None
+                    if self.security_flag: 
+                        security = self.df['Security'].loc[idx].item()
+                        if str(security).lower() in {"nan","nat"}: security = None
+                    else: security = None
+            return title,description,security
+        except Exception as e:
+            print('Error Looking up XIP Metadata')
+            print(e)
+    
+    def remove_df_lookup(self, path: str, idx):
+        try:
+            if idx.empty:
+                return False
+            else:
+                remove = self.df['Removals'].loc[idx].item()
+                if str(remove).lower() in {"nan","nat"}:
+                    return False
+                elif bool(remove):
+                    print(f"Removing: {path}")
+                    # Not functioning correctly
+                    if os.path.isdir(path):
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+                    return True
+                else:
+                    return False
+        except Exception as e:
+            print('Error looking up Removals')
+            print(e)
+                
+    def ignore_df_lookup(self, idx):
+        try:
+            if idx.empty:
+                return False
+            else:
+                ignore = self.df['Ignore'].loc[idx].item()
+            if str(ignore).lower() in {"nan","nat"}:
+                return False
+            elif str(ignore).lower() in {"true", "1.0"}:
+                return True
+            elif str(ignore).lower() in {"false", "0.0"}:
+                return False
+        except Exception as e:
+            print('Error looking up Removals')
+            print(e)
+
+    def sourceid_df_lookup(self, xml_element, idx):
+        try:
+            if idx.empty:
+                pass
+            else:
+                sourceid = self.df['SourceID'].loc[idx].item()
+                if str(sourceid) in {"nan","nat"}:
+                    pass
+                else:
+                    source_xml = ET.SubElement(xml_element,f"{{{self.opexns}}}SourceID")
+                    source_xml.text = str(sourceid)
+        except Exception as e:
+            print('Error looking up SourceID')
+            print(e)
 
     def hash_df_lookup(self, file_path, xml_fixities, idx):
-        #idx = self.df.index[self.df['FullName'] == file_path]
-        if idx.empty: pass
-        else:
-            if "Hash" in self.column_headers and "Algorithm" in self.column_headers:
-                self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")        
-                self.hash = self.df["Hash"].loc[idx].item()
-                self.algorithm = self.df["Algorithm"].loc[idx].item()
-                self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
-                self.fixity.set("type", self.algorithm)
-                self.fixity.set("value",self.hash)
-            else: pass
+        try:
+            if idx.empty:
+                pass
+            else:
+                if "Hash" in self.column_headers and "Algorithm" in self.column_headers:
+                    self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")        
+                    self.hash = self.df["Hash"].loc[idx].item()
+                    self.algorithm = self.df["Algorithm"].loc[idx].item()
+                    self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
+                    self.fixity.set("type", self.algorithm)
+                    self.fixity.set("value",self.hash)
+        except Exception as e:
+            print('Error looking up Removals')
+            print(e)
 
-    def ident_df_lookup(self, file_path, idx):
-        #idx = self.df.index[self.df['FullName'] == file_path]
-        if idx.empty:
-            ident = "ERROR"
-            self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier") 
-            self.identifier.set("type","code")
-            self.identifier.text = ident
-        else:
-            for header in self.column_headers:
-                if any(s in header for s in {'Identifier','Archive_Reference','Accession_Reference'}):
-                    ident = self.df[header].loc[idx].item()
-                    if 'Identifier:' in header: code_name = str(header).rsplit(':')[-1]
-                    elif 'Archive_Reference' in header: code_name = "code"
-                    elif 'Accession_Reference' in header: code_name = "accref"
-                else: ident = None
-                if str(ident).lower() in {"nan","nat"} or not ident: pass
+    def ident_df_lookup(self, idx, key_override = None):
+        try:
+            if idx.empty:
+                ident = "ERROR"
+                self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier") 
+                if key_override is None:
+                    key_name = "code"
                 else:
-                    self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier") 
-                    self.identifier.set("type",code_name)
-                    self.identifier.text = str(ident)
+                    key_name = key_override
+                self.identifier.set("type",key_name)
+                self.identifier.text = ident
+            else:
+                for header in self.column_headers:
+                    if any(s in header for s in {'Identifier','Archive_Reference','Accession_Reference'}):
+                        ident = self.df[header].loc[idx].item()
+                        if 'Identifier:' in header:
+                            key_name = str(header).rsplit(':')[-1]
+                        elif key_override is None:
+                            if 'Archive_Reference' in header:
+                                key_name = "code"
+                            elif 'Accession_Reference' in header:
+                                key_name = "accref"
+                            elif 'Identifier' in header:
+                                key_name = "code"
+                        else: 
+                            key_name = key_override
+                    else: ident = None
+                    if str(ident).lower() in {"nan","nat"} or not ident: pass
+                    else:
+                        self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier") 
+                        self.identifier.set("type",key_name)
+                        self.identifier.text = str(ident)
+        except Exception as e:
+            print('Error looking up Identifiers')
+            print(e)            
     
-    def check_opex(self,opex_path):
-        if os.path.exists(win_256_check(opex_path)): return False
-        else: return True
+    def check_opex(self, opex_path):
+        if os.path.exists(win_256_check(opex_path)):
+            return False
+        else:
+            return True
 
-    def write_opex(self,file_path,opexxml):
-        opex_path = str(win_256_check(file_path)) + ".opex"
-        opex = ET.indent(opexxml,"  ")
-        opex = ET.tostring(opexxml,pretty_print=True,xml_declaration=True,encoding="UTF-8",standalone=True)
-        with open(f'{opex_path}','w',encoding="UTF-8") as writer:
+    def write_opex(self, path, opexxml):
+        opex_path = str(win_256_check(path)) + ".opex"
+        opex = ET.indent(opexxml, "  ")
+        opex = ET.tostring(opexxml, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
+        with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
             writer.write(opex.decode('UTF-8'))
             print('Saved Opex File to: ' + opex_path)
         return opex_path
 
     def init_df(self):
         if self.autoclass_flag:
-            if self.autoclass_flag in {"catalog","c","catalog-generic","cg"}:
-                ac = ClassificationGenerator(self.root,output_path=self.output_path,prefix=self.prefix,start_ref=self.startref,empty_flag=self.empty_flag,accession_flag=False)
-            elif self.autoclass_flag in {"accession","a","accession-generic","ag","both","b","both-generic","bg"}:
-                ac = ClassificationGenerator(self.root,output_path=self.output_path,prefix=self.prefix,accprefix=self.acc_prefix,start_ref=self.startref,empty_flag=self.empty_flag,accession_flag="File")
+            if self.autoclass_flag in {"catalog", "c", "catalog-generic", "cg"}:
+                ac = ClassificationGenerator(self.root, output_path = self.output_path, prefix = self.prefix, start_ref = self.startref, empty_flag = self.empty_flag, accession_flag = False)
+            elif self.autoclass_flag in {"accession", "a", "accession-generic", "ag", "both", "b", "both-generic", "bg"}:
+                ac = ClassificationGenerator(self.root, output_path = self.output_path, prefix = self.prefix, accprefix = self.acc_prefix, start_ref = self.startref, empty_flag = self.empty_flag, accession_flag="File")
             self.df = ac.init_dataframe()
-            if self.autoclass_flag in {"accession","a","accesion-generic","ag"}:
+            if self.autoclass_flag in {"accession", "a", "accesion-generic", "ag"}:
                 self.df = self.df.drop('Archive_Reference',axis=1)
             self.column_headers = self.df.columns.values.tolist()
             if self.export_flag:
-                output_path = define_output_file(self.output_path,self.root,meta_dir_flag=self.meta_dir_flag,output_format=self.output_format)                
-                if self.output_format == "xlsx": export_xl(self.df,output_path)
-                elif self.output_format == "csv": export_csv(self.df,output_path)
+                output_path = define_output_file(self.output_path, self.root, meta_dir_flag = self.meta_dir_flag, output_format = self.output_format)                
+                if self.output_format == "xlsx":
+                    export_xl(self.df, output_path)
+                elif self.output_format == "csv":
+                    export_csv(self.df, output_path)
         elif self.input:
-            if self.input.endswith('xlsx'): self.df = pd.read_excel(self.input)
-            elif self.input.endswith('csv'): self.df = pd.read_csv(self.input)
+            if self.input.endswith('xlsx'):
+                self.df = pd.read_excel(self.input)
+            elif self.input.endswith('csv'):
+                self.df = pd.read_csv(self.input)
             self.column_headers = self.df.columns.values.tolist()
-            self.set_flags()
+            self.set_input_flags()
         else:
             self.df = None
             self.column_headers = None
@@ -214,15 +258,21 @@ class OpexManifestGenerator():
                     os.remove(file_path)
                     print(f'Cleared Opex: {file_path}')
     
-    def set_flags(self):
-        if 'Title' in self.df: self.title_flag = True
-        if 'Description' in self.df: self.description_flag = True
-        if 'Security' in self.df: self.security_flag = True
-        if 'SourceID' in self.df: self.sourceid_flag = True
-        if 'Ignore' in self.df: self.ignore_flag = True
-        if 'Hash' in self.df and 'Algorithm' in self.df:
+    def set_input_flags(self):
+        if 'Title' in self.column_headers:
+            self.title_flag = True
+        if 'Description' in self.column_headers:
+            self.description_flag = True
+        if 'Security' in self.column_headers:
+            self.security_flag = True
+        if 'SourceID' in self.column_headers:
+            self.sourceid_flag = True
+        if 'Ignore' in self.column_headers:
+            self.ignore_flag = True
+        if 'Hash' in self.column_headers and 'Algorithm' in self.column_headers:
             self.hash_from_spread = True
-            print("Hash detected in Spreadsheet; taking hashes from spreadsheet");time.sleep(3)
+            print("Hash detected in Spreadsheet; taking hashes from spreadsheet")
+            time.sleep(3)
 
     def print_descriptive_xmls(self):
         for file in os.scandir(self.metadata_dir):
@@ -269,7 +319,7 @@ class OpexManifestGenerator():
             if len(list_xml) > 0:
                 self.xml_files.append({'data':list_xml, 'localname':root_element_ln, 'xmlfile': path})
 
-    def generate_descriptive_metadata(self,xml_desc,file_path, idx):
+    def generate_descriptive_metadata(self,xml_desc, idx):
         for xml_file in self.xml_files:
             list_xml = xml_file.get('data')
             localname = xml_file.get('localname')
@@ -277,7 +327,6 @@ class OpexManifestGenerator():
             Composes the data into an xml file.
             """
             if len(list_xml):
-                #idx = self.df.index[self.df['FullName'] == file_path]
                 if not idx.empty:
                     xml_new = ET.parse(xml_file.get('xmlfile'))
                     for elem_dict in list_xml:
@@ -298,16 +347,17 @@ class OpexManifestGenerator():
                             print('Key Error: please ensure column header\'s are an exact match...')
                             print(f'Missing Column: {e}')
                             print('Alternatively use flat mode...')
-                            time.sleep(5)
+                            time.sleep(3)
                             raise SystemError()
                         except IndexError as e:
                             print("""Index Error; it is likely you have removed or added a file/folder to the directory \
                                 after generating the spreadsheet. An opex will still be generated but with no xml metadata. \
                                 To ensure metadata match up please regenerate the spreadsheet...""")
                             print(f'Error: {e}')
-                            time.sleep(1)
+                            time.sleep(3)
                             break
-                        if str(val).lower() in {"nan","nat"}: continue
+                        if str(val).lower() in {"nan","nat"}:
+                            continue
                         if self.metadata_flag in {'e','exact'}:
                             n = path.replace(localname + ":", f"{{{ns}}}")
                             elem = xml_new.find(f'/{n}')
@@ -319,7 +369,7 @@ class OpexManifestGenerator():
                 else: pass
             else: pass
 
-    def generate_opex_properties(self,xmlroot,file_path, idx, title=None,description=None,security=None):
+    def generate_opex_properties(self, xmlroot, idx, title=None,description=None,security=None):
         self.properties = ET.SubElement(xmlroot,f"{{{self.opexns}}}Properties")
         self.identifiers = ET.SubElement(self.properties,f"{{{self.opexns}}}Identifiers")
         if title:
@@ -334,18 +384,18 @@ class OpexManifestGenerator():
         if self.autoclass_flag in {"generic","g"}:
             self.properties.remove(self.identifiers)
         elif self.autoclass_flag or self.input:
-            self.ident_df_lookup(file_path, idx)
+            self.ident_df_lookup(idx)
         if self.identifiers is None:
             self.properties.remove(self.identifiers)
         if self.properties is None:
             xmlroot.remove(self.properties)
 
-    def genererate_opex_fixity(self,file_path):
-        self.fixity = ET.SubElement(self.fixities,f"{{{self.opexns}}}Fixity")        
+    def genererate_opex_fixity(self, file_path):
+        self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")        
         self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
         self.fixity.set("type", self.algorithm)
-        self.fixity.set("value",self.hash)
-        self.OMG.list_fixity.append([self.algorithm,self.hash,file_path])
+        self.fixity.set("value", self.hash)
+        self.OMG.list_fixity.append([self.algorithm, self.hash, file_path])
         self.OMG.list_path.append(file_path)
 
     def main(self):
@@ -383,11 +433,11 @@ class OpexDir(OpexManifestGenerator):
             self.index = self.OMG.index_df_lookup(self.folder_path)
         if self.OMG.ignore_flag or self.OMG.remove_flag:
             if self.OMG.ignore_flag:
-                self.ignore = self.OMG.ignore_df_lookup(folder_path,self.index)
+                self.ignore = self.OMG.ignore_df_lookup(self.index)
                 if self.ignore:
                     return
             if self.OMG.remove_flag:
-                self.removal = self.OMG.remove_df_lookup(self.folder_path,self.index)
+                self.removal = self.OMG.remove_df_lookup(self.folder_path, self.index)
                 if self.removal:
                     return        
         else:

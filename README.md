@@ -149,9 +149,9 @@ As well as XML metadata templates, including the default templates and custom te
 
 ### XIP metadata - Title, Description and Security Status
 
-To create the spreadsheet base spreadsheet:
+To use an input override, we need to first create a spreadsheet with the path of. You can utilise the `auto_class` tool installed alongside the Opex Generator.
 
-`opex_generate -c catalog -p "ARCH" -ex "C:\Users\Christopher\Downloads"` or `auto_class -p "ARCH" "C:\Users\Christopher\Downloads"` to avoid unnecessary OPEX creation.
+`auto_class -p "ARCH" "C:\Users\Christopher\Downloads"`
 
 In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers have to match exactly, and are case-sensitive; these fields would then be filled in with the relevant data.
 
@@ -167,7 +167,7 @@ When assigning the `Security` field, the tag must be a match to an existing tag 
 
 ### Important Note
 
-If there are any changes to the hierarchy data, such as a file/folder (not including a 'meta' folder) being removed or added, *AFTER* the export of the spreadsheet. The data may not be assigned correctly, or it may be assigned as "ERROR", or the program may simply fail.
+If there are any changes to the hierarchy data, such as a file/folder (not including a 'meta' folder) being removed or added after the export of the spreadsheet, the data may not be assigned correctly, or it may be assigned as "ERROR", or the program may simply fail.
 
 ### XIP Metadata - Identifiers
 
@@ -175,11 +175,11 @@ Custom Identifiers can be added by adding the columns: `"Archive_Reference", "Ac
 
 ![Identifier Screenshot](assets/Identifiers%20Headers.png)
 
-`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Classification Generator will always generate a column called `Archive_Reference`, but you can simply rename or remove this column if not needed. 
+`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Classification Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as neccessary. 
 
-To add a custom identifier import, do so like so: `Identifier:MyCodeName`. As many identifier's as needed can be added.
+To add a custom identifier import, do so like: `Identifier:MyCodeName`. As many identifier's as needed can be added.
 
-No additional parameter's need to be set in the command line when using Identifier's, addition is detected by default.
+No additional parameter's need to be set in the command line when using Identifier's, addition is enabled by default. Leaving a cell blank will use Preservica's defaults.
 
 ### XIP Metadata - Hashes
 
@@ -187,12 +187,11 @@ If you utilise the Auto Classification's tool for generating Hashes; when utilis
 
 ![Hash Screenshot](assets/Hash%20Headers.png)
 
-*To note, currently interruption / resuming is not supported with the Auto Class Tool
-
+*Be aware that interruption / resuming is not currently supported with the Auto Class Tool.
 
 ### XML Metadata - Basic Templates
 
-To utilise an import with XML Metadata templates, first the XML template has to be stored in the source 'metadata' directory. DC, MODS, GPDR, and EAD templates come with the package.
+DC, MODS, GPDR, and EAD templates are supported alongside installation of the package.
 
 After exporting an Auto Class spreadsheet, add in additional columns to the spreadsheet; like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
 
@@ -224,15 +223,13 @@ Once you have added in your headers and the necessary data to create the OPEX's 
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m exact`
 
-*To note, using `-m` will default to an `exact` match.
-
-Be aware that when you add an XML Metadata column to the spreadsheet, it will always add the metadata template to the OPEX - even if all the cells are left blank. As this is a useful function (adding blank templates to your import), I will leave this for now, but may adjust this in the future.
+Be aware that when you add an XML Metadata column to the spreadsheet, it will always add the entire metadata template to the OPEX - even if all the cells are left blank. As this is a useful function (adding blank templates to your import), I will leave this for now, but may adjust this in the future.
 
 ### XML Metadata Templates - Custom Templates
 
-Any custom template can be added to the metadata folder and it will work 'out of the box', as long as they are functioning within Preservica.
+Any custom XML template can be added to the 'metadata' folder in the installation directory. As long as the XML template is functioning in Preservica, it will work 'out of the box'. All XML's in the directory are checked when enabling the `-m` option.
 
-All that is necessary to do, is add the XML Template document and then add it to the 'metadata' folder within the site-package files within the program. the location of this will depend on the install path utilising by Python.
+The location of this will depend on the install path utilising by Python; typically it will be under `/path/to/ptyhoninstall/Lib/site-packages/opex_manifest_generator/metadata`
 
 *In the future I will likely allow the destination of this directory to be set by an option or adjustable, for ease of use.*
 
@@ -361,6 +358,7 @@ Options:
 
 ## Future Developments
 
+- Customisable Filtering
 - Adjust Accession so the different modes can utilised from Opex.
 - Add SourceID as option for use with Auto Class Spreadsheets. *Added!*
 - Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier... *Added!*
