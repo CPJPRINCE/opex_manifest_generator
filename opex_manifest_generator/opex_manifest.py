@@ -429,8 +429,10 @@ class OpexDir(OpexManifestGenerator):
             self.folder_path = folder_path.replace(u'\\\\?\\',"")
         else:
             self.folder_path = folder_path
-        if self.OMG.input or not self.OMG.autoclass_flag in {"g","generic"} or self.OMG.ignore_flag or self.OMG.remove_flag or self.OMG.sourceid_flag or self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-            self.index = self.OMG.index_df_lookup(self.folder_path)
+        if self.OMG.autoclass_flag is None:
+            pass
+        elif self.OMG.input or not self.OMG.autoclass_flag in {"g","generic","none"} or self.OMG.ignore_flag or self.OMG.remove_flag or self.OMG.sourceid_flag or self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
+                self.index = self.OMG.index_df_lookup(self.folder_path)
         if self.OMG.ignore_flag or self.OMG.remove_flag:
             if self.OMG.ignore_flag:
                 self.ignore = self.OMG.ignore_df_lookup(self.index)
