@@ -218,6 +218,7 @@ class OpexManifestGenerator():
             print(e)            
     
     def check_opex(self, opex_path: str):
+        opex_path = opex_path + ".opex" 
         if os.path.exists(win_256_check(opex_path)):
             return False
         else:
@@ -351,7 +352,7 @@ class OpexManifestGenerator():
                             if pd.isnull(val):
                                 continue
                             else:
-                                if is_datetime64_any_dtype(val):
+                                if is_datetime64_any_dtype(str(val)):
                                     val = pd.to_datetime(val)
                                     val = datetime.strftime(val, "%Y-%m-%dT%H-%M-%S.00Z")
                         except KeyError as e:
@@ -492,7 +493,7 @@ class OpexDir(OpexManifestGenerator):
                                               security = self.security)
             if not self.OMG.metadata_flag in {'none', 'n'}:
                 self.xml_descmeta = ET.SubElement(self.xmlroot,f"{{{self.opexns}}}DescriptiveMetadata")
-                self.OMG.generate_descriptive_metadata(self.xmlroot, self.folder_path, idx = self.index)
+                self.OMG.generate_descriptive_metadata(self.xmlroot, idx = self.index)
 
     def filter_directories(self, directory: str):
         if self.OMG.hidden_flag is False:
@@ -511,17 +512,17 @@ class OpexDir(OpexManifestGenerator):
     def generate_opex_dirs(self, path: str):
         self = OpexDir(self.OMG, path)
         opex_path = os.path.join(os.path.abspath(self.folder_path), os.path.basename(self.folder_path))
+        for f_path in self.filter_directories(path):
+            if f_path.endswith('.opex'):
+                pass
+            elif os.path.isdir(f_path):
+                if not self.ignore:
+                    self.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
+                    self.folder.text = str(os.path.basename(f_path))
+                self.generate_opex_dirs(f_path)
+            else:
+                OpexFile(self.OMG, f_path, self.OMG.algorithm)
         if self.OMG.check_opex(opex_path):
-            for f_path in self.filter_directories(path):
-                if f_path.endswith('.opex'):
-                    pass
-                elif os.path.isdir(f_path):
-                    if not self.ignore:
-                        self.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
-                        self.folder.text = str(os.path.basename(f_path))
-                    self.generate_opex_dirs(f_path)
-                else:
-                    OpexFile(self.OMG, f_path, self.OMG.algorithm)
             if not self.ignore:
                 for f_path in self.filter_directories(path):
                     if os.path.isfile(f_path):
@@ -544,7 +545,7 @@ class OpexFile(OpexManifestGenerator):
             self.file_path = file_path.replace(u'\\\\?\\', "")
         else:
             self.file_path = file_path
-        if self.OMG.check_opex(self.file_path + ".opex"):
+        if self.OMG.check_opex(self.file_path):
             if self.OMG.input or self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"} \
                 or self.OMG.ignore_flag or self.OMG.remove_flag or self.OMG.sourceid_flag \
                 or self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
@@ -592,9 +593,9 @@ class OpexFile(OpexManifestGenerator):
                                                       security = self.security)
                     if not self.OMG.metadata_flag in {'none','n'}:
                         self.xml_descmeta = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}DescriptiveMetadata")
-                        self.OMG.generate_descriptive_metadata(self.xml_descmeta, self.file_path, self.index)
+                        self.OMG.generate_descriptive_metadata(self.xml_descmeta, self.index)
                 opex_path = self.OMG.write_opex(self.file_path, self.xmlroot)
                 if self.OMG.zip_flag:
                     zip_opex(self.file_path, opex_path)
         else:
-            print(f"Opex exists for: {self.file_path}: Avoiding override")
+            print(f"Avoiding override, Opex exists at: {self.file_path}: ")
