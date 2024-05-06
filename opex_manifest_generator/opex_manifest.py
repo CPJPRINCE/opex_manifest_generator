@@ -495,14 +495,14 @@ class OpexDir(OpexManifestGenerator):
                 self.OMG.generate_descriptive_metadata(self.xmlroot, self.folder_path, idx = self.index)
 
     def filter_directories(self, directory: str):
-        if not self.OMG.hidden_flag:
+        if self.OMG.hidden_flag is False:
             list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory)
                                        if not f.name.startswith('.')
                                        and not bool(os.stat(os.path.join(directory, f.name)).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
                                        and f.name != 'meta'
                                        and f.name != os.path.basename(__file__)]
                                        , key=str.casefold)
-        else:
+        elif self.OMG.hidden_flag is True:
             list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory) \
                                        if f.name != 'meta' \
                                        and f.name != os.path.basename(__file__)], key=str.casefold)

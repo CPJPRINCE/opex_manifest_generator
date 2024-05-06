@@ -112,7 +112,8 @@ def run_cli():
                           startref = args.start_ref, 
                           export_flag = args.export, 
                           meta_dir_flag = args.disable_meta_dir, 
-                          metadata_flag = args.metadata, 
+                          metadata_flag = args.metadata,
+                          hidden_flag= args.hidden,
                           zip_flag = args.zip, 
                           input = args.input, 
                           output_format = args.output_format).main()
