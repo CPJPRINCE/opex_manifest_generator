@@ -168,13 +168,12 @@ class OpexManifestGenerator():
             if idx.empty:
                 pass
             else:
-                if "Hash" in self.column_headers and "Algorithm" in self.column_headers:
-                    self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")        
-                    self.hash = self.df["Hash"].loc[idx].item()
-                    self.algorithm = self.df["Algorithm"].loc[idx].item()
-                    self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
-                    self.fixity.set("type", self.algorithm)
-                    self.fixity.set("value",self.hash)
+                self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")  
+                self.hash = self.df["Hash"].loc[idx].item()
+                self.algorithm = self.df["Algorithm"].loc[idx].item()
+                #self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
+                self.fixity.set("type", self.algorithm)
+                self.fixity.set("value",self.hash)
         except Exception as e:
             print('Error looking up Removals')
             print(e)
@@ -225,7 +224,7 @@ class OpexManifestGenerator():
             return True
 
     def write_opex(self, path: str, opexxml: ET.Element):
-        opex_path = str(win_256_check(path)) + ".opex"
+        opex_path = win_256_check(str(path) + ".opex")
         opex = ET.indent(opexxml, "  ")
         opex = ET.tostring(opexxml, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
         with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
@@ -463,7 +462,7 @@ class OpexDir(OpexManifestGenerator):
             if self.OMG.remove_flag:
                 self.removal = self.OMG.remove_df_lookup(self.folder_path, self.index)
                 if self.removal:
-                    return        
+                    return
         else:
             self.ignore = False
             self.removal = False
@@ -497,9 +496,9 @@ class OpexDir(OpexManifestGenerator):
 
     def filter_directories(self, directory: str):
         if self.OMG.hidden_flag is False:
-            list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory)
+            list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory)
                                        if not f.name.startswith('.')
-                                       and not bool(os.stat(os.path.join(directory, f.name)).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+                                       and not bool(os.stat(win_256_check(os.path.join(directory, f.name))).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
                                        and f.name != 'meta'
                                        and f.name != os.path.basename(__file__)]
                                        , key=str.casefold)
@@ -553,7 +552,7 @@ class OpexFile(OpexManifestGenerator):
             elif self.OMG.autoclass_flag is None or self.OMG.autoclass_flag in {"g","generic"}:
                 self.index = None
             if self.OMG.ignore_flag:
-                self.ignore = self.OMG.ignore_df_lookup(self.file_path, self.index)
+                self.ignore = self.OMG.ignore_df_lookup(self.index)
                 if self.ignore:
                     return
             if self.OMG.remove_flag:
