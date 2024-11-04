@@ -117,3 +117,5 @@ def run_cli():
                           zip_flag = args.zip, 
                           input = args.input, 
                           output_format = args.output_format).main()
+
+run_cli()

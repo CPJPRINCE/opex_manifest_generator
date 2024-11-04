@@ -494,14 +494,25 @@ class OpexDir(OpexManifestGenerator):
                 self.xml_descmeta = ET.SubElement(self.xmlroot,f"{{{self.opexns}}}DescriptiveMetadata")
                 self.OMG.generate_descriptive_metadata(self.xmlroot, idx = self.index)
 
+    def filter_win_hidden(self,path: str):
+        try:
+            if bool(os.stat(path).st_file_attribute & stat.FILE_ATTRIBUTE_HIDDEN) is True:
+                return True
+            else:
+                return False
+        except:
+            return False
+
     def filter_directories(self, directory: str):
         if self.OMG.hidden_flag is False:
+            print(directory)
             list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory)
                                        if not f.name.startswith('.')
-                                       and not bool(os.stat(win_256_check(os.path.join(directory, f.name))).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+                                       and self.filter_win_hidden(win_256_check(os.path.join(directory, f.name))) is False
                                        and f.name != 'meta'
                                        and f.name != os.path.basename(__file__)]
                                        , key=str.casefold)
+            print(list_directories)
         elif self.OMG.hidden_flag is True:
             list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory) \
                                        if f.name != 'meta' \
