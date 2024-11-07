@@ -20,3 +20,8 @@ def win_256_check(path: str):
         if path.startswith(u'\\\\?\\'): path = path
         else: path = u"\\\\?\\" + path
     return path
+
+def check_nan(value):
+    if str(value).lower() in {"nan","nat"}:
+        value = None
+    return value
