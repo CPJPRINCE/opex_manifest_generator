@@ -8,24 +8,22 @@ license: Apache License 2.0"
 """
 
 import lxml.etree as ET
-import os
+import os, time, shutil
 from auto_classification_generator import ClassificationGenerator
 from auto_classification_generator.common import export_list_txt, export_xl, export_csv, define_output_file
-from datetime import datetime
-import time
+import datetime
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype
 from opex_manifest_generator.hash import HashGenerator
 from opex_manifest_generator.common import *
-import stat
-import shutil
+import configparser
 
 class OpexManifestGenerator():
     def __init__(self,
                  root: str,
                  output_path: os.path = os.getcwd(),
                  meta_dir_flag: bool = True,
-                 metadata_dir: bool = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
+                 metadata_dir: os = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
                  metadata_flag: str = 'none',
                  autoclass_flag: str = None,
                  prefix: str = None,
@@ -40,13 +38,14 @@ class OpexManifestGenerator():
                  zip_flag: bool = False,
                  hidden_flag: bool = False,
                  output_format: str = "xlsx",
-                 print_xmls_flag: bool = False):
+                 print_xmls_flag: bool = False,
+                 options_file: str = os.path.join(os.path.dirname(__file__),'options.properties')):
         
         self.root = os.path.abspath(root)
         self.opexns = "http://www.openpreservationexchange.org/opex/v1.2"        
         self.list_path = []
         self.list_fixity = []
-        self.start_time = datetime.now()
+        self.start_time = datetime.datetime.now()
         self.algorithm = algorithm
         self.empty_flag = empty_flag
         self.remove_flag = remove_flag
@@ -59,178 +58,75 @@ class OpexManifestGenerator():
         self.prefix = prefix
         self.acc_prefix = acc_prefix
         self.input = input
-        self.title_flag = False
-        self.description_flag = False
-        self.security_flag = False
-        self.ignore_flag = False
-        self.sourceid_flag = False
-        self.hash_from_spread = False        
         self.hidden_flag = hidden_flag
         self.zip_flag = zip_flag
         self.output_format = output_format
         self.metadata_flag = metadata_flag
         self.metadata_dir = metadata_dir
         self.print_xmls_flag = print_xmls_flag
-        
-    def print_running_time(self):
-        print(f'Running time: {datetime.now() - self.start_time}')
-        time.sleep(1)
+        self.parse_config(options_file=os.path.abspath(options_file))
+
+        self.title_flag = False
+        self.description_flag = False
+        self.security_flag = False
+        self.ignore_flag = False
+        self.sourceid_flag = False
+        self.hash_from_spread = False        
     
-    def index_df_lookup(self, path: str):
-        idx = self.df['FullName'].index[self.df['FullName'] == path]
-        return idx
+    def parse_config(self, options_file: str = 'options.properties'):
+        config = configparser.ConfigParser()
+        config.read(options_file, encoding='utf-8')
+        global INDEX_FIELD
+        INDEX_FIELD = config['options']['INDEX_FIELD']
+        global TITLE_FIELD
+        TITLE_FIELD = config['options']['TITLE_FIELD']
+        global DESCRIPTION_FIELD
+        DESCRIPTION_FIELD = config['options']['DESCRIPTION_FIELD']
+        global SECUIRTY_FIELD
+        SECUIRTY_FIELD = config['options']['SECUIRTY_FIELD']
+        global IDENTIFIER_FIELD
+        IDENTIFIER_FIELD = config['options']['IDENTIFIER_FIELD']
+        global IDENTIFIER_DEFAULT
+        IDENTIFIER_DEFAULT = config['options']['IDENTIFIER_DEFAULT']
+        global REMOVAL_FIELD
+        REMOVAL_FIELD = config['options']['REMOVAL_FIELD']
+        global IGNORE_FIELD
+        IGNORE_FIELD = config['options']['IGNORE_FIELD']
+        global SOURCEID_FIELD
+        SOURCEID_FIELD = config['options']['SOURCEID_FIELD']
+        global HASH_FIELD
+        HASH_FIELD = config['options']['HASH_FIELD']
+        global ALGORITHM_FIELD
+        ALGORITHM_FIELD = config['options']['ALGORITHM_FIELD']
 
-    def meta_df_lookup(self, idx: pd.Index):
-        try:
-            if idx.empty:
-                title = None
-                description = None
-                security = None
-            else:
-                    if self.title_flag:
-                        title = self.df['Title'].loc[idx].item()
-                        if str(title).lower() in {"nan","nat"}:
-                            title = None
-                    else:
-                        title = None
-                    if self.description_flag:
-                        description = self.df['Description'].loc[idx].item()
-                        if str(description).lower() in {"nan","nat"}:
-                            description = None
-                    else:
-                        description = None
-                    if self.security_flag:
-                        security = self.df['Security'].loc[idx].item()
-                        if str(security).lower() in {"nan","nat"}:
-                            security = None
-                    else:
-                        security = None
-            return title,description,security
-        except Exception as e:
-            print('Error Looking up XIP Metadata')
-            print(e)
+    def print_descriptive_xmls(self):
+        for file in os.scandir(self.metadata_dir):
+            path = os.path.join(self.metadata_dir, file.name)
+            print(path)
+            xml_file = ET.parse(path)
+            root_element = ET.QName(xml_file.find('.'))
+            root_element_ln = root_element.localname
+            for elem in xml_file.findall(".//"):
+                elem_path = xml_file.getelementpath(elem)
+                elem = ET.QName(elem)
+                elem_lnpath = elem_path.replace(f"{{{elem.namespace}}}", root_element_ln + ":")
+                print(elem_lnpath)
     
-    def remove_df_lookup(self, path: str, idx: pd.Index):
-        try:
-            if idx.empty:
-                return False
-            else:
-                remove = self.df['Removals'].loc[idx].item()
-                if str(remove).lower() in {"nan","nat"}:
-                    return False
-                elif bool(remove):
-                    print(f"Removing: {path}")
-                    # Not functioning correctly
-                    if os.path.isdir(path):
-                        shutil.rmtree(path)
-                    else:
-                        os.remove(path)
-                    return True
-                else:
-                    return False
-        except Exception as e:
-            print('Error looking up Removals')
-            print(e)
-                
-    def ignore_df_lookup(self, idx: pd.Index):
-        try:
-            if idx.empty:
-                return False
-            else:
-                ignore = self.df['Ignore'].loc[idx].item()
-            if str(ignore).lower() in {"nan","nat"}:
-                return False
-            elif str(ignore).lower() in {"true", "1.0"}:
-                return True
-            elif str(ignore).lower() in {"false", "0.0"}:
-                return False
-        except Exception as e:
-            print('Error looking up Removals')
-            print(e)
-
-    def sourceid_df_lookup(self, xml_element: ET.SubElement, idx: pd.Index):
-        try:
-            if idx.empty:
-                pass
-            else:
-                sourceid = self.df['SourceID'].loc[idx].item()
-                if str(sourceid) in {"nan","nat"}:
-                    pass
-                else:
-                    source_xml = ET.SubElement(xml_element,f"{{{self.opexns}}}SourceID")
-                    source_xml.text = str(sourceid)
-        except Exception as e:
-            print('Error looking up SourceID')
-            print(e)
-
-    def hash_df_lookup(self, file_path: str, xml_fixities: ET.SubElement, idx: pd.Index):
-        try:
-            if idx.empty:
-                pass
-            else:
-                self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")  
-                self.hash = self.df["Hash"].loc[idx].item()
-                self.algorithm = self.df["Algorithm"].loc[idx].item()
-                #self.hash = HashGenerator(algorithm=self.algorithm).hash_generator(file_path)
-                self.fixity.set("type", self.algorithm)
-                self.fixity.set("value",self.hash)
-        except Exception as e:
-            print('Error looking up Removals')
-            print(e)
-
-    def ident_df_lookup(self, idx: pd.Index, key_override: str = None):
-        try:
-            if idx.empty:
-                ident = "ERROR"
-                self.identifier = ET.SubElement(self.identifiers,f"{{{self.opexns}}}Identifier") 
-                if key_override is None:
-                    key_name = "code"
-                else:
-                    key_name = key_override
-                self.identifier.set("type",key_name)
-                self.identifier.text = ident
-            else:
-                for header in self.column_headers:
-                    if any(s in header for s in {'Identifier','Archive_Reference','Accession_Reference'}):
-                        ident = self.df[header].loc[idx].item()
-                        if 'Identifier:' in header:
-                            key_name = str(header).rsplit(':')[-1]
-                        elif key_override is None:
-                            if 'Archive_Reference' in header:
-                                key_name = "code"
-                            elif 'Accession_Reference' in header:
-                                key_name = "accref"
-                            elif 'Identifier' in header:
-                                key_name = "code"
-                        else:
-                            key_name = key_override
-                    else:
-                        ident = None
-                    if str(ident).lower() in {"nan", "nat"} or not ident:
-                        pass
-                    else:
-                        self.identifier = ET.SubElement(self.identifiers, f"{{{self.opexns}}}Identifier") 
-                        self.identifier.set("type", key_name)
-                        self.identifier.text = str(ident)
-        except Exception as e:
-            print('Error looking up Identifiers')
-            print(e)            
-    
-    def check_opex(self, opex_path: str):
-        opex_path = opex_path + ".opex" 
-        if os.path.exists(win_256_check(opex_path)):
-            return False
-        else:
-            return True
-
-    def write_opex(self, path: str, opexxml: ET.Element):
-        opex_path = win_256_check(str(path) + ".opex")
-        opex = ET.indent(opexxml, "  ")
-        opex = ET.tostring(opexxml, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
-        with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
-            writer.write(opex.decode('UTF-8'))
-            print('Saved Opex File to: ' + opex_path)
-        return opex_path
+    def set_input_flags(self):
+        if 'Title' in self.column_headers:
+            self.title_flag = True
+        if 'Description' in self.column_headers:
+            self.description_flag = True
+        if 'Security' in self.column_headers:
+            self.security_flag = True
+        if 'SourceID' in self.column_headers:
+            self.sourceid_flag = True
+        if 'Ignore' in self.column_headers:
+            self.ignore_flag = True
+        if 'Hash' in self.column_headers and 'Algorithm' in self.column_headers:
+            self.hash_from_spread = True
+            print("Hash detected in Spreadsheet; taking hashes from spreadsheet")
+            time.sleep(3)
 
     def init_df(self):
         if self.autoclass_flag:
@@ -242,6 +138,7 @@ class OpexManifestGenerator():
             if self.autoclass_flag in {"accession", "a", "accesion-generic", "ag"}:
                 self.df = self.df.drop('Archive_Reference', axis=1)
             self.column_headers = self.df.columns.values.tolist()
+            self.set_input_flags()
             if self.export_flag:
                 output_path = define_output_file(self.output_path, self.root, meta_dir_flag = self.meta_dir_flag, output_format = self.output_format)                
                 if self.output_format == "xlsx":
@@ -268,34 +165,113 @@ class OpexManifestGenerator():
                     os.remove(file_path)
                     print(f'Cleared Opex: {file_path}')
     
-    def set_input_flags(self):
-        if 'Title' in self.column_headers:
-            self.title_flag = True
-        if 'Description' in self.column_headers:
-            self.description_flag = True
-        if 'Security' in self.column_headers:
-            self.security_flag = True
-        if 'SourceID' in self.column_headers:
-            self.sourceid_flag = True
-        if 'Ignore' in self.column_headers:
-            self.ignore_flag = True
-        if 'Hash' in self.column_headers and 'Algorithm' in self.column_headers:
-            self.hash_from_spread = True
-            print("Hash detected in Spreadsheet; taking hashes from spreadsheet")
-            time.sleep(3)
+    def index_df_lookup(self, path: str):
+        idx = self.df[INDEX_FIELD].index[self.df[INDEX_FIELD] == path]
+        return idx
 
-    def print_descriptive_xmls(self):
-        for file in os.scandir(self.metadata_dir):
-            path = os.path.join(self.metadata_dir, file.name)
-            print(path)
-            xml_file = ET.parse(path)
-            root_element = ET.QName(xml_file.find('.'))
-            root_element_ln = root_element.localname
-            for elem in xml_file.findall(".//"):
-                elem_path = xml_file.getelementpath(elem)
-                elem = ET.QName(elem)
-                elem_lnpath = elem_path.replace(f"{{{elem.namespace}}}", root_element_ln + ":")
-                print(elem_lnpath)
+    def xip_df_lookup(self, idx: pd.Index):
+        try:
+            title = None
+            description = None
+            security = None
+            if idx.empty:
+                pass
+            else:
+                if self.title_flag:
+                    title = check_nan(self.df[TITLE_FIELD].loc[idx].item())
+                if self.description_flag:
+                    description = check_nan(self.df[DESCRIPTION_FIELD].loc[idx].item())
+                if self.security_flag:
+                    security = check_nan(self.df[SECUIRTY_FIELD].loc[idx].item())
+            return title,description,security
+        except Exception as e:
+            print('Error Looking up XIP Metadata')
+            print(e)
+    
+    def remove_df_lookup(self, path: str, idx: pd.Index):
+        try:
+            if idx.empty:
+                return False
+            else:
+                remove = check_nan(self.df[REMOVAL_FIELD].loc[idx].item())
+                if remove:                                  
+                    print(f"Removing: {path}")
+                    # Not functioning correctly
+                    if os.path.isdir(path):
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+                    return True
+                else:
+                    return False
+        except Exception as e:
+            print('Error looking up Removals')
+            print(e)
+                
+    def ignore_df_lookup(self, idx: pd.Index):
+        try:
+            if idx.empty:
+                return False
+            else:
+                ignore = check_nan(self.df[IGNORE_FIELD].loc[idx].item())
+            return bool(ignore)
+        except Exception as e:
+            print('Error looking up Ignore')
+            print(e)
+
+    def sourceid_df_lookup(self, xml_element: ET.SubElement, idx: pd.Index):
+        try:
+            if idx.empty:
+                pass
+            else:
+                sourceid = check_nan(self.df[SOURCEID_FIELD].loc[idx].item())
+                if sourceid:
+                    source_xml = ET.SubElement(xml_element,f"{{{self.opexns}}}SourceID")
+                    source_xml.text = str(sourceid)
+        except Exception as e:
+            print('Error looking up SourceID')
+            print(e)
+
+    def hash_df_lookup(self, xml_fixities: ET.SubElement, idx: pd.Index):
+        try:
+            if idx.empty:
+                pass
+            else:
+                self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")  
+                self.hash = self.df[HASH_FIELD].loc[idx].item()
+                self.algorithm = self.df[ALGORITHM_FIELD].loc[idx].item()
+                self.fixity.set('type', self.algorithm)
+                self.fixity.set('value',self.hash)
+        except Exception as e:
+            print('Error looking up Hash')
+            print(e)
+
+    def ident_df_lookup(self, idx: pd.Index, default_key: str = None):
+        try:
+            if idx.empty:
+                pass
+            else:
+                for header in self.column_headers:
+                    ident = None
+                    if any(s in header for s in {IDENTIFIER_FIELD,'Archive_Reference','Accession_Reference'}):
+                        if f'{IDENTIFIER_FIELD}:' in header:
+                            key_name = str(header).split(':',1)[-1]
+                        elif IDENTIFIER_FIELD in header:
+                            key_name = IDENTIFIER_DEFAULT    
+                        elif 'Archive_Reference' in header:
+                            key_name = IDENTIFIER_DEFAULT
+                        elif 'Accession_Reference' in header:
+                            key_name = "accref"
+                        else:
+                            key_name = IDENTIFIER_DEFAULT
+                        ident = check_nan(self.df[header].loc[idx].item())                    
+                        if ident:
+                            self.identifier = ET.SubElement(self.identifiers, f"{{{self.opexns}}}Identifier") 
+                            self.identifier.set("type", key_name)
+                            self.identifier.text = str(ident)
+        except Exception as e:
+            print('Error looking up Identifiers')
+            print(e)            
 
     def init_generate_descriptive_metadata(self):
         self.xml_files = []
@@ -329,15 +305,19 @@ class OpexManifestGenerator():
             if len(list_xml) > 0:
                 self.xml_files.append({'data': list_xml, 'localname': root_element_ln, 'xmlfile': path})
 
-    def generate_descriptive_metadata(self, xml_desc: ET.Element, idx: int):
+    def generate_descriptive_metadata(self, xml_desc_elem: ET.Element, idx: pd.Index):
+        """
+        Composes the data into an xml file.
+        """
         for xml_file in self.xml_files:
             list_xml = xml_file.get('data')
             localname = xml_file.get('localname')
-            """
-            Composes the data into an xml file.
-            """
-            if len(list_xml):
-                if not idx.empty:
+            if len(list_xml) == 0:
+                pass
+            else:
+                if idx.empty:
+                    pass
+                else:
                     xml_new = ET.parse(xml_file.get('xmlfile'))
                     for elem_dict in list_xml:
                         name = elem_dict.get('Name')
@@ -345,21 +325,28 @@ class OpexManifestGenerator():
                         ns = elem_dict.get('Namespace')
                         try:
                             if self.metadata_flag in {'e', 'exact'}:
-                                val = self.df.loc[idx, path].values[0]
+                                val = check_nan(self.df[path].loc[idx].item())
                             elif self.metadata_flag in {'f', 'flat'}:
-                                val = self.df.loc[idx, name].values[0]
-                            if pd.isnull(val):
+                                val = check_nan(self.df[name].loc[idx].item())
+                            if val is None:
                                 continue
                             else:
                                 if is_datetime64_any_dtype(str(val)):
                                     val = pd.to_datetime(val)
-                                    val = datetime.strftime(val, "%Y-%m-%dT%H-%M-%S.00Z")
+                                    val = datetime.datetime.strftime(val, "%Y-%m-%dT%H:%M:%S.000Z")
+                            if self.metadata_flag in {'e','exact'}:
+                                n = path.replace(localname + ":", f"{{{ns}}}")
+                                elem = xml_new.find(f'/{n}')
+                            elif self.metadata_flag in {'f', 'flat'}:
+                                n = name.split(':')[-1]
+                                elem = xml_new.find(f'//{{{ns}}}{n}')
+                            elem.text = str(val)
                         except KeyError as e:
                             print('Key Error: please ensure column header\'s are an exact match...')
                             print(f'Missing Column: {e}')
                             print('Alternatively use flat mode...')
                             time.sleep(3)
-                            raise SystemError()
+                            raise SystemExit()
                         except IndexError as e:
                             print("""Index Error; it is likely you have removed or added a file/folder to the directory \
                                 after generating the spreadsheet. An opex will still be generated but with no xml metadata. \
@@ -367,25 +354,11 @@ class OpexManifestGenerator():
                             print(f'Error: {e}')
                             time.sleep(3)
                             break
-                        if str(val).lower() in {"nan", "nat"}:
-                            continue
-                        if self.metadata_flag in {'e','exact'}:
-                            n = path.replace(localname + ":", f"{{{ns}}}")
-                            elem = xml_new.find(f'/{n}')
-                        elif self.metadata_flag in {'f', 'flat'}:
-                            n = name.split(':')[-1]
-                            elem = xml_new.find(f'//{{{ns}}}{n}')
-                        elem.text = str(val)    
-                    xml_desc.append(xml_new.find('.'))
-                else:
-                    pass
-            else:
-                pass
+                    xml_desc_elem.append(xml_new.find('.'))
 
-    def generate_opex_properties(self, xmlroot: ET.Element, idx: int, 
-                                 title: str = None, description: str = None, security: str = None):
+    def generate_opex_properties(self, xmlroot: ET.Element, idx: int, title: str = None,
+                                  description: str = None, security: str = None):
         self.properties = ET.SubElement(xmlroot, f"{{{self.opexns}}}Properties")
-        self.identifiers = ET.SubElement(self.properties, f"{{{self.opexns}}}Identifiers")
         if title:
             self.titlexml = ET.SubElement(self.properties, f"{{{self.opexns}}}Title")
             self.titlexml.text = str(title)
@@ -395,12 +368,9 @@ class OpexManifestGenerator():
         if security:
             self.securityxml = ET.SubElement(self.properties, f"{{{self.opexns}}}SecurityDescriptor")
             self.securityxml.text = str(security)
-        if self.autoclass_flag in {"generic", "g"}:
-            self.properties.remove(self.identifiers)
-        elif self.autoclass_flag not in {"generic", "g"} or self.input:
+        if self.autoclass_flag not in {"generic", "g"} or self.input:
+            self.identifiers = ET.SubElement(self.properties, f"{{{self.opexns}}}Identifiers")
             self.ident_df_lookup(idx)
-        if self.identifiers is None:
-            self.properties.remove(self.identifiers)
         if self.properties is None:
             xmlroot.remove(self.properties)
 
@@ -423,7 +393,7 @@ class OpexManifestGenerator():
             if self.autoclass_flag or self.algorithm or self.input:
                 pass
             else:
-                self.print_running_time()
+                print_running_time(self.start_time)
                 print('Cleared OPEXES. No additional arguments passed, so ending program.'); time.sleep(3)
                 raise SystemExit()
         if self.empty_flag:
@@ -437,7 +407,7 @@ class OpexManifestGenerator():
         if self.algorithm:
             output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = "_Fixities", output_format = "txt")
             export_list_txt(self.list_fixity, output_path)
-        self.print_running_time()
+        print_running_time(self.start_time)
 
 class OpexDir(OpexManifestGenerator):
     def __init__(self, OMG: OpexManifestGenerator, folder_path: str, title: str = None, description: str = None, security: str = None):
@@ -448,19 +418,17 @@ class OpexDir(OpexManifestGenerator):
             self.folder_path = folder_path.replace(u'\\\\?\\', "")
         else:
             self.folder_path = folder_path
-        if self.OMG.input or self.OMG.autoclass_flag in {"c", "catalog", "a", "accession", "b", "both", "cg", "catalog-generic", "ag", "accession-generic", "bg", "both-generic"} \
-             or self.OMG.ignore_flag or self.OMG.remove_flag or self.OMG.sourceid_flag \
-             or self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-                self.index = self.OMG.index_df_lookup(self.folder_path)
-        elif self.OMG.autoclass_flag is None or self.OMG.autoclass_flag in {"g", "generic"}:
-            self.index = None
+        if self.OMG.autoclass_flag not in {None, "g","generic"}:
+            index = self.OMG.index_df_lookup(self.folder_path)
+        else:
+            index = None            
         if self.OMG.ignore_flag or self.OMG.remove_flag:
             if self.OMG.ignore_flag:
-                self.ignore = self.OMG.ignore_df_lookup(self.index)
+                self.ignore = self.OMG.ignore_df_lookup(index)
                 if self.ignore:
                     return
             if self.OMG.remove_flag:
-                self.removal = self.OMG.remove_df_lookup(self.folder_path, self.index)
+                self.removal = self.OMG.remove_df_lookup(self.folder_path, index)
                 if self.removal:
                     return
         else:
@@ -474,7 +442,7 @@ class OpexDir(OpexManifestGenerator):
         self.files = ET.SubElement(self.manifest, f"{{{self.opexns}}}Files")
 
         if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-            self.title, self.description, self.security = self.OMG.meta_df_lookup(self.index) 
+            self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
         elif self.OMG.autoclass_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
             self.title = os.path.basename(self.folder_path)
             self.description = os.path.basename(self.folder_path)
@@ -484,40 +452,36 @@ class OpexDir(OpexManifestGenerator):
             self.description = description
             self.security = security
         if self.OMG.sourceid_flag:
-            self.OMG.sourceid_df_lookup(self.transfer, self.folder_path, self.index)
+            self.OMG.sourceid_df_lookup(self.transfer, self.folder_path, index)
         if self.OMG.autoclass_flag or self.OMG.input:
-            self.OMG.generate_opex_properties(self.xmlroot, self.index, 
+            self.OMG.generate_opex_properties(self.xmlroot, index, 
                                               title = self.title,
                                               description = self.description,
                                               security = self.security)
             if not self.OMG.metadata_flag in {'none', 'n'}:
                 self.xml_descmeta = ET.SubElement(self.xmlroot,f"{{{self.opexns}}}DescriptiveMetadata")
-                self.OMG.generate_descriptive_metadata(self.xmlroot, idx = self.index)
+                self.OMG.generate_descriptive_metadata(self.xmlroot, idx = index)
 
-    def filter_win_hidden(self,path: str):
+    def filter_directories(self, directory: str, sort_key: str = str.casefold):
         try:
-            if bool(os.stat(path).st_file_attribute & stat.FILE_ATTRIBUTE_HIDDEN) is True:
-                return True
-            else:
-                return False
-        except:
-            return False
-
-    def filter_directories(self, directory: str):
-        if self.OMG.hidden_flag is False:
-            print(directory)
-            list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory)
-                                       if not f.name.startswith('.')
-                                       and self.filter_win_hidden(win_256_check(os.path.join(directory, f.name))) is False
-                                       and f.name != 'meta'
-                                       and f.name != os.path.basename(__file__)]
-                                       , key=str.casefold)
-            print(list_directories)
-        elif self.OMG.hidden_flag is True:
-            list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory) \
-                                       if f.name != 'meta' \
-                                       and f.name != os.path.basename(__file__)], key=str.casefold)
-        return list_directories
+            if self.OMG.hidden_flag is False:
+                list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory)
+                                        if not f.name.startswith('.')
+                                        and filter_win_hidden(win_256_check(os.path.join(directory, f.name))) is False
+                                        and f.name != 'meta'
+                                        and f.name != os.path.basename(__file__)],
+                                        key=sort_key)
+            elif self.OMG.hidden_flag is True:
+                list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory) \
+                                        if f.name != 'meta'
+                                        and f.name != os.path.basename(__file__)],
+                                        key=sort_key)
+            return list_directories
+        except Exception as e:
+            print('Failed to Filter')
+            print(e)
+            raise SystemError()
+    
         
     def generate_opex_dirs(self, path: str):
         self = OpexDir(self.OMG, path)
@@ -532,7 +496,7 @@ class OpexDir(OpexManifestGenerator):
                 self.generate_opex_dirs(f_path)
             else:
                 OpexFile(self.OMG, f_path, self.OMG.algorithm)
-        if self.OMG.check_opex(opex_path):
+        if check_opex(opex_path):
             if not self.ignore:
                 for f_path in self.filter_directories(path):
                     if os.path.isfile(f_path):
@@ -543,7 +507,7 @@ class OpexDir(OpexManifestGenerator):
                             file.set("type", "content")
                             file.set("size", str(os.path.getsize(f_path)))
                         file.text = str(os.path.basename(f_path))
-                self.OMG.write_opex(opex_path, self.xmlroot)
+                write_opex(opex_path, self.xmlroot)
         else:
             print(f"Avoiding override, Opex exists at: {opex_path}")
 
@@ -555,26 +519,32 @@ class OpexFile(OpexManifestGenerator):
             self.file_path = file_path.replace(u'\\\\?\\', "")
         else:
             self.file_path = file_path
-        if self.OMG.check_opex(self.file_path):
-            if self.OMG.input or self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"} \
-                or self.OMG.ignore_flag or self.OMG.remove_flag or self.OMG.sourceid_flag \
-                or self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-                    self.index = self.OMG.index_df_lookup(self.file_path)
+        if check_opex(self.file_path):
+            if any([self.OMG.input,
+                    self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
+                    self.OMG.ignore_flag,
+                    self.OMG.remove_flag,
+                    self.OMG.sourceid_flag,
+                    self.OMG.title_flag,
+                    self.OMG.description_flag,
+                    self.OMG.security_flag]):
+                    index = self.OMG.index_df_lookup(self.file_path)
             elif self.OMG.autoclass_flag is None or self.OMG.autoclass_flag in {"g","generic"}:
-                self.index = None
+                index = None
             if self.OMG.ignore_flag:
-                self.ignore = self.OMG.ignore_df_lookup(self.index)
+                self.ignore = self.OMG.ignore_df_lookup(index)
                 if self.ignore:
+                    #WTF is this?
                     return
             if self.OMG.remove_flag:
-                removal = self.OMG.remove_df_lookup(self.file_path, self.index)
+                removal = self.OMG.remove_df_lookup(self.file_path, index)
                 if removal:
                     return                
             else:
                 self.ignore = False
             self.algorithm = algorithm
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-                self.title, self.description, self.security = self.OMG.meta_df_lookup(self.index) 
+                self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
             elif self.OMG.autoclass_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
                 self.title = os.path.splitext(os.path.basename(self.file_path))[0]
                 self.description = os.path.splitext(os.path.basename(self.file_path))[0]
@@ -591,20 +561,20 @@ class OpexFile(OpexManifestGenerator):
                 if self.OMG.algorithm:
                     self.fixities = ET.SubElement(self.transfer, f"{{{self.opexns}}}Fixities")
                     if self.OMG.hash_from_spread:
-                        self.OMG.hash_df_lookup(self.file_path, self.fixities, self.index)  
+                        self.OMG.hash_df_lookup(self.fixities, index)  
                     else:
                         self.genererate_opex_fixity(self.file_path)
                 if self.transfer is None:
                     self.xmlroot.remove(self.transfer)
                 if self.OMG.autoclass_flag or self.OMG.input:
-                    self.OMG.generate_opex_properties(self.xmlroot, self.index,
+                    self.OMG.generate_opex_properties(self.xmlroot, index,
                                                       title = self.title,
                                                       description = self.description,
                                                       security = self.security)
                     if not self.OMG.metadata_flag in {'none','n'}:
                         self.xml_descmeta = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}DescriptiveMetadata")
-                        self.OMG.generate_descriptive_metadata(self.xml_descmeta, self.index)
-                opex_path = self.OMG.write_opex(self.file_path, self.xmlroot)
+                        self.OMG.generate_descriptive_metadata(self.xml_descmeta, index)
+                opex_path = write_opex(self.file_path, self.xmlroot)
                 if self.OMG.zip_flag:
                     zip_opex(self.file_path, opex_path)
         else:
