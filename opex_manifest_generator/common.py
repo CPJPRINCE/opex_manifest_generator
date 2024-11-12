@@ -5,7 +5,9 @@ author: Christopher Prince
 license: Apache License 2.0"
 """
 
-import zipfile, os, sys
+import zipfile, os, sys, time, stat
+import datetime
+from lxml import etree
 
 def zip_opex(file_path,opex_path):
     zip_file = f"{file_path}.zip"
@@ -21,7 +23,36 @@ def win_256_check(path: str):
         else: path = u"\\\\?\\" + path
     return path
 
+def filter_win_hidden(path: str):
+    if sys.platform =="win32":
+        if bool(os.stat(path).st_file_attribute & stat.FILE_ATTRIBUTE_HIDDEN) is True:
+            return True
+        else:
+            return False
+    else:
+        return False
+
 def check_nan(value):
     if str(value).lower() in {"nan","nat"}:
         value = None
     return value
+
+def check_opex(opex_path:str):
+    opex_path = opex_path + ".opex" 
+    if os.path.exists(win_256_check(opex_path)):
+        return False
+    else: 
+        return True
+
+def write_opex(path: str, opexxml: etree.Element):
+    opex_path = win_256_check(str(path) + ".opex")
+    opex = etree.indent(opexxml, "  ")
+    opex = etree.tostring(opexxml, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
+    with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
+        writer.write(opex.decode('UTF-8'))
+        print('Saved Opex File to: ' + opex_path)
+    return opex_path
+
+def print_running_time(start_time):
+    print(f'Running time: {datetime.datetime.now() - start_time}')
+    time.sleep(5)
