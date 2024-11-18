@@ -154,7 +154,8 @@ def run_cli():
                           hidden_flag= args.hidden,
                           zip_flag = args.zip, 
                           input = args.input, 
-                          output_format = args.output_format).main()
+                          output_format = args.output_format,
+                          options_file=args.options_file).main()
     
 if __name__ == "__main__":
     run_cli()
