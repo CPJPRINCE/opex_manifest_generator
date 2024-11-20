@@ -309,6 +309,7 @@ class OpexManifestGenerator():
         """
         Composes the data into an xml file.
         """
+        print(self.metadata_dir)
         for xml_file in self.xml_files:
             list_xml = xml_file.get('data')
             localname = xml_file.get('localname')
@@ -336,10 +337,10 @@ class OpexManifestGenerator():
                                     val = datetime.datetime.strftime(val, "%Y-%m-%dT%H:%M:%S.000Z")
                             if self.metadata_flag in {'e','exact'}:
                                 n = path.replace(localname + ":", f"{{{ns}}}")
-                                elem = xml_new.find(f'/{n}')
+                                elem = xml_new.find(f'./{n}')
                             elif self.metadata_flag in {'f', 'flat'}:
                                 n = name.split(':')[-1]
-                                elem = xml_new.find(f'//{{{ns}}}{n}')
+                                elem = xml_new.find(f'.//{{{ns}}}{n}')
                             elem.text = str(val)
                         except KeyError as e:
                             print('Key Error: please ensure column header\'s are an exact match...')
@@ -418,10 +419,19 @@ class OpexDir(OpexManifestGenerator):
             self.folder_path = folder_path.replace(u'\\\\?\\', "")
         else:
             self.folder_path = folder_path
-        if self.OMG.autoclass_flag not in {None, "g","generic"}:
-            index = self.OMG.index_df_lookup(self.folder_path)
+        if any([self.OMG.input,
+                self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
+                self.OMG.ignore_flag,
+                self.OMG.remove_flag,
+                self.OMG.sourceid_flag,
+                self.OMG.title_flag,
+                self.OMG.description_flag,
+                self.OMG.security_flag]):
+                index = self.OMG.index_df_lookup(self.folder_path)
+        elif self.OMG.autoclass_flag in {None, "g","generic"}:
+            index = None
         else:
-            index = None            
+            index = None
         if self.OMG.ignore_flag or self.OMG.remove_flag:
             if self.OMG.ignore_flag:
                 self.ignore = self.OMG.ignore_df_lookup(index)
@@ -530,6 +540,8 @@ class OpexFile(OpexManifestGenerator):
                     self.OMG.security_flag]):
                     index = self.OMG.index_df_lookup(self.file_path)
             elif self.OMG.autoclass_flag is None or self.OMG.autoclass_flag in {"g","generic"}:
+                index = None
+            else:
                 index = None
             if self.OMG.ignore_flag:
                 self.ignore = self.OMG.ignore_df_lookup(index)
