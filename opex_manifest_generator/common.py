@@ -25,7 +25,7 @@ def win_256_check(path: str):
 
 def filter_win_hidden(path: str):
     if sys.platform =="win32":
-        if bool(os.stat(path).st_file_attribute & stat.FILE_ATTRIBUTE_HIDDEN) is True:
+        if bool(os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN) is True:
             return True
         else:
             return False
