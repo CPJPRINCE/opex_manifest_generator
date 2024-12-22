@@ -31,6 +31,12 @@ def filter_win_hidden(path: str):
             return False
     else:
         return False
+    
+def win_path_delimiter():
+    if sys.platform == "win32":
+        return "\\"
+    else:
+        return "/"
 
 def check_nan(value):
     if str(value).lower() in {"nan","nat"}:

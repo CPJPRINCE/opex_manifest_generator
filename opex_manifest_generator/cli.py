@@ -5,9 +5,7 @@ author: Christopher Prince
 license: Apache License 2.0"
 """
 
-import argparse
-import os
-import time
+import argparse, os, inspect, time
 from opex_manifest_generator.opex_manifest import OpexManifestGenerator
 import importlib.metadata
 
@@ -39,7 +37,7 @@ def parse_args():
                         help = "Remove and log empty directories from root. Log will be exported to 'meta' / output folder.")
     parser.add_argument("-o", "--output", required = False, nargs = 1,
                         help = "Sets the output to send any generated files to. Will not affect creation of a meta dir.")
-    parser.add_argument("-dmd", "--disable-meta-dir", required = False, action = 'store_false',
+    parser.add_argument("--disable-meta-dir", required = False, action = 'store_false',
                         help = """Set whether to disable the creation of a 'meta' directory for generated files,
                         default behaviour is to always generate this directory""")
     parser.add_argument("-clr", "--clear-opex", required = False, action = 'store_true', default = False,
@@ -66,13 +64,19 @@ def parse_args():
     parser.add_argument("-fmt", "--output-format", required = False, default = "xlsx", choices = ['xlsx', 'csv'],
                         help="Set whether to output to an xlsx or csv format")
     parser.add_argument("-v", "--version", action = 'version', version = '%(prog)s {version}'.format(version = importlib.metadata.version("opex_manifest_generator")))
-    parser.add_argument("--accession-mode", required=False, choices=["file",'directory','both'],
+    parser.add_argument("--accession-mode", nargs = '?', required=False, const='file', default=None, choices=["file",'directory','both'],
                         help="""Set the mode when utilising the Accession option in autoclass.
                         file - only adds on files, folder - only adds on folders, both - adds on files and folders""")
     parser.add_argument("--hidden", required = False, action = 'store_true', default = False,
                         help="Set whether to include hidden files and folders")
     parser.add_argument("--print-xmls", required = False, action = "store_true", default = False,
                         help="Prints the elements from your xmls to the consoles")
+    parser.add_argument("-key","--keywords", nargs = '*', default = None)
+    parser.add_argument("-keym","--keywords-mode", nargs = '?', const = "intialise", default = "intialise", choices = ['intialise','firstletters'])
+    parser.add_argument("--keywords-retain-order", required = False, default = False, action = 'store_true')
+    parser.add_argument("--keywords-abbreviation-number", required = False, nargs='?', default = -3, type = int)
+    parser.add_argument("--sort-by", required=False, nargs = '?', default = 'foldersfirst', choices = ['foldersfirst','alphabetical'], type=str.lower)
+    parser.add_argument("-dlm", "--delimiter", required=False,nargs = '?', type = str)
     args = parser.parse_args()
     return args
 
@@ -94,6 +98,8 @@ def run_cli():
     if args.print_xmls:
         OpexManifestGenerator.print_descriptive_xmls()
     acc_prefix = None
+    if args.autoclass in {"accession", "a", "accession-generic", "ag", "both", "b", "both-generic", "bg"} and args.accession_mode is None:
+            args.accession_mode = "file"
     if args.prefix:
         if args.autoclass in {"both", "b", "both-generic", "bg"}:
             if len(args.prefix) < 2 or len(args.prefix) > 2:
@@ -129,11 +135,20 @@ def run_cli():
             raise SystemExit               
     if args.fixity:
         print(f'Fixity is activated, using {args.fixity} algorithm')
+    if args.sort_by:
+        if args.sort_by == "foldersfirst":
+            sort_key = lambda x: (os.path.isfile(x), str.casefold(x))
+        elif args.sort_by == "alphabetical":
+            sort_key = str.casefold
     if args.remove:
-        i = "y"
-        # i = input(inspect.cleandoc("""You have enabled the remove functionality.
-        #                         This action will remove files listed for removal, it is irreversible.
-        #                         Please type Y to confirm, otherwise program will close: """))
+        print(inspect.cleandoc("""****
+                                    You have enabled the remove functionality of the program. This action will remove all files and folders listed for removal and any sub-files/sub-folders.
+                            
+                                    This process will permanently delete the selected items, with no way recover the items. 
+                                
+                                    ****"""))
+        time.sleep(2)
+        i = input(inspect.cleandoc("Please type Y if you wish to proceed, otherwise the program will close: "))
         if not i.lower() == "y":
             print("Closing program..."); time.sleep(3); raise SystemExit()
     time.sleep(3)
@@ -141,6 +156,7 @@ def run_cli():
                           output_path = args.output, 
                           autoclass_flag = args.autoclass, 
                           prefix = args.prefix, 
+                          accession_mode=args.accession_mode,
                           acc_prefix = acc_prefix, 
                           empty_flag = args.remove_empty, 
                           remove_flag = args.remove, 
@@ -155,7 +171,13 @@ def run_cli():
                           zip_flag = args.zip, 
                           input = args.input, 
                           output_format = args.output_format,
-                          options_file=args.options_file).main()
+                          options_file=args.options_file,
+                          keywords = args.keywords,
+                          keywords_mode = args.keywords_mode,
+                          keywords_retain_order = args.keywords_retain_order,
+                          sort_key = sort_key,
+                          delimiter = args.delimiter,
+                          keywords_abbreviation_number = args.keywords_abbreviation_number).main()
     
 if __name__ == "__main__":
     run_cli()
