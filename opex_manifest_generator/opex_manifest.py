@@ -19,6 +19,36 @@ from opex_manifest_generator.common import *
 import configparser
 
 class OpexManifestGenerator():
+    """
+    A tool for recusrively generating Opex files for files / directories for use in uploading to Preservica and other OPEX conformin systems.
+
+    :param root: the directory to generate opexes for
+    :param output_path: set the output path for geerated metadata (not opexes)
+    :param meta_dir_flag: set whether to generate a 'meta' directory
+    :param metadata_flag: set whether to incorporate metadata into opex
+    :param metadata_dir: set the metadata directory to pull xml data from
+    :param autoclass_flag: set whether to generate an auto classification reference using auto_class. Has a number of 'modes' {catalog, accession, both, generic}
+    :param prefix: set a prefix to append to generated references
+    :param accession_mode: if using accession in autoclass_flag set the mode to count {file, folder, both}
+    :param acc_prefix: set an accession prefix
+    :param startref: set to set the starting reference number
+    :param algorithm: set whether to generate fixities and the algorithm to use {MD5, SHA-1, SHA-256, SHA-512}
+    :param empty_flag: set whether to delete and log empty directories
+    :param remove_flag: set whether to enable removals; data must also contain removals column and cell be set to True 
+    :param clear_opex_flag: set whether clear existing opexes
+    :param export_flag: set whether to export the spreadsheet when using autoclass
+    :param output_format: set output format when using autoclass {xlsx, csv}
+    :param input: set whether to use an AutoClass spreadsheet / dataframe to establish data.
+    :param zip_flag: set whether to zip files and opexes together
+    :param hidden_flag: set to include hidden files/directories
+    :param print_xmls_flag: set to print all 
+    :param options_file: set to specify options file
+    :param keywords: set to replace numbers in reference with alphabetical characters, specified in list or all if unset
+    :param keywords_mode: set to specify keywords mode [intialise, firstletters] 
+    :param keywords_retain_order: set to continue counting reference, if keyword is used, skips numbers if not
+    :param sort_key: set the sort key, can be any valid function for sorted
+    :param keywords_abbreviation: set int for number of characters to abbreviate to for keywords mode
+    """
     def __init__(self,
                  root: str,
                  output_path: str = os.getcwd(),
@@ -80,6 +110,7 @@ class OpexManifestGenerator():
         self.keywords_retain_order = keywords_retain_order
         self.sort_key = sort_key
         self.keywords_abbreviation_number = keywords_abbreviation_number
+        self.delimiter = delimiter
 
         self.title_flag = False
         self.description_flag = False
@@ -218,7 +249,7 @@ class OpexManifestGenerator():
                 return False
             else:
                 remove = check_nan(self.df[REMOVAL_FIELD].loc[idx].item())
-                if remove is True:                  
+                if remove is not None:
                     removed_list.append(path)
                     print(f"Removing: {path}")
                     if os.path.isdir(path):
@@ -451,6 +482,7 @@ class OpexDir(OpexManifestGenerator):
             self.folder_path = folder_path.replace(u'\\\\?\\', "")
         else:
             self.folder_path = folder_path
+        print(self.folder_path)
         if any([self.OMG.input,
                 self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
                 self.OMG.ignore_flag,
@@ -464,22 +496,16 @@ class OpexDir(OpexManifestGenerator):
             index = None
         else:
             index = None
-        if self.OMG.ignore_flag or self.OMG.remove_flag:
-            if self.OMG.ignore_flag:
-                self.ignore = self.OMG.ignore_df_lookup(index)
-                if self.ignore:
-                    return
-            else:
-                self.ignore = False
-            if self.OMG.remove_flag:
-                self.removal = self.OMG.remove_df_lookup(self.folder_path, self.OMG.remove_list, index)
-                if self.removal:
-                    return
-            else: 
-                self.removal = False
-        else:
-            self.ignore = False
-            self.removal = False
+        self.ignore = False
+        self.removal = False
+        if self.OMG.ignore_flag:
+            self.ignore = self.OMG.ignore_df_lookup(index)
+            if self.ignore:
+                return
+        if self.OMG.remove_flag:
+            self.removal = self.OMG.remove_df_lookup(self.folder_path, self.OMG.remove_list, index)
+            if self.removal:
+                return
         self.xmlroot = ET.Element(f"{{{self.opexns}}}OPEXMetadata", nsmap={"opex":self.opexns})
         self.transfer = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}Transfer")
         self.manifest = ET.SubElement(self.transfer, f"{{{self.opexns}}}Manifest")
@@ -584,22 +610,16 @@ class OpexFile(OpexManifestGenerator):
                 index = None
             else:
                 index = None
-            if self.OMG.ignore_flag or self.OMG.remove_flag:
-                if self.OMG.ignore_flag:
-                    self.ignore = self.OMG.ignore_df_lookup(index)
-                    if self.ignore:
-                        return
-                else:
-                    self.ignore = False
-                if self.OMG.remove_flag:
-                    self.removal = self.OMG.remove_df_lookup(self.file_path, self.OMG.remove_list, index)
-                    if self.removal:
-                        return
-                else: 
-                    self.removal = False
-            else:
-                self.ignore = False
-                self.removal = False
+            self.ignore = False
+            self.removal = False
+            if self.OMG.ignore_flag:
+                self.ignore = self.OMG.ignore_df_lookup(index)
+                if self.ignore:
+                    return                    
+            if self.OMG.remove_flag:
+                self.removal = self.OMG.remove_df_lookup(self.file_path, self.OMG.remove_list, index)
+                if self.removal:
+                    return
             self.algorithm = algorithm
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
                 self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
