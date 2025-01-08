@@ -19,15 +19,46 @@ from opex_manifest_generator.common import *
 import configparser
 
 class OpexManifestGenerator():
+    """
+    A tool for recusrively generating Opex files for files / directories for use in uploading to Preservica and other OPEX conformin systems.
+
+    :param root: the directory to generate opexes for
+    :param output_path: set the output path for geerated metadata (not opexes)
+    :param meta_dir_flag: set whether to generate a 'meta' directory
+    :param metadata_flag: set whether to incorporate metadata into opex
+    :param metadata_dir: set the metadata directory to pull xml data from
+    :param autoclass_flag: set whether to generate an auto classification reference using auto_class. Has a number of 'modes' {catalog, accession, both, generic}
+    :param prefix: set a prefix to append to generated references
+    :param accession_mode: if using accession in autoclass_flag set the mode to count {file, folder, both}
+    :param acc_prefix: set an accession prefix
+    :param startref: set to set the starting reference number
+    :param algorithm: set whether to generate fixities and the algorithm to use {MD5, SHA-1, SHA-256, SHA-512}
+    :param empty_flag: set whether to delete and log empty directories
+    :param remove_flag: set whether to enable removals; data must also contain removals column and cell be set to True 
+    :param clear_opex_flag: set whether clear existing opexes
+    :param export_flag: set whether to export the spreadsheet when using autoclass
+    :param output_format: set output format when using autoclass {xlsx, csv}
+    :param input: set whether to use an AutoClass spreadsheet / dataframe to establish data.
+    :param zip_flag: set whether to zip files and opexes together
+    :param hidden_flag: set to include hidden files/directories
+    :param print_xmls_flag: set to print all 
+    :param options_file: set to specify options file
+    :param keywords: set to replace numbers in reference with alphabetical characters, specified in list or all if unset
+    :param keywords_mode: set to specify keywords mode [intialise, firstletters] 
+    :param keywords_retain_order: set to continue counting reference, if keyword is used, skips numbers if not
+    :param sort_key: set the sort key, can be any valid function for sorted
+    :param keywords_abbreviation: set int for number of characters to abbreviate to for keywords mode
+    """
     def __init__(self,
                  root: str,
-                 output_path: os.path = os.getcwd(),
+                 output_path: str = os.getcwd(),
                  meta_dir_flag: bool = True,
-                 metadata_dir: os = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
+                 metadata_dir: str = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
                  metadata_flag: str = 'none',
                  autoclass_flag: str = None,
                  prefix: str = None,
                  acc_prefix: str = None,
+                 accession_mode: str = False,
                  startref: int = 1,
                  algorithm: str = None,
                  empty_flag: bool = False,
@@ -39,7 +70,13 @@ class OpexManifestGenerator():
                  hidden_flag: bool = False,
                  output_format: str = "xlsx",
                  print_xmls_flag: bool = False,
-                 options_file: str = os.path.join(os.path.dirname(__file__),'options.properties')):
+                 options_file: str = os.path.join(os.path.dirname(__file__),'options.properties'),
+                 keywords: list = None,
+                 keywords_mode: str = "intitalise",
+                 keywords_retain_order: bool = False,
+                 sort_key = lambda x: (os.path.isfile(x), str.casefold(x)),
+                 keywords_abbreviation_number: int = 3,
+                 delimiter = "/"):
         
         self.root = os.path.abspath(root)
         self.opexns = "http://www.openpreservationexchange.org/opex/v1.2"        
@@ -49,6 +86,8 @@ class OpexManifestGenerator():
         self.algorithm = algorithm
         self.empty_flag = empty_flag
         self.remove_flag = remove_flag
+        if self.remove_flag:
+            self.remove_list = []
         self.export_flag = export_flag
         self.startref = startref
         self.autoclass_flag = autoclass_flag
@@ -57,6 +96,7 @@ class OpexManifestGenerator():
         self.meta_dir_flag = meta_dir_flag
         self.prefix = prefix
         self.acc_prefix = acc_prefix
+        self.accession_mode = accession_mode
         self.input = input
         self.hidden_flag = hidden_flag
         self.zip_flag = zip_flag
@@ -65,13 +105,19 @@ class OpexManifestGenerator():
         self.metadata_dir = metadata_dir
         self.print_xmls_flag = print_xmls_flag
         self.parse_config(options_file=os.path.abspath(options_file))
+        self.keywords_list = keywords
+        self.keywords_mode = keywords_mode
+        self.keywords_retain_order = keywords_retain_order
+        self.sort_key = sort_key
+        self.keywords_abbreviation_number = keywords_abbreviation_number
+        self.delimiter = delimiter
 
         self.title_flag = False
         self.description_flag = False
         self.security_flag = False
         self.ignore_flag = False
         self.sourceid_flag = False
-        self.hash_from_spread = False        
+        self.hash_from_spread = False
     
     def parse_config(self, options_file: str = 'options.properties'):
         config = configparser.ConfigParser()
@@ -130,10 +176,19 @@ class OpexManifestGenerator():
 
     def init_df(self):
         if self.autoclass_flag:
-            if self.autoclass_flag in {"catalog", "c", "catalog-generic", "cg"}:
-                ac = ClassificationGenerator(self.root, output_path = self.output_path, prefix = self.prefix, start_ref = self.startref, empty_flag = self.empty_flag, accession_flag = False)
-            elif self.autoclass_flag in {"accession", "a", "accession-generic", "ag", "both", "b", "both-generic", "bg"}:
-                ac = ClassificationGenerator(self.root, output_path = self.output_path, prefix = self.prefix, accprefix = self.acc_prefix, start_ref = self.startref, empty_flag = self.empty_flag, accession_flag="File")
+            ac = ClassificationGenerator(self.root,
+                                            output_path = self.output_path,
+                                            prefix = self.prefix,
+                                            accprefix = self.acc_prefix,
+                                            start_ref = self.startref,
+                                            empty_flag = self.empty_flag,
+                                            accession_flag=self.accession_mode,
+                                            keywords = self.keywords_list,
+                                            keywords_mode = self.keywords_mode,
+                                            keywords_retain_order = self.keywords_retain_order,
+                                            sort_key = self.sort_key,
+                                            keywords_abbreviation_number = self.keywords_abbreviation_number,
+                                            delimiter = self.delimiter)
             self.df = ac.init_dataframe()
             if self.autoclass_flag in {"accession", "a", "accesion-generic", "ag"}:
                 self.df = self.df.drop('Archive_Reference', axis=1)
@@ -188,19 +243,25 @@ class OpexManifestGenerator():
             print('Error Looking up XIP Metadata')
             print(e)
     
-    def remove_df_lookup(self, path: str, idx: pd.Index):
+    def remove_df_lookup(self, path: str, removed_list: list, idx: pd.Index):
         try:
             if idx.empty:
                 return False
             else:
                 remove = check_nan(self.df[REMOVAL_FIELD].loc[idx].item())
-                if remove:                                  
+                if remove is not None:
+                    removed_list.append(path)
                     print(f"Removing: {path}")
-                    # Not functioning correctly
                     if os.path.isdir(path):
+                        for dp,d,f in os.walk(path):
+                            for fn in f:
+                                removed_list.append(win_256_check(dp+win_path_delimiter()+fn))
+                            for dn in d:
+                                removed_list.append(win_256_check(dp+win_path_delimiter()+dn))
                         shutil.rmtree(path)
                     else:
-                        os.remove(path)
+                        if os.path.exists(path):
+                            os.remove(path)
                     return True
                 else:
                     return False
@@ -285,7 +346,7 @@ class OpexManifestGenerator():
                 xml_file = ET.parse(path)
                 root_element = ET.QName(xml_file.find('.'))
                 root_element_ln = root_element.localname
-                root_element_ns = root_element.namespace
+                #root_element_ns = root_element.namespace
                 elements_list = []
                 for elem in xml_file.findall('.//'):
                     elem_path = xml_file.getelementpath(elem)
@@ -309,7 +370,6 @@ class OpexManifestGenerator():
         """
         Composes the data into an xml file.
         """
-        print(self.metadata_dir)
         for xml_file in self.xml_files:
             list_xml = xml_file.get('data')
             localname = xml_file.get('localname')
@@ -408,6 +468,9 @@ class OpexManifestGenerator():
         if self.algorithm:
             output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = "_Fixities", output_format = "txt")
             export_list_txt(self.list_fixity, output_path)
+        if self.remove_flag:
+            output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = "_Removed", output_format = "txt")
+            export_list_txt(self.remove_list, output_path)
         print_running_time(self.start_time)
 
 class OpexDir(OpexManifestGenerator):
@@ -419,6 +482,7 @@ class OpexDir(OpexManifestGenerator):
             self.folder_path = folder_path.replace(u'\\\\?\\', "")
         else:
             self.folder_path = folder_path
+        print(self.folder_path)
         if any([self.OMG.input,
                 self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
                 self.OMG.ignore_flag,
@@ -432,19 +496,16 @@ class OpexDir(OpexManifestGenerator):
             index = None
         else:
             index = None
-        if self.OMG.ignore_flag or self.OMG.remove_flag:
-            if self.OMG.ignore_flag:
-                self.ignore = self.OMG.ignore_df_lookup(index)
-                if self.ignore:
-                    return
-            if self.OMG.remove_flag:
-                self.removal = self.OMG.remove_df_lookup(self.folder_path, index)
-                if self.removal:
-                    return
-        else:
-            self.ignore = False
-            self.removal = False
-
+        self.ignore = False
+        self.removal = False
+        if self.OMG.ignore_flag:
+            self.ignore = self.OMG.ignore_df_lookup(index)
+            if self.ignore:
+                return
+        if self.OMG.remove_flag:
+            self.removal = self.OMG.remove_df_lookup(self.folder_path, self.OMG.remove_list, index)
+            if self.removal:
+                return
         self.xmlroot = ET.Element(f"{{{self.opexns}}}OPEXMetadata", nsmap={"opex":self.opexns})
         self.transfer = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}Transfer")
         self.manifest = ET.SubElement(self.transfer, f"{{{self.opexns}}}Manifest")
@@ -491,23 +552,29 @@ class OpexDir(OpexManifestGenerator):
             print('Failed to Filter')
             print(e)
             raise SystemError()
-    
         
     def generate_opex_dirs(self, path: str):
         self = OpexDir(self.OMG, path)
         opex_path = os.path.join(os.path.abspath(self.folder_path), os.path.basename(self.folder_path))
-        for f_path in self.filter_directories(path):
-            if f_path.endswith('.opex'):
-                pass
-            elif os.path.isdir(f_path):
-                if not self.ignore:
-                    self.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
-                    self.folder.text = str(os.path.basename(f_path))
-                self.generate_opex_dirs(f_path)
-            else:
-                OpexFile(self.OMG, f_path, self.OMG.algorithm)
-        if check_opex(opex_path):
-            if not self.ignore:
+        if self.removal is True:
+            pass
+        else:
+            for f_path in self.filter_directories(path):
+                if f_path.endswith('.opex'):
+                    pass
+                elif os.path.isdir(f_path):
+                    if self.ignore is True:
+                        pass
+                    else:
+                        self.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
+                        self.folder.text = str(os.path.basename(f_path))
+                    self.generate_opex_dirs(f_path)
+                else:
+                    OpexFile(self.OMG, f_path, self.OMG.algorithm)
+        if self.removal is True or self.ignore is True:
+            pass
+        else:
+            if check_opex(opex_path):
                 for f_path in self.filter_directories(path):
                     if os.path.isfile(f_path):
                         file = ET.SubElement(self.files, f"{{{self.opexns}}}File")
@@ -518,8 +585,8 @@ class OpexDir(OpexManifestGenerator):
                             file.set("size", str(os.path.getsize(f_path)))
                         file.text = str(os.path.basename(f_path))
                 write_opex(opex_path, self.xmlroot)
-        else:
-            print(f"Avoiding override, Opex exists at: {opex_path}")
+            else:
+                print(f"Avoiding override, Opex exists at: {opex_path}")
 
 class OpexFile(OpexManifestGenerator):
     def __init__(self, OMG: OpexManifestGenerator, file_path: str, algorithm: str = None, title: str = None, description: str = None, security: str = None):
@@ -543,17 +610,16 @@ class OpexFile(OpexManifestGenerator):
                 index = None
             else:
                 index = None
+            self.ignore = False
+            self.removal = False
             if self.OMG.ignore_flag:
                 self.ignore = self.OMG.ignore_df_lookup(index)
                 if self.ignore:
-                    #WTF is this?
-                    return
+                    return                    
             if self.OMG.remove_flag:
-                removal = self.OMG.remove_df_lookup(self.file_path, index)
-                if removal:
-                    return                
-            else:
-                self.ignore = False
+                self.removal = self.OMG.remove_df_lookup(self.file_path, self.OMG.remove_list, index)
+                if self.removal:
+                    return
             self.algorithm = algorithm
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
                 self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 

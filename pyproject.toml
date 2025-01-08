@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opex_manifest_generator"
-version = "1.1.13"
+version = "1.2.2"
 authors = [
     {name="Christopher Prince", email="c.pj.prince@gmail.com"}
     ]
 description = "Opex Manifest Generator Tool for use with Opex / Preservica"
+readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
