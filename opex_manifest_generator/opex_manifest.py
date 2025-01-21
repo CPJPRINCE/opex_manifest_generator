@@ -60,7 +60,7 @@ class OpexManifestGenerator():
                  acc_prefix: str = None,
                  accession_mode: str = False,
                  startref: int = 1,
-                 algorithm: str = None,
+                 algorithm: list[str] = None,
                  empty_flag: bool = False,
                  remove_flag: bool = False,
                  clear_opex_flag: bool = False,
@@ -298,11 +298,12 @@ class OpexManifestGenerator():
             if idx.empty:
                 pass
             else:
-                self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")  
-                self.hash = self.df[HASH_FIELD].loc[idx].item()
-                self.algorithm = self.df[ALGORITHM_FIELD].loc[idx].item()
-                self.fixity.set('type', self.algorithm)
-                self.fixity.set('value',self.hash)
+                for algorithm_type in self.algorithm:
+                    self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")  
+                    self.hash = self.df[HASH_FIELD].loc[idx].item()
+                    self.algorithm = self.df[ALGORITHM_FIELD].loc[idx].item()
+                    self.fixity.set('type', algorithm_type)
+                    self.fixity.set('value',self.hash)
         except Exception as e:
             print('Error looking up Hash')
             print(e)
@@ -436,12 +437,13 @@ class OpexManifestGenerator():
             xmlroot.remove(self.properties)
 
     def genererate_opex_fixity(self, file_path: str):
-        self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")        
-        self.hash = HashGenerator(algorithm = self.algorithm).hash_generator(file_path)
-        self.fixity.set("type", self.algorithm)
-        self.fixity.set("value", self.hash)
-        self.OMG.list_fixity.append([self.algorithm, self.hash, file_path])
-        self.OMG.list_path.append(file_path)
+        for algorithm_type in self.OMG.algorithm:
+            self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")        
+            self.hash = HashGenerator(algorithm = algorithm_type).hash_generator(file_path)
+            self.fixity.set("type", algorithm_type)
+            self.fixity.set("value", self.hash)
+            self.OMG.list_fixity.append([algorithm_type, self.hash, file_path])
+            self.OMG.list_path.append(file_path)
 
     def main(self):
         if self.print_xmls_flag:
