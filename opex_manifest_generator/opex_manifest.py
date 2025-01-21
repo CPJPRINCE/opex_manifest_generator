@@ -159,17 +159,17 @@ class OpexManifestGenerator():
                 print(elem_lnpath)
     
     def set_input_flags(self):
-        if 'Title' in self.column_headers:
+        if TITLE_FIELD in self.column_headers:
             self.title_flag = True
-        if 'Description' in self.column_headers:
+        if DESCRIPTION_FIELD in self.column_headers:
             self.description_flag = True
-        if 'Security' in self.column_headers:
+        if SECUIRTY_FIELD in self.column_headers:
             self.security_flag = True
-        if 'SourceID' in self.column_headers:
+        if SOURCEID_FIELD in self.column_headers:
             self.sourceid_flag = True
-        if 'Ignore' in self.column_headers:
+        if IGNORE_FIELD in self.column_headers:
             self.ignore_flag = True
-        if 'Hash' in self.column_headers and 'Algorithm' in self.column_headers:
+        if HASH_FIELD in self.column_headers and ALGORITHM_FIELD in self.column_headers:
             self.hash_from_spread = True
             print("Hash detected in Spreadsheet; taking hashes from spreadsheet")
             time.sleep(3)
