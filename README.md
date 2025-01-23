@@ -1,5 +1,9 @@
 ﻿# Opex Manifest Generator Tool
 
+[![Supported Versions](https://img.shields.io/pypi/pyversions/opex_manifest_generator.svg)](https://pypi.org/project/opex_manifest_generator)
+[![CodeQL](https://github.com/CPJPRINCE/opex_manifest_generator/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/CPJPRINCE/opex_manifest_generator/actions/workflows/codeql-analysis.yml)
+![PyPI Downloads](https://static.pepy.tech/badge/opex_manifest_generator)
+
 The Opex Manifest Generator is a Python programme for generating OPEX files for use with Preservica and system's compatible with the OPEX standard. It will recursively go through a 'root' directory and generate an OPEX files for each folder or, depending on specified options, files.
 
 ## Why use this tool?
