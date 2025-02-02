@@ -96,7 +96,7 @@ def run_cli():
         print(f'Warning: Metadata Flag has been given without Input. Metadata won\'t be generated.')
         time.sleep(5)
     if args.print_xmls:
-        OpexManifestGenerator.print_descriptive_xmls()
+        OpexManifestGenerator(root = args.root).print_descriptive_xmls()
     acc_prefix = None
     if args.autoclass in {"accession", "a", "accession-generic", "ag", "both", "b", "both-generic", "bg"} and args.accession_mode is None:
             args.accession_mode = "file"
