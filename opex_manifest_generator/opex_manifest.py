@@ -153,10 +153,13 @@ class OpexManifestGenerator():
             root_element = ET.QName(xml_file.find('.'))
             root_element_ln = root_element.localname
             for elem in xml_file.findall(".//"):
-                elem_path = xml_file.getelementpath(elem)
-                elem = ET.QName(elem)
-                elem_lnpath = elem_path.replace(f"{{{elem.namespace}}}", root_element_ln + ":")
-                print(elem_lnpath)
+                if elem.getchildren():
+                    pass
+                else:
+                    elem_path = xml_file.getelementpath(elem)
+                    elem = ET.QName(elem)
+                    elem_lnpath = elem_path.replace(f"{{{elem.namespace}}}", root_element_ln + ":")
+                    print(elem_lnpath)
     
     def set_input_flags(self):
         if TITLE_FIELD in self.column_headers:
