@@ -445,6 +445,13 @@ class OpexManifestGenerator():
             self.OMG.list_fixity.append([algorithm_type, self.hash, file_path])
             self.OMG.list_path.append(file_path)
 
+    def s3_login(self, bucket, access_key = None, secret_key = None, session_token = None):
+        import boto3
+        self.bucket = bucket
+        session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key,
+                                                aws_session_token=session_token)
+        self.s3 = session.client(service_name="s3")              
+
     def main(self):
         if self.print_xmls_flag:
             self.print_descriptive_xmls()
@@ -534,7 +541,7 @@ class OpexDir(OpexManifestGenerator):
                 self.xml_descmeta = ET.SubElement(self.xmlroot,f"{{{self.opexns}}}DescriptiveMetadata")
                 self.OMG.generate_descriptive_metadata(self.xmlroot, idx = index)
 
-    def filter_directories(self, directory: str, sort_key: str = str.casefold):
+    def filter_directories(self, directory: str, sort_key = str.casefold):
         try:
             if self.OMG.hidden_flag is False:
                 list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory)
@@ -544,7 +551,7 @@ class OpexDir(OpexManifestGenerator):
                                         and f.name != os.path.basename(__file__)],
                                         key=sort_key)
             elif self.OMG.hidden_flag is True:
-                list_directories = sorted([os.path.join(directory, f.name) for f in os.scandir(directory) \
+                list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory) \
                                         if f.name != 'meta'
                                         and f.name != os.path.basename(__file__)],
                                         key=sort_key)
@@ -553,6 +560,36 @@ class OpexDir(OpexManifestGenerator):
             print('Failed to Filter')
             print(e)
             raise SystemError()
+        
+    def filter_s3_directories(self, bucket: str, prefix: str = None, delimiter = "/", sort_key = str.casefold, number = 1):
+        list_directories = []
+        r = self.s3.list_objects_v2(Bucket=bucket,Delimiter=delimiter,Prefix=prefix)
+        try:
+            for obj in r['Contents'][1:]:
+                name = obj.get('Key')
+                list_directories.append(name)
+                size = obj.get('Size')
+                md5 = obj.get('ETag')
+                level = len(list(filter(None,name.split("/"))))
+                print(name, number, level)
+                number += 1
+        except: 
+            number = 1
+        try:
+            for obj in r['CommonPrefixes']:
+                name = obj.get('Prefix')
+                list_directories.append(name)
+                level = len(list(filter(None,name.split("/"))))               
+                print(name, number, level)
+                number += 1
+                self.filter_s3_directories(bucket=bucket, delimiter=delimiter, prefix=obj['Prefix'], number = 1)
+        except:
+            number = 1
+        sorted(list_directories,key=sort_key)
+        return list_directories
+
+        list_recurse(bucket=self.bucket,delimiter="/", prefix= self.root, number = 1)    
+
         
     def generate_opex_dirs(self, path: str):
         self = OpexDir(self.OMG, path)
@@ -588,6 +625,10 @@ class OpexDir(OpexManifestGenerator):
                 write_opex(opex_path, self.xmlroot)
             else:
                 print(f"Avoiding override, Opex exists at: {opex_path}")
+    
+    def genererate_opex_s3(self, path):
+        self = OpexDir(self.OMG, path)
+        opex_path = self.folder_path, self.folder_path.split('/')[-2]
 
 class OpexFile(OpexManifestGenerator):
     def __init__(self, OMG: OpexManifestGenerator, file_path: str, algorithm: str = None, title: str = None, description: str = None, security: str = None):
