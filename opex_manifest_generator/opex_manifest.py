@@ -390,13 +390,15 @@ class OpexManifestGenerator():
                         ns = elem_dict.get('Namespace')
                         try:
                             if self.metadata_flag in {'e', 'exact'}:
-                                val = check_nan(self.df[path].loc[idx].item())
+                                val_series = self.df[path].loc[idx]
+                                val = check_nan(val_series.item())
                             elif self.metadata_flag in {'f', 'flat'}:
-                                val = check_nan(self.df[name].loc[idx].item())
+                                val_series = self.df[name].loc[idx]
+                                val = check_nan(val_series.item())
                             if val is None:
                                 continue
                             else:
-                                if is_datetime64_any_dtype(str(val)):
+                                if is_datetime64_any_dtype(val_series):
                                     val = pd.to_datetime(val)
                                     val = datetime.datetime.strftime(val, "%Y-%m-%dT%H:%M:%S.000Z")
                             if self.metadata_flag in {'e','exact'}:
