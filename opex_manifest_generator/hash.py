@@ -39,3 +39,27 @@ class HashGenerator():
             print(e)
             raise SystemError()
         return hash.hexdigest().upper()
+        
+    def hash_generator_pax_zip(self, filename, z):
+        if self.algorithm == "SHA-1":
+            hash = hashlib.sha1()
+        elif self.algorithm == "MD5":
+            hash = hashlib.md5()
+        elif self.algorithm == "SHA-256":
+            hash = hashlib.sha256()
+        elif self.algorithm == "SHA-512":
+            hash = hashlib.sha512()
+        else:
+            hash = hashlib.sha1()
+        print(f'Generating Fixity using {self.algorithm} for: {filename}')
+        try:
+            with z.open(filename, 'r') as data:            
+                while True:
+                    buff = data.read(self.buffer)
+                    if not buff:
+                        break
+                    hash.update(buff)
+        except Exception as e:
+            print(e)
+            raise SystemError()
+        return hash.hexdigest().upper()

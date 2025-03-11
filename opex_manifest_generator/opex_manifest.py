@@ -61,6 +61,7 @@ class OpexManifestGenerator():
                  accession_mode: str = False,
                  startref: int = 1,
                  algorithm: list[str] = None,
+                 pax_fixity: bool = False,
                  empty_flag: bool = False,
                  remove_flag: bool = False,
                  clear_opex_flag: bool = False,
@@ -84,6 +85,7 @@ class OpexManifestGenerator():
         self.list_fixity = []
         self.start_time = datetime.datetime.now()
         self.algorithm = algorithm
+        self.pax_fixity_flag = pax_fixity
         self.empty_flag = empty_flag
         self.remove_flag = remove_flag
         if self.remove_flag:
@@ -441,13 +443,25 @@ class OpexManifestGenerator():
         if self.properties is None:
             xmlroot.remove(self.properties)
 
-    def genererate_opex_fixity(self, file_path: str):
+    def generate_opex_fixity(self, file_path: str):
         for algorithm_type in self.OMG.algorithm:
-            self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")        
+            self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")
             self.hash = HashGenerator(algorithm = algorithm_type).hash_generator(file_path)
             self.fixity.set("type", algorithm_type)
             self.fixity.set("value", self.hash)
             self.OMG.list_fixity.append([algorithm_type, self.hash, file_path])
+            self.OMG.list_path.append(file_path)
+
+    def generate_pax_zip_opex_fixity(self, file_path):
+        for algorithm_type in self.OMG.algorithm:
+            z = zipfile.ZipFile(file_path,'r')
+            for file in z.filelist:
+                self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")        
+                self.hash = HashGenerator(algorithm = algorithm_type).hash_generator_pax_zip(file.filename, z)
+                self.fixity.set("path", file.filename)
+                self.fixity.set("type", algorithm_type)
+                self.fixity.set("value", self.hash)
+                self.OMG.list_fixity.append([algorithm_type, self.hash, file_path + file.filename])
             self.OMG.list_path.append(file_path)
 
     def main(self):
@@ -517,7 +531,6 @@ class OpexDir(OpexManifestGenerator):
         self.manifest = ET.SubElement(self.transfer, f"{{{self.opexns}}}Manifest")
         self.folders = ET.SubElement(self.manifest, f"{{{self.opexns}}}Folders")
         self.files = ET.SubElement(self.manifest, f"{{{self.opexns}}}Files")
-
         if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
             self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
         elif self.OMG.autoclass_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
@@ -530,6 +543,19 @@ class OpexDir(OpexManifestGenerator):
             self.security = security
         if self.OMG.sourceid_flag:
             self.OMG.sourceid_df_lookup(self.transfer, self.folder_path, index)
+        if self.OMG.algorithm and self.OMG.pax_fixity_flag is True and self.folder_path.endswith(".pax"):
+            self.fixities = ET.SubElement(self.transfer, f"{{{self.opexns}}}Fixities")
+            for dir,_,files in os.walk(folder_path):
+                for filename in files:
+                    rel_path = os.path.relpath(dir,folder_path)
+                    rel_file = os.path.join(rel_path, filename)
+                    abs_file = os.path.abspath(os.path.join(dir,filename))
+                    self.generate_opex_fixity(abs_file)
+                    self.fixity.set("path",rel_file)
+                    file = ET.SubElement(self.files, f"{{{self.opexns}}}File")
+                    file.set("type", "content")
+                    file.set("size", str(os.path.getsize(abs_file)))
+                    file.text = str(rel_file)
         if self.OMG.autoclass_flag or self.OMG.input:
             self.OMG.generate_opex_properties(self.xmlroot, index, 
                                               title = self.title,
@@ -561,7 +587,10 @@ class OpexDir(OpexManifestGenerator):
         
     def generate_opex_dirs(self, path: str):
         self = OpexDir(self.OMG, path)
-        opex_path = os.path.join(os.path.abspath(self.folder_path), os.path.basename(self.folder_path))
+        if self.OMG.algorithm and self.OMG.pax_fixity_flag is True and self.folder_path.endswith(".pax"):
+            opex_path = os.path.abspath(self.folder_path)
+        else:
+            opex_path = os.path.join(os.path.abspath(self.folder_path), os.path.basename(self.folder_path))
         if self.removal is True:
             pass
         else:
@@ -574,9 +603,12 @@ class OpexDir(OpexManifestGenerator):
                     else:
                         self.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
                         self.folder.text = str(os.path.basename(f_path))
-                    self.generate_opex_dirs(f_path)
+                    if self.OMG.algorithm and self.OMG.pax_fixity_flag is True and self.folder_path.endswith(".pax"):
+                        pass
+                    else:
+                        self.generate_opex_dirs(f_path)
                 else:
-                    OpexFile(self.OMG, f_path, self.OMG.algorithm)
+                    OpexFile(self.OMG, f_path)
         if self.removal is True or self.ignore is True:
             pass
         else:
@@ -595,7 +627,7 @@ class OpexDir(OpexManifestGenerator):
                 print(f"Avoiding override, Opex exists at: {opex_path}")
 
 class OpexFile(OpexManifestGenerator):
-    def __init__(self, OMG: OpexManifestGenerator, file_path: str, algorithm: str = None, title: str = None, description: str = None, security: str = None):
+    def __init__(self, OMG: OpexManifestGenerator, file_path: str, title: str = None, description: str = None, security: str = None):
         self.OMG = OMG
         self.opexns = self.OMG.opexns  
         if file_path.startswith(u'\\\\?\\'):
@@ -626,7 +658,6 @@ class OpexFile(OpexManifestGenerator):
                 self.removal = self.OMG.remove_df_lookup(self.file_path, self.OMG.remove_list, index)
                 if self.removal:
                     return
-            self.algorithm = algorithm
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
                 self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
             elif self.OMG.autoclass_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
@@ -647,7 +678,10 @@ class OpexFile(OpexManifestGenerator):
                     if self.OMG.hash_from_spread:
                         self.OMG.hash_df_lookup(self.fixities, index)  
                     else:
-                        self.genererate_opex_fixity(self.file_path)
+                        if self.OMG.pax_fixity_flag is True and (self.file_path.endswith("pax.zip") or self.file_path.endswith(".pax")):
+                            self.generate_pax_zip_opex_fixity(self.file_path)
+                        else:
+                            self.generate_opex_fixity(self.file_path)
                 if self.transfer is None:
                     self.xmlroot.remove(self.transfer)
                 if self.OMG.autoclass_flag or self.OMG.input:
