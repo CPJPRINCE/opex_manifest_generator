@@ -33,6 +33,8 @@ def parse_args():
     parser.add_argument("-fx", "--fixity", required = False, nargs = '*', default = ['SHA-1'],
                         choices = ['NONE', 'SHA-1', 'MD5', 'SHA-256', 'SHA-512'], type = str.upper, action=EmptyIsTrueFixity,
                         help="Generates a hash for each file and adds it to the opex, can select one or more algorithms to utilise. -fx SHA-1 MD5")
+    parser.add_argument("--pax-fixity", required = False, action = 'store_true', default = False,
+                        help="Enables use of PAX fixity generation, in line with Preservica's Recommendation. Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.")
     parser.add_argument("-rme", "--remove-empty", required = False, action = 'store_true', default = False,
                         help = "Remove and log empty directories from root. Log will be exported to 'meta' / output folder.")
     parser.add_argument("-o", "--output", required = False, nargs = 1,
@@ -161,7 +163,8 @@ def run_cli():
                           empty_flag = args.remove_empty, 
                           remove_flag = args.remove, 
                           clear_opex_flag = args.clear_opex, 
-                          algorithm = args.fixity, 
+                          algorithm = args.fixity,
+                          pax_fixity= args.pax_fixity,
                           startref = args.start_ref, 
                           export_flag = args.export, 
                           meta_dir_flag = args.disable_meta_dir, 
