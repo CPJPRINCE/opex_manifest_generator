@@ -234,7 +234,7 @@ While using the flat method is easier, be aware that if there's non-unique tags,
 
 When using the 'exactly' and you have non-unique tags, again such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
 
-For convenience I've also included full templates for DC, MODS, GDPR and EAD, with their explicit names in the headers [here](opex_manifest_generator/samples/spreads).
+For convenience I've also included full templates for DC, MODS, GDPR and EAD, with their explicit names in the headers [here](https://github.com/CPJPRINCE/opex_manifest_generator/tree/master/samples/spreads).
 
 Once you have added in your headers and the necessary data to create the OPEX's simply add `-m` with the chosen method of import `flat|exact`, so:
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
