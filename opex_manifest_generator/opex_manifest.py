@@ -8,11 +8,10 @@ license: Apache License 2.0"
 """
 
 import lxml.etree as ET
-import os, time, shutil
+import pandas as pd
+import os, time, datetime
 from auto_classification_generator import ClassificationGenerator
 from auto_classification_generator.common import export_list_txt, export_xl, export_csv, define_output_file
-import datetime
-import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype
 from opex_manifest_generator.hash import HashGenerator
 from opex_manifest_generator.common import *
@@ -34,7 +33,7 @@ class OpexManifestGenerator():
     :param startref: set to set the starting reference number
     :param algorithm: set whether to generate fixities and the algorithm to use {MD5, SHA-1, SHA-256, SHA-512}
     :param empty_flag: set whether to delete and log empty directories
-    :param remove_flag: set whether to enable removals; data must also contain removals column and cell be set to True 
+    :param removal_flag: set whether to enable removals; data must also contain removals column and cell be set to True 
     :param clear_opex_flag: set whether clear existing opexes
     :param export_flag: set whether to export the spreadsheet when using autoclass
     :param output_format: set output format when using autoclass {xlsx, csv}
@@ -63,7 +62,7 @@ class OpexManifestGenerator():
                  algorithm: list[str] = None,
                  pax_fixity: bool = False,
                  empty_flag: bool = False,
-                 remove_flag: bool = False,
+                 removal_flag: bool = False,
                  clear_opex_flag: bool = False,
                  export_flag: bool = False,
                  input: str = None,
@@ -87,9 +86,9 @@ class OpexManifestGenerator():
         self.algorithm = algorithm
         self.pax_fixity_flag = pax_fixity
         self.empty_flag = empty_flag
-        self.remove_flag = remove_flag
-        if self.remove_flag:
-            self.remove_list = []
+        self.removal_flag = removal_flag
+        if self.removal_flag:
+            self.removal_list = []
         self.export_flag = export_flag
         self.startref = startref
         self.autoclass_flag = autoclass_flag
@@ -248,32 +247,20 @@ class OpexManifestGenerator():
             print('Error Looking up XIP Metadata')
             print(e)
     
-    def remove_df_lookup(self, path: str, removed_list: list, idx: pd.Index):
+    def removal_df_lookup(self, idx: pd.Index):
         try:
             if idx.empty:
                 return False
             else:
                 remove = check_nan(self.df[REMOVAL_FIELD].loc[idx].item())
                 if remove is not None:
-                    removed_list.append(path)
-                    print(f"Removing: {path}")
-                    if os.path.isdir(path):
-                        for dp,d,f in os.walk(path):
-                            for fn in f:
-                                removed_list.append(win_256_check(dp+win_path_delimiter()+fn))
-                            for dn in d:
-                                removed_list.append(win_256_check(dp+win_path_delimiter()+dn))
-                        shutil.rmtree(path)
-                    else:
-                        if os.path.exists(path):
-                            os.remove(path)
                     return True
                 else:
                     return False
         except Exception as e:
             print('Error looking up Removals')
             print(e)
-                
+
     def ignore_df_lookup(self, idx: pd.Index):
         try:
             if idx.empty:
@@ -489,9 +476,9 @@ class OpexManifestGenerator():
         if self.algorithm:
             output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = "_Fixities", output_format = "txt")
             export_list_txt(self.list_fixity, output_path)
-        if self.remove_flag:
-            output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = "_Removed", output_format = "txt")
-            export_list_txt(self.remove_list, output_path)
+        if self.removal_flag:
+            output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = "_Removals", output_format = "txt")
+            export_list_txt(self.removal_list, output_path)
         print_running_time(self.start_time)
 
 class OpexDir(OpexManifestGenerator):
@@ -506,7 +493,7 @@ class OpexDir(OpexManifestGenerator):
         if any([self.OMG.input,
                 self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
                 self.OMG.ignore_flag,
-                self.OMG.remove_flag,
+                self.OMG.removal_flag,
                 self.OMG.sourceid_flag,
                 self.OMG.title_flag,
                 self.OMG.description_flag,
@@ -522,9 +509,10 @@ class OpexDir(OpexManifestGenerator):
             self.ignore = self.OMG.ignore_df_lookup(index)
             if self.ignore:
                 return
-        if self.OMG.remove_flag:
-            self.removal = self.OMG.remove_df_lookup(self.folder_path, self.OMG.remove_list, index)
+        if self.OMG.removal_flag:
+            self.removal = self.OMG.removal_df_lookup(index)
             if self.removal:
+                remove_tree(self.folder_path, self.OMG.removal_list)
                 return
         self.xmlroot = ET.Element(f"{{{self.opexns}}}OPEXMetadata", nsmap={"opex":self.opexns})
         self.transfer = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}Transfer")
@@ -586,33 +574,53 @@ class OpexDir(OpexManifestGenerator):
             raise SystemError()
         
     def generate_opex_dirs(self, path: str):
+        """"
+        This function loops recursively through a given directory.
+        
+        There are two loops to first generate Opexes for Files; 
+        """    
         self = OpexDir(self.OMG, path)
         if self.OMG.algorithm and self.OMG.pax_fixity_flag is True and self.folder_path.endswith(".pax"):
             opex_path = os.path.abspath(self.folder_path)
         else:
             opex_path = os.path.join(os.path.abspath(self.folder_path), os.path.basename(self.folder_path))
+        #First Loop to Generate Folder Manifest Opexes & Individual File Opexes.
         if self.removal is True:
+            #If removal is True for Folder, then it will be removed - Does not need to descend.
             pass
         else:
             for f_path in self.filter_directories(path):
                 if f_path.endswith('.opex'):
+                    #Ignores OPEX files / directories...
                     pass
                 elif os.path.isdir(f_path):
-                    if self.ignore is True:
+                    if self.ignore is True or \
+                    (self.OMG.removal_flag is True and \
+                     self.OMG.removal_df_lookup(self.OMG.index_df_lookup(f_path)) is True):
+                        #If Ignore is True, or the Folder below is marked for Removal: Don't add to Opex 
                         pass
                     else:
+                        #Add Folder to OPEX Manifest (doesn't get written yet...)
                         self.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
                         self.folder.text = str(os.path.basename(f_path))
                     if self.OMG.algorithm and self.OMG.pax_fixity_flag is True and self.folder_path.endswith(".pax"):
+                        #If using fixity, but the folder is a PAX & using PAX Fixity: End descent. 
                         pass
                     else:
+                        #Recurse Descent.
                         self.generate_opex_dirs(f_path)
-                else:
+                elif os.path.isfile(f_path):
+                    #Processes OPEXes for individual Files: this gets written.
                     OpexFile(self.OMG, f_path)
+                else:
+                    print('Unknown File Type?')
+                    pass
+        #Second Loop to add previously generated Opexes to Folder Manifest.
         if self.removal is True or self.ignore is True:
             pass
         else:
             if check_opex(opex_path):
+                #Only processing Opexes.
                 for f_path in self.filter_directories(path):
                     if os.path.isfile(f_path):
                         file = ET.SubElement(self.files, f"{{{self.opexns}}}File")
@@ -622,8 +630,10 @@ class OpexDir(OpexManifestGenerator):
                             file.set("type", "content")
                             file.set("size", str(os.path.getsize(f_path)))
                         file.text = str(os.path.basename(f_path))
+                #Writes Folder OPEX 
                 write_opex(opex_path, self.xmlroot)
             else:
+                #Avoids Override if exists, lets you continue where left off. 
                 print(f"Avoiding override, Opex exists at: {opex_path}")
 
 class OpexFile(OpexManifestGenerator):
@@ -638,7 +648,7 @@ class OpexFile(OpexManifestGenerator):
             if any([self.OMG.input,
                     self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
                     self.OMG.ignore_flag,
-                    self.OMG.remove_flag,
+                    self.OMG.removal_flag,
                     self.OMG.sourceid_flag,
                     self.OMG.title_flag,
                     self.OMG.description_flag,
@@ -654,8 +664,8 @@ class OpexFile(OpexManifestGenerator):
                 self.ignore = self.OMG.ignore_df_lookup(index)
                 if self.ignore:
                     return                    
-            if self.OMG.remove_flag:
-                self.removal = self.OMG.remove_df_lookup(self.file_path, self.OMG.remove_list, index)
+            if self.OMG.removal_flag:
+                self.removal = self.OMG.removal_df_lookup(index)
                 if self.removal:
                     return
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
