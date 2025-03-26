@@ -5,8 +5,7 @@ author: Christopher Prince
 license: Apache License 2.0"
 """
 
-import zipfile, os, sys, time, stat
-import datetime
+import zipfile, os, sys, time, stat, datetime, shutil
 from lxml import etree
 
 def zip_opex(file_path,opex_path):
@@ -16,6 +15,20 @@ def zip_opex(file_path,opex_path):
             z.write(file_path,os.path.basename(file_path))
             z.write(opex_path,os.path.basename(opex_path))
     else: print(f'A zip file already exists for: {zip_file}')
+
+def remove_tree(path: str, removed_list: list):
+    removed_list.append(path)
+    print(f"Removing: {path}")
+    if os.path.isdir(path):
+        for dp,d,f in os.walk(path):
+            for fn in f:
+                removed_list.append(win_256_check(dp+win_path_delimiter()+fn))
+            for dn in d:
+                removed_list.append(win_256_check(dp+win_path_delimiter()+dn))
+        shutil.rmtree(path)
+    else:
+        if os.path.exists(path):
+            os.remove(path)
 
 def win_256_check(path):
     if len(path) > 255 and sys.platform == "win32":
