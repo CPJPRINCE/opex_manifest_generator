@@ -16,7 +16,8 @@ This tool was primarily intended to allow users, to undertake larger uploads saf
 ## Features
 
 There are a number of features including:
-- Generating Fixities for files, with SHA1, MD5, SHA256, SHA512 (Default is SHA1)
+- Generating Fixities for files, with SHA1, MD5, SHA256, SHA512 (Default is SHA1).
+- Generate Multiple Fixities.
 - Generate PAX fixities.
 - OPEX's can be cleared out, for repeated / ease of use.
 - OPEX's can be zipped with the file, for imports use with Starter/UX2/Manual ingest methods.
@@ -89,21 +90,27 @@ You can also enable PAX Fixity generation to generate fixity checks for individu
 
 *Sidenote, you can also generate multiple fixites for PAX files*
 
+### Continuous Generation
+
+If dealing with a large amount of files / large sized files the program is in built with the ability to continue where you left off.
+
+By default, the program won't override any previously generated OPEXes. This means you can end the program (using Ctrl + C) and rerun the same (or a different) command and not worry about losing any progress.
+
+### Clearing Opex's
+
+Of course if you do make a mistake you or wish to start over, can utilise the clear option will remove all existing Opex's in a directory.
+
+`opex_generate "C:\Users\Christopher\Downloads\" -clr`
+
+Running this command with no additional options will end the program after clearing the Opex's; if other options are enabled it will proceed with a new generation.
+
 ### Zipping 
 
 You can also utilise the zip option to bundle the opex and content into a zip file. For use with manual ingests or for Starter / UX2 users.
 
 `opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-1 -z`
 
-Currently, no files will be removed after the zipping. *Be aware that because of this running this command multiple times in row can lead to lots of zips... Ensure you're at the end point before running this!*
-
-### Clearing Opex's
-
-Mistakes happen! The clear option will remove all existing Opex's in a directory.
-
-`opex_generate "C:\Users\Christopher\Downloads\" -clr`
-
-Running this command with no additional options will end the program after clearing the Opex's; if other options are enabled it will proceed with the generation of those Opex's.
+Currently, no files will be removed after the zipping. **Be aware that because of this running this command multiple times in row can lead to lots of zips... Ensure you're at an end point before running this, as there's no easy way to undo this!**
 
 ### Removing Empty Directories
 
@@ -111,16 +118,16 @@ You can also clear any empty directories by using the `-rme` or `--remove-empty`
 
 ### Filtering
 
-Currently 2 filters are applied to certain files / folders:
+Currently 2 filters are applied across all generations.
 
-1) Hidden directories / files, either by Flag in Windows or starting with '.' in MacOS / Linux, are not included.
+1) Hidden directories / files, either by the hidden attribute in Windows or by a starting '.' in MacOS / Linux, are not included.
 2) Folder's titled `meta` are not included.
 
-Hidden files and directories can be included by utilising the `--hidden` option. `meta` folders currently can not be included. 
+Hidden files and directories can be included by utilising the `--hidden` option. `meta` folders currently can not be included except by changing their name.
 
 ## Note on 'meta' folders
 
-Meta folders will always be generated automatically when used with the Fixity and Clearing Empty Directories options; as well as when using some options from the Auto Classification Generator. You can redirect the path of the generated folder using the `-o` option: `-fx -o {/path/to/meta/output}`. You can also disable the generation of 'meta' folder using the `-dmd` option.
+Meta folders will be generated automatically when used with the `--fixity` and `-rme` options, as well as when some options from the Auto Classification Generator. You can redirect the path of the generated folder using the `-o` option: `-fx -o {/path/to/meta/output}`. Or you can also disable the generation of 'meta' folder using the `-dmd` option.  
 
 ## Use with the Auto Classification Generator
 
@@ -142,47 +149,52 @@ You can alternatively utilise the "Accession" / running number mode of generatin
 
 `opex_generate -c accession -p "2024" C:\Users\Christopher\Downloads --accession-mode file`
 
-To note: when using the `catalog` option, the key `code` is always set by default. When using `accession` the default key is `accref`
+To note: when using the `catalog` option, the key `code` is set by default, when using `accession` the default key is `accref`. *The default identifier can be set by the options.property file (accref cannot be changes)*
 
-There are also options to generate `both` (accession and catalog references); or generate a `generic` set of metadata which will take the XIP metadata for the Title and Description fields, from the basename of the folder/file. It will also set the Security Status to "open": `opex_generate -c generic C:\Users\Christopher\Downloads`
+There are also options to generate `both` (Accession and Catalog references); or generate a `generic` set of metadata which will take the XIP metadata for the Title and Description fields, from the basename of the folder/file. It will also set the Security Status to "open": `opex_generate -c generic C:\Users\Christopher\Downloads`
 
-You can also combine the generic options with `catalog, accession, both` to generate an identifier alongside generic data: `opex_generate -c catalog-generic C:\Users\Christopher\Downloads`
+You can also combine the generic options, like so: `catalog-generic, accession-generic, both-generic` to generate an identifier alongside generic data: `opex_generate -c catalog-generic C:\Users\Christopher\Downloads`
 
 ## Use of Input Override option.
 
-<details>
-<summary>
-This program also supports utilising an Auto Class spreadsheet as an input override, utilising the data added into said spreadsheet, instead of generating them ad hoc. Click to see more details
-</summary>
+This program also supports utilising an Auto Class spreadsheet as an 'input override', utilising the data added into said spreadsheet instead of generating them ad hoc like above.
 
-In this way, metadata can be set on XIP Metadata fields, including:
+Using this method XIP Metadata fields can be set on Ingest, including:
+
  - Title
  - Description
  - Security Status
  - Identifiers
  - SourceID
 
-As well as XML metadata templates, including the default templates and custom templates.
+XML metadata template data, from both the default templates and custom templates can also be set.
+
+<details>
+<summary>
+Click to find out more!
+</summary>
 
 ### XIP metadata - Title, Description and Security Status
 
-To use an input override, we need to first create a spreadsheet with the path of. You can utilise the `auto_class` tool installed alongside the Opex Generator.
+To use an input override, we need to first create a spreadsheet with the path of. You can utilise the `auto_class` tool installed alongside the Opex Generator, like so:
 
 `auto_class -p "ARCH" "C:\Users\Christopher\Downloads"`
 
-In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers have to match exactly, and are case-sensitive; these fields would then be filled in with the relevant data.
+In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers are case-sensistive and have to match exactly. These fields would then be filled in with the relevant data.
 
 ![ScreenshotXIPColumns](assets/Column%20Headers.png)
 
-Once the cells are filled in with data; to initialise the generation run: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
+Once the cells are filled in with data, run a generation like so: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
 
 Ensure that the root directory matches the original directory of the export. In the above case this would be: `opex_generate -i "C:\Users\Christopher\Downloads\meta\Downloads_AutoClass.xlsx" "C:\Users\Christopher\Downloads"`
 
-The column headers are drop-in, drop-out, meaning you can the columns as and when you need them. You can also leave blank data,the cell you leave blank will simply not these will not be assigned.
+### Headers Note
 
-When assigning the `Security` field, the tag must be a match to an existing tag in your system. This is case-sensitive, so "Closed" will NOT match to a tag called "closed".
+The column headers are drop-in, drop-out, meaning you can the columns as and when you need them. You can also leave cell's blank if you don't want them to have any data in that field.
 
-### Important Note
+To note: When assigning the `Security` field, the tag must be a match to an existing tag in your system. This is case-sensitive, so "Closed" will NOT match to a tag called "closed".
+
+### Another Important Note
 
 If there are any changes to the hierarchy data, such as a file/folder (not including a 'meta' folder) being removed or added after the export of the spreadsheet, the data may not be assigned correctly, or it may be assigned as "ERROR", or the program may simply fail.
 
@@ -194,31 +206,31 @@ Custom Identifiers can be added by adding the columns: `"Archive_Reference", "Ac
 
 `Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Classification Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as neccessary. 
 
-To add a custom identifier import, do so like: `Identifier:MyCodeName`. As many identifier's as needed can be added.
+To add a custom identifier import, do so like: `Identifier:{YourIdentifierName}`, without the curly brackets IE: `Identifier:MyCode`. Mulitple identifiers can be added as needed.
 
-No additional parameter's need to be set in the command line when using Identifier's, addition is enabled by default. Leaving a cell blank will use Preservica's defaults.
+No additional parameter's need to be set in the command line when using Identifier's, addition is enabled by default. Leaving a cell blank will not add an identifer.
 
 ### XIP Metadata - Hashes
 
-If you utilise the Auto Classification's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if the columns `Hash` and `Algorithm` are both present the program will read the hashes from the spreadsheet instead of generating them.
+If you utilise the Auto Classification's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if both the columns `Hash` and `Algorithm` are present, the program will read the hashes from the spreadsheet instead of generating them.
 
 ![Hash Screenshot](assets/Hash%20Headers.png)
 
-*Be aware that interruption / resuming is not currently supported with the Auto Class Tool.
+*Be aware that interruption / resuming is not currently supported with the Auto Class Tool; also doesn't support multiple hashes*
 
 ### XML Metadata - Basic Templates
 
 DC, MODS, GPDR, and EAD templates are supported alongside installation of the package.
 
-After exporting an Auto Class spreadsheet, add in additional columns to the spreadsheet; like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
+After exporting an Auto Class spreadsheet, you can add in additional columns to the spreadsheet and fill it out with data for an import. Like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
 
 ![XML Headers](assets/XML%20Headers.png)
 
-You can add in the column header in two ways: *'exactly'* or *'flatly'*. (There are probably better words to describe this behaviour)
+The column header's can be added in either of two ways, what I term: `exactly` or `flatly`. (There are probably better words to describe this).
 
-An Exactly match requires that the full path from the XML document is added to the column, with parent to child separated by a `/`; 'flatly' requires only the matching end tag.
+An `exactly` match requires that the full path of the tag in the XML document is added to the column header. With each parent and child separated by a `/`; 'flatly' requires only the matching end tag.
 
-To give an example, the below will match to the same `recordIdentifer` field in the mods template:
+To give an example, from the mods template:
 
 ```
 Exactly:
@@ -228,19 +240,22 @@ Flatly:
 mods:recordIdentifier
 ```
 
-In both cases, the header has to match both the namespace and tag. This is also case sensitive.
+Both cases match to the field `recordIdentifer`. Note that header includes both the namespace and tag, and is also case sensitive.
 
-While using the flat method is easier, be aware that if there's non-unique tags, such as `mods:note`, the flat method will only import to the first match, which might not be it's intended destination.
+While using the `flatly` method is easier, be aware that if there's non-unique tags, such as `mods:note` in the Mods template. This method will only import to the first match, which might not be it's intended destination. Using the `exactly` method resolves this issue.
 
-When using the 'exactly' and you have non-unique tags, again such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
 
-For convenience I've also included full templates for DC, MODS, GDPR and EAD, with their explicit names in the headers [here](https://github.com/CPJPRINCE/opex_manifest_generator/tree/master/samples/spreads).
-
-Once you have added in your headers and the necessary data to create the OPEX's simply add `-m` with the chosen method of import `flat|exact`, so:
+Once you have added in your headers and the necessary data to create the OPEX's simply add the `-m` option, with the chosen method of import `flat|exact`, so:
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
 `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m exact`
 
-Be aware that when you add an XML Metadata column to the spreadsheet, it will always add the entire metadata template to the OPEX - even if all the cells are left blank. As this is a useful function (adding blank templates to your import), I will leave this for now, but may adjust this in the future.
+### XML Metadata - Quick Note 
+
+When you have non-unique tags, again, such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
+
+For convenience I've included the full templates for DC, MODS, GDPR and EAD, with the `exact` names in the headers [here](https://github.com/CPJPRINCE/opex_manifest_generator/tree/master/samples/spreads). I also created the `--print-xmls` function to display this info (including square bracket placement).
+
+Also be aware that when using `-m` option and column headers for that XML document are present in the spreadsheet, it will add a metadata template to the OPEX, even if all the cells are left blank. As this is a useful function (adding blank templates to your import), I will leave this for now, but may adjust this in the future.
 
 ### XML Metadata Templates - Custom Templates
 
@@ -248,12 +263,12 @@ Any custom XML template, that is functioning in Preservica will work with this m
 
 The default location will be in the installation path of the program, typically under `/path/to/ptyhoninstall/Lib/site-packages/opex_manifest_generator/metadata`. However, you can also utilise the `-mdir` option to set this to a specific folder, to have a dedicated section.
 
-After the xml is added to that directory, all that's required is to add the matching column headers into your spreadsheet. You can utilise `--print-xmls` to get a quick list.
+After the xml is added to that directory, all that's required is to add the matching column headers into your spreadsheet. You can also utilise `--print-xmls` to obtian this.
 
 ### Additional Information for Auto Classification
 #### SourceID
 
-A SourceID can also be set by adding a `SourceID` header. The behaviour of this is not fully tested, likely won't be as I don't really utilise SourceIDs in my work :).
+A SourceID can also be set by adding a `SourceID` header. The behaviour of this is not fully tested, likely won't be as I don't really utilise SourceIDs in my work :\).
 
 #### Ignore
 
@@ -263,19 +278,17 @@ Ignoring Files can also be set by adding an `Ignore` header. When this is set to
 
 Removing Files or Folders is also possible, by adding a `Removals` header. When this is set to `TRUE`, the specified File or Folder will be removed from the system. As a safeguard this must be enabled by adding the parameter `-rm, --remove`, and confirming the deletion when prompted.
 
-To note when importing a column for an XML Metadata template that needs to be a boolean IE `TRUE/FALSE`. Please ensure that no cells are left blank, otherwise these may be imported inaccurately as `1.0` or `0.0`. This is a pandas issue, that I'm not sure how to fix... :/
-
 #### Keywords
 
 You can utilise keywords to replace reference numbers with abbreviated characters for instance: `--keywords "Secret Metadata Folder"` will replace the reference number with `"SMF"`. You can also set different modes with `--keywords-mode`. `intialise` will take the intials of each letter like in the previous example; `firstletters` will take the first x number of letters. So the above becomes `"SEC"`. You can set multiple keywords with by comma seperation. If `--keywords` is set without any set strings it will be applied to every word.
 
-There are further details below.
+There are further details in the Options Section.
 
 #### Sorting
 
 You can also sort utilisiing `--sort-by`. There are currently two options: `foldersfirst` and `alphabetical`. Folders first sorts folders first, then files (both alphabetically); alphabetically sorts both folders and files alphabetically.
 
-#### Option file
+#### Options File
 
 You can utilise your own option-file to change the default column headers for the Input override method. See the option `--option-file path/to/file`. Defaults are:
 
@@ -304,9 +317,12 @@ The only requirement to use the input override, is the presence of the `FullName
 </details>
 
 ## Further Options
+
+The full options are given below; also see `opex_generate --help`
+
 <details>
 <summary>
-The full option list is given below, see also `opex_generate --help`
+Click here
 </summary>
 
 ```
@@ -468,17 +484,17 @@ Options:
 
 ## Future Developments
 
-- Customisable Filtering *Added!*
-- Adjust Accession so the different modes can utilised from Opex. *Added!*
-- Add SourceID as option for use with Auto Class Spreadsheets. *Added!*
-- Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier... *Added!*
-- Add an option / make it a default for Metadata XML's to be located in a specified directory rather than in the package. *Added!*
-- Zipping to conform to PAX - Last on the check list...
-- In theory, this tool should be compatible with any system that makes use of the OPEX standard. But in theory Communism works, in theory.
+- ~~Customisable Filtering~~ *Added!*
+- ~~Adjust Accession so the different modes can utilised from Opex.~~ *Added!*
+- ~~Add SourceID as option for use with Auto Class Spreadsheets.~~ *Added!*
+- ~~Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...~~ *Added!*
+- ~~Add an option / make it a default for Metadata XML's to be located in a specified directory rather than in the package.~~ *Added!*
+- Zipping to conform to PAX - Last on the check list; it techincally does...
+- In theory, this tool should be compatible with any system that makes use of the OPEX standard... But in theory Communism works, in theory...
 
 ## Developers
 
-You should also be able to embed the program directly in Python. Though be warned I haven't tested this functionally much!
+For Developers you can also embed / use the program directly in Python. Though be warned I haven't tested this functionally much!
 
 ```
 from opex_manifest_generator import OpexManifestGenerator as OMG
@@ -489,4 +505,4 @@ OMG(root="/my/directory/path", algorithm = "SHA-256").main()
 
 ## Contributing
 
-I welcome further contributions and feedback.
+I welcome further contributions and feedback! If there any issues please raise them [here](https://github.com/CPJPRINCE/opex_manifest_generator/issues)
