@@ -83,7 +83,7 @@ You can also generate multiple fixities, by comma seperation - Shoutout to Andre
 
 `opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256,SHA-1`
 
-You can also enable PAX Fixity generation to generate fixity checks for individual files in PAXes. This is done, as detailed [here (see PAX section)][https://developers.preservica.com/documentation/open-preservation-exchange-opex#opex-sections]:
+You can also enable PAX Fixity generation to generate fixity checks for individual files in PAXes. This is done, as detailed [here (see PAX section)](https://developers.preservica.com/documentation/open-preservation-exchange-opex#opex-sections):
 
 `opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256 --pax-fixity`
 
@@ -158,11 +158,11 @@ It's possible to also create a `generic` set of metadata which will take the XIP
 
 You can combine the generic options with `catalog, accession, both` to generate an identifier alongside generic data.
 
-## Use with of spreadsheet as an Input. 
+## Use with of Input Override.
 
+For more details on using the input override option click below
 <details>
 <summary>
-For more details on Use of the Input Override Options click below
 </summary>
 
 This program also supports utilising an Auto Class spreadsheet as an input override, utilising the data added into said spreadsheet, instead of generating them ad hoc.
@@ -318,7 +318,6 @@ The only requirement to use the input override, is the presence of the `FullName
 ## Further Options
 <details>
 <summary>
-For further Options see below.
 </summary>
 
 The following options are currently available to run the program with, and can be utilised in various combinations with each other, although some combinations will clash:
@@ -371,7 +370,6 @@ Options:
                                 if used in conjunction with one of the above options:
                                 {generic-catalog,generic-accession, generic-both}
                                 it will do both simultaneously.
-                                For more details on these see [here](https://github.com/CPJPRINCE/auto_classification_generator).
         
         --accession-mode        Sets whether to have the runnig tally be for            {file,folder,both}
                                 files, folders or both,
