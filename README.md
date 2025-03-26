@@ -134,7 +134,7 @@ This is built-in to the Opex Manifest Generator and can be utilised to embed ide
 
 The Opex Manifest Generator makes use of the auto_class_generator as a module, therefore it's behaviour differs a little when compared to utilising the standalone command `auto_class.exe`.
 
-### Auto Classification - Identifier Generation
+### Identifier Generation
 
 To generate an auto classification code, call on `-c` option with `catalog` choice. You can also assign a prefix using `-p "ARCH"`:
 
@@ -158,10 +158,13 @@ It's possible to also create a `generic` set of metadata which will take the XIP
 
 You can combine the generic options with `catalog, accession, both` to generate an identifier alongside generic data.
 
+## Use with of spreadsheet as an Input. 
+
 <details>
 <summary>
-## Auto Classification - Spreadsheet as an Input Override 
+For more details on Use of the Input Override Options click below
 </summary>
+
 This program also supports utilising an Auto Class spreadsheet as an input override, utilising the data added into said spreadsheet, instead of generating them ad hoc.
 
 In this way, metadata can be set on XIP Metadata fields, including:
@@ -300,8 +303,8 @@ REMOVAL_FIELD = Removals
 IGNORE_FIELD = Ignore
 SOURCEID_FIELD = SourceID
 HASH_FIELD = Hash
-ALGORITHM_FIELD = Algorithm```
-
+ALGORITHM_FIELD = Algorithm
+```
 #### Custom Spreadsheets - Quick Note
 
 You technically don't have to utilise the AutoClass tool at all. Any old spreadsheet will do!
@@ -311,10 +314,11 @@ The only requirement to use the input override, is the presence of the `FullName
 ![FullName Column](assets/FullName%20Column.png)
 
 </details>
-<details>
 
+## Further Options
+<details>
 <summary>
-## Options
+For further Options see below.
 </summary>
 
 The following options are currently available to run the program with, and can be utilised in various combinations with each other, although some combinations will clash:
