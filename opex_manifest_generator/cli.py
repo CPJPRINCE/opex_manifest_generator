@@ -30,7 +30,7 @@ def parse_args():
                         help= """Assign a prefix when utilising the --autoclass option. Prefix will append any text before all generated text.
                         When utilising the {both} option fill in like: [catalog-prefix, accession-prefix] without square brackets.                        
                         """)
-    parser.add_argument("-fx", "--fixity", required = False, nargs = '*', default = ['SHA-1'],
+    parser.add_argument("-fx", "--fixity", required = False, nargs = '*', default = None,
                         choices = ['NONE', 'SHA-1', 'MD5', 'SHA-256', 'SHA-512'], type = str.upper, action=EmptyIsTrueFixity,
                         help="Generates a hash for each file and adds it to the opex, can select one or more algorithms to utilise. -fx SHA-1 MD5")
     parser.add_argument("--pax-fixity", required = False, action = 'store_true', default = False,
@@ -93,6 +93,9 @@ def run_cli():
         print(f'Output path set to: {args.output}')    
     if args.input and args.autoclass:
         print(f'Both Input and Auto-Class options have been selected, please use only one...')
+        time.sleep(5); raise SystemExit()
+    if args.remove and not args.input:
+        print('Removal flag has been given without input, please ensure an input file is utilised when using this option.')
         time.sleep(5); raise SystemExit()
     if not args.metadata in {'none', 'n'} and not args.input:
         print(f'Warning: Metadata Flag has been given without Input. Metadata won\'t be generated.')
@@ -161,7 +164,7 @@ def run_cli():
                           accession_mode=args.accession_mode,
                           acc_prefix = acc_prefix, 
                           empty_flag = args.remove_empty, 
-                          remove_flag = args.remove, 
+                          removal_flag = args.remove, 
                           clear_opex_flag = args.clear_opex, 
                           algorithm = args.fixity,
                           pax_fixity= args.pax_fixity,
