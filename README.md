@@ -107,9 +107,9 @@ Running this command with no additional options will end the program after clear
 
 ### Removing Empty Directories
 
-You can also clear any empty directories by using the `--remove-empty` option. This will remove any empty directories and generate a simple text document listing the directories that were removed. This process is not reversible and you will be asked to confirm your choice.
+You can also clear any empty directories by using the `-rme` or `--remove-empty` option. This will remove any empty directories and generate a simple text document listing the directories that were removed. This process is not reversible and you will be asked to confirm your choice.
 
-## Filtering
+### Filtering
 
 Currently 2 filters are applied to certain files / folders:
 
@@ -120,11 +120,7 @@ Hidden files and directories can be included by utilising the `--hidden` option.
 
 ## Note on 'meta' folders
 
-Meta folders will always be generated automatically when used with the Fixity and Clearing Empty Directories options; as well as when using some options from the Auto Classification Generator. You can redirect the path of the generated folder using the `-o` option:
-
-`-o {/path/to/meta/output}`
-
-Or disable the generation of 'meta' folder using the `-dmd` option.
+Meta folders will always be generated automatically when used with the Fixity and Clearing Empty Directories options; as well as when using some options from the Auto Classification Generator. You can redirect the path of the generated folder using the `-o` option: `-fx -o {/path/to/meta/output}`. You can also disable the generation of 'meta' folder using the `-dmd` option.
 
 ## Use with the Auto Classification Generator
 
@@ -132,7 +128,7 @@ The Opex Manifest generator becomes much more powerful when utilised with anothe
 
 This is built-in to the Opex Manifest Generator and can be utilised to embed identifiers and metadata directly to an Opex or through the use of an Excel spreadsheet or CSV file.
 
-The Opex Manifest Generator makes use of the auto_class_generator as a module, therefore it's behaviour differs a little when compared to utilising the standalone command `auto_class.exe`.
+The Opex Manifest Generator makes use of the auto_class_generator as a module, therefore it's behaviour differs a little different when compared to utilising the standalone command `auto_class.exe`.
 
 ### Identifier Generation
 
@@ -142,30 +138,22 @@ To generate an auto classification code, call on `-c` option with `catalog` choi
 
 This will generate Opex's with an identifier `code` for each of the files / folders. As described in the Auto Class module, the reference codes will take the hierarchy of the directories. You can also use the `-s` option to set a starting reference.
 
-You can alternatively utilise the "Accession" / running number mode of generating a code using `-c accession` with the prefix "2024".
+You can alternatively utilise the "Accession" / running number mode of generating a code using `-c accession` with the prefix "2024". You can also utilise the `--accession-mode` option to determine whether to have a running number for `file, folder, both`.
 
-`opex_generate -c accession -p "2024" C:\Users\Christopher\Downloads`
+`opex_generate -c accession -p "2024" C:\Users\Christopher\Downloads --accession-mode file`
 
-*You can also utilise the `--accession-mode` option to determine whether to have a running number for files,folders or both*. Alternatively you can do both Catalogue / Accession at the same time:
+To note: when using the `catalog` option, the key `code` is always set by default. When using `accession` the default key is `accref`
 
-`opex_generate -c both -p "ARCH" "2024" C:\Users\Christopher\Downloads`
+There are also options to generate `both` (accession and catalog references); or generate a `generic` set of metadata which will take the XIP metadata for the Title and Description fields, from the basename of the folder/file. It will also set the Security Status to "open": `opex_generate -c generic C:\Users\Christopher\Downloads`
 
-To note: when using the `catalog` option, the key `code` is always set by default. When using `accession` the default key is `accref`.
+You can also combine the generic options with `catalog, accession, both` to generate an identifier alongside generic data: `opex_generate -c catalog-generic C:\Users\Christopher\Downloads`
 
-It's possible to also create a `generic` set of metadata which will take the XIP metadata for the Title and Description fields, from the basename of the folder/file. It will also set the Security Status to "open".
+## Use of Input Override option.
 
-`opex_generate -c generic C:\Users\Christopher\Downloads`
-
-You can combine the generic options with `catalog, accession, both` to generate an identifier alongside generic data.
-
-## Use with of Input Override.
-
-For more details on using the input override option click below
 <details>
 <summary>
+This program also supports utilising an Auto Class spreadsheet as an input override, utilising the data added into said spreadsheet, instead of generating them ad hoc. Click to see more details
 </summary>
-
-This program also supports utilising an Auto Class spreadsheet as an input override, utilising the data added into said spreadsheet, instead of generating them ad hoc.
 
 In this way, metadata can be set on XIP Metadata fields, including:
  - Title
@@ -318,9 +306,8 @@ The only requirement to use the input override, is the presence of the `FullName
 ## Further Options
 <details>
 <summary>
+The full option list is given below, see also `opex_generate --help`
 </summary>
-
-The following options are currently available to run the program with, and can be utilised in various combinations with each other, although some combinations will clash:
 
 ```
 Options:
