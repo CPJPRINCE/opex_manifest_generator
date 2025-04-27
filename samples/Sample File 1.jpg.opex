@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<opex:OPEXMetadata xmlns:opex="http://www.openpreservationexchange.org/opex/v1.2">
+  <opex:Transfer>
+    <opex:Fixities>
+      <opex:Fixity type="SHA-1" value="701B2C5AE532713809BD4FC536E9AF1EAAA5DE47"/>
+    </opex:Fixities>
+  </opex:Transfer>
+</opex:OPEXMetadata>

@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<opex:OPEXMetadata xmlns:opex="http://www.openpreservationexchange.org/opex/v1.2">
+  <opex:Transfer>
+    <opex:Manifest>
+      <opex:Folders/>
+      <opex:Files>
+        <opex:File type="content" size="39093">Sample File 1.jpg</opex:File>
+        <opex:File type="metadata">Sample File 1.jpg.opex</opex:File>
+        <opex:File type="content" size="375839">Sample File 2.gif</opex:File>
+        <opex:File type="metadata">Sample File 2.gif.opex</opex:File>
+      </opex:Files>
+    </opex:Manifest>
+  </opex:Transfer>
+</opex:OPEXMetadata>
