@@ -445,7 +445,8 @@ class OpexManifestGenerator():
             for file in z.filelist:
                 self.fixity = ET.SubElement(self.fixities, f"{{{self.opexns}}}Fixity")        
                 self.hash = HashGenerator(algorithm = algorithm_type).hash_generator_pax_zip(file.filename, z)
-                self.fixity.set("path", file.filename)
+                file_rplce = file.filename.replace('\\','/')
+                self.fixity.set("path", file_rplce)
                 self.fixity.set("type", algorithm_type)
                 self.fixity.set("value", self.hash)
                 self.OMG.list_fixity.append([algorithm_type, self.hash, file_path + file.filename])
@@ -537,6 +538,7 @@ class OpexDir(OpexManifestGenerator):
                 for filename in files:
                     rel_path = os.path.relpath(dir,folder_path)
                     rel_file = os.path.join(rel_path, filename)
+                    rel_file = rel_file.replace('\\','/')
                     abs_file = os.path.abspath(os.path.join(dir,filename))
                     self.generate_opex_fixity(abs_file)
                     self.fixity.set("path",rel_file)
