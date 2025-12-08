@@ -56,7 +56,7 @@ To install the package, simply run: `pip install -U opex_manifest_generator`. To
 
 ## Usage
 
-Useage of the program is from a command line interface / terminal program, such as PowerShell on Windows, Terminal on Mac, or one of the many terminal programs on Linux. 
+Usage of the program is from a command line interface / terminal program, such as PowerShell on Windows, Terminal on Mac, or one of the many terminal programs on Linux. 
 
 ### Folder Manifest Generation
 
@@ -80,7 +80,7 @@ By default this will run with the SHA-1 algorithm. You can also utilise MD5, SHA
 
 `opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256`
 
-You can also generate multiple fixities, by comma seperation - Shoutout to Andrew Doty for adding this:
+You can also generate multiple fixities, by comma separation - Shout-out to Andrew Doty for adding this:
 
 `opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256,SHA-1`
 
@@ -88,7 +88,7 @@ You can also enable PAX Fixity generation to generate fixity checks for individu
 
 `opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256 --pax-fixity`
 
-*Sidenote, you can also generate multiple fixites for PAX files*
+*Side-note, you can also generate multiple fixities for PAX files*
 
 ### Continuous Generation
 
@@ -171,7 +171,7 @@ XML metadata template data, from both the default templates and custom templates
 
 <details>
 <summary>
-Click to find out more!
+*Click to find out more!*
 </summary>
 
 ### XIP metadata - Title, Description and Security Status
@@ -180,7 +180,7 @@ To use an input override, we need to first create a spreadsheet with the path of
 
 `auto_class -p "ARCH" "C:\Users\Christopher\Downloads"`
 
-In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers are case-sensistive and have to match exactly. These fields would then be filled in with the relevant data.
+In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers are case-sensitive and have to match exactly. These fields would then be filled in with the relevant data.
 
 ![ScreenshotXIPColumns](assets/Column%20Headers.png)
 
@@ -200,15 +200,15 @@ If there are any changes to the hierarchy data, such as a file/folder (not inclu
 
 ### XIP Metadata - Identifiers
 
-Custom Identifiers can be added by adding the columns: `"Archive_Reference", "Accession_Reference", "Identifier", or "Identifer:Keyname"`.
+Custom Identifiers can be added by adding the columns: `"Archive_Reference", "Accession_Reference", "Identifier", or "Identifier:Keyname"`.
 
 ![Identifier Screenshot](assets/Identifiers%20Headers.png)
 
-`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Classification Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as neccessary. 
+`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Classification Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as necessary. 
 
-To add a custom identifier import, do so like: `Identifier:{YourIdentifierName}`, without the curly brackets IE: `Identifier:MyCode`. Mulitple identifiers can be added as needed.
+To add a custom identifier import, do so like: `Identifier:{YourIdentifierName}`, without the curly brackets IE: `Identifier:MyCode`. Multiple identifiers can be added as needed.
 
-No additional parameter's need to be set in the command line when using Identifier's, addition is enabled by default. Leaving a cell blank will not add an identifer.
+No additional parameter's need to be set in the command line when using Identifier's, addition is enabled by default. Leaving a cell blank will not add an identifier.
 
 ### XIP Metadata - Hashes
 
@@ -240,7 +240,7 @@ Flatly:
 mods:recordIdentifier
 ```
 
-Both cases match to the field `recordIdentifer`. Note that header includes both the namespace and tag, and is also case sensitive.
+Both cases match to the field `recordIdentifier`. Note that header includes both the namespace and tag, and is also case sensitive.
 
 While using the `flatly` method is easier, be aware that if there's non-unique tags, such as `mods:note` in the Mods template. This method will only import to the first match, which might not be it's intended destination. Using the `exactly` method resolves this issue.
 
@@ -263,7 +263,7 @@ Any custom XML template, that is functioning in Preservica will work with this m
 
 The default location will be in the installation path of the program, typically under `/path/to/ptyhoninstall/Lib/site-packages/opex_manifest_generator/metadata`. However, you can also utilise the `-mdir` option to set this to a specific folder, to have a dedicated section.
 
-After the xml is added to that directory, all that's required is to add the matching column headers into your spreadsheet. You can also utilise `--print-xmls` to obtian this.
+After the xml is added to that directory, all that's required is to add the matching column headers into your spreadsheet. You can also utilise `--print-xmls` to obtain this.
 
 ### Additional Information for Auto Classification
 #### SourceID
@@ -280,13 +280,13 @@ Removing Files or Folders is also possible, by adding a `Removals` header. When 
 
 #### Keywords
 
-You can utilise keywords to replace reference numbers with abbreviated characters for instance: `--keywords "Secret Metadata Folder"` will replace the reference number with `"SMF"`. You can also set different modes with `--keywords-mode`. `intialise` will take the intials of each letter like in the previous example; `firstletters` will take the first x number of letters. So the above becomes `"SEC"`. You can set multiple keywords with by comma seperation. If `--keywords` is set without any set strings it will be applied to every word.
+You can utilise keywords to replace reference numbers with abbreviated characters for instance: `--keywords "Secret Metadata Folder"` will replace the reference number with `"SMF"`. You can also set different modes with `--keywords-mode`. `initialise` will take the initials of each letter like in the previous example; `firstletters` will take the first x number of letters. So the above becomes `"SEC"`. You can set multiple keywords with by comma separation. If `--keywords` is set without any set strings it will be applied to every word.
 
 There are further details in the Options Section.
 
 #### Sorting
 
-You can also sort utilisiing `--sort-by`. There are currently two options: `foldersfirst` and `alphabetical`. Folders first sorts folders first, then files (both alphabetically); alphabetically sorts both folders and files alphabetically.
+You can also sort utilising `--sort-by`. There are currently two options: `foldersfirst` and `alphabetical`. Folders first sorts folders first, then files (both alphabetically); alphabetically sorts both folders and files alphabetically.
 
 #### Options File
 
@@ -297,7 +297,7 @@ You can utilise your own option-file to change the default column headers for th
 INDEX_FIELD = FullName
 TITLE_FIELD = Title
 DESCRIPTION_FIELD = Description
-SECUIRTY_FIELD = Security
+SECURITY_FIELD = Security
 IDENTIFIER_FIELD = Identifier
 IDENTIFIER_DEFAULT = code
 REMOVAL_FIELD = Removals
@@ -331,10 +331,19 @@ Options:
 
         -v,     --version       Display version information                             [boolean flag]
 
+    Required Option:
+
+        root                    The path to the root folder you wish to
+                                Generate a Manifest for. Will recurse through
+                                the specified folder.
+
+                                If no path is given will utilise the Current
+                                Working Directory.
+
     Opex Options:
 
         -fx,  --fixity          Generate a Fixity Check for files.                      [SHA-1,MD5, SHA-256, SHA-512
-                                Can set multiple fixies with comma.                     | boolean flag]
+                                Can set multiple fixities with comma.                     | boolean flag]
                                 IE MD5,SHA-1.                            
                                 [Defaults to SHA-1 if not specified]                    
 
@@ -349,7 +358,8 @@ Options:
         -z,   --zip             Will zip the Opex's with the file itself to create      [boolean flag]
                                 a zip file. Existing file's are currently not removed.
                                 ***Use with caution, repeating the command multiple 
-                                times in a row, will break the Opex's.
+                                times in a row, will break the Opex's / Generally
+                                cause a mess...
         
         --hidden                Will generate Opex's for hidden files and directories   [boolean flag]
 
@@ -362,7 +372,7 @@ Options:
 
         -c,  --autoclass        This will utilise the AutoClassification                [{catalog, accession,both,
                                 module to generate an Auto Class spreadsheet.           generic, catalog-generic,
-                                                                                        accesison-generic,
+                                                                                        accession-generic,
                                 There are several options, {catalog} will generate      both-generic}]
                                 a Archival Reference following; {accession}
                                 will create a running number of files
@@ -374,17 +384,23 @@ Options:
                                 {generic-catalog,generic-accession, generic-both}
                                 it will do both simultaneously.
         
-        --accession-mode        Sets whether to have the runnig tally be for            {file,folder,both}
+        --accession-mode        Sets whether to have the running tally be for            {file,folder,both}
                                 files, folders or both,
                                 when utilising the Accession option with 
                                 autoclass. Default is file.
         
         -p,   --prefix          Assign a prefix to the Auto Classification,             [PREFIX]
                                 when utilising {both} fill in like:
-                                "catalog-prefix","accession-prefix".            
+                                "catalog-prefix","accession-prefix".
+
+        -s    --suffix          Assign a suffix to the Auto Classification              [SUFFIX]
+                                program. By Default only applies to Files
+
+        --suffix-options        Set the Suffix assignment options                       {apply_to_files, apply_to_folders,
+                                                                                        apply_to_both}
         
-        -rme, --remove-         Remove and log empty directories in a structure         [boolean flag]
-                empty           Log will bee exported to 'meta' / output folder
+        --remove-empty          Remove and log empty directories in a structure         [boolean flag]
+                                Log will bee exported to 'meta' / output folder
        
         -o,   --output          Set's the output of the 'meta' folder when              [PATH/TO/FOLDER] 
                                 utilising AutoClass.
@@ -404,8 +420,8 @@ Options:
                                 spreadsheet and titled exactly as:
                                 Title, Description, Security.
 
-        -m    --metadata        Toggles use of the metadata import method.              [{none,flat,exact} 
-                                                                                        | boolean flag]
+        -m    --metadata        Toggles use of the metadata import method.              {none,flat,exact} 
+                                                                                        
                                 There are two methods utilised by this:
                                 'exact',or 'flat'.
 
@@ -419,18 +435,18 @@ Options:
 
                                 Enabled with -m. 
                                 [Defaults to 'exact' method if not
-                                specificed]
+                                specified]
                                 
                                 Use of metadata requires, XML documents to 
                                 be added to the metadata folder, see docs for
                                 details.
 
-        -mdir   --metadata      Specify the metadata directroy to pull the XMLs files   [PATH/TO/FOLDER]
+        -mdir   --metadata      Specify the metadata directory to pull the XMLs files   [PATH/TO/FOLDER]
                 -dir            from.
                                 [Defaults to lib folder if not set]
 
-        -dmd,   --disable       Will disable the creation of the 'meta' folder.         [boolean flag]
-                -meta-dir       Can also be enabled with output.
+        --disable-meta-dir      Will disable the creation of the 'meta' folder.         [boolean flag]
+                                Can also be enabled with output.
   
         -ex     --export        Set whether to export any Auto Class generation         [boolean flag] 
                                 to a spreadsheet
@@ -452,13 +468,22 @@ Options:
                                 Can also be set without specifying any words to
                                 apply to everything.
 
-        --keym  --keywords      Specify the mode to use for keywords                    {intialise,firstletters}
-                -mode           Either 'intialise' taking the first letter of each
+        --keym  --keywords      Specify the mode to use for keywords                    {initialise,firstletters,from_json}
+                -mode           Either 'initialise' taking the first letter of each
                                 word between spaces IE "Department of Justice" becomes
                                 "DOJ".
 
                                 'firstletters' takes the first n amount of letters.
                                 The aforementioned becomes "DEP"
+
+                                'from_json'' allows you to enter in the path to a
+                                JSON file formatted as a Dict. The Key will be
+                                used as the string to replace and the value,
+                                what will be used as the replacement.
+                                IE {'Important Document':'IMD', 'Human Resources': 'HR'}
+
+        --keywords-case         Toggle to enable Case-Sensitivity, by Default
+        -sensitive              Keywords matching is insensitive
 
         --keywords-retain-      Specify if you wish continue or reset reference         [boolean flag]
         -order                  numbering for references not in keywords. 
@@ -472,9 +497,9 @@ Options:
 
         --keywords-abbreviation Set the number of characters to abbreviate to for       [int]
         -number                 keywords option
-                                [Default is 3 first letters, -1 for intialise]
+                                [Default is 3 first letters, -1 for initialise]
         
-        --sort-by               Set the method to sort. Can either utilise              {foldersfirst,alphabetical}
+        --sort-by               Set the method to sort. Can either utilise              {folders_first,alphabetical}
                                 'foldersfirst' to sort folders first then
                                 alphabetically or 'alphabetical to sort
                                 both folders and files alphabetically
@@ -487,9 +512,9 @@ Options:
 - ~~Customisable Filtering~~ *Added!*
 - ~~Adjust Accession so the different modes can utilised from Opex.~~ *Added!*
 - ~~Add SourceID as option for use with Auto Class Spreadsheets.~~ *Added!*
-- ~~Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accesion_Refernce". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...~~ *Added!*
+- ~~Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accession_Reference". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...~~ *Added!*
 - ~~Add an option / make it a default for Metadata XML's to be located in a specified directory rather than in the package.~~ *Added!*
-- Zipping to conform to PAX - Last on the check list; it techincally does...
+- Zipping to conform to PAX - Last on the check list; it technically does...
 - In theory, this tool should be compatible with any system that makes use of the OPEX standard... But in theory Communism works, in theory...
 
 ## Developers
