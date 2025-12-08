@@ -7,7 +7,6 @@ license: Apache License 2.0"
 
 import hashlib
 from opex_manifest_generator.common import win_256_check 
-import os, io
 
 class HashGenerator():
     def __init__(self, algorithm: str = "SHA-1", buffer: int = 4096):
@@ -16,13 +15,13 @@ class HashGenerator():
 
     def hash_generator(self, file_path: str):
         file_path = win_256_check(file_path)
-        if self.algorithm == "SHA-1":
+        if self.algorithm in ("SHA-1","SHA1"):
             hash = hashlib.sha1()
         elif self.algorithm == "MD5":
             hash = hashlib.md5()
-        elif self.algorithm == "SHA-256":
+        elif self.algorithm in ("SHA-256","SHA256"):
             hash = hashlib.sha256()
-        elif self.algorithm == "SHA-512":
+        elif self.algorithm in ("SHA-512","SHA512"):
             hash = hashlib.sha512()
         else:
             hash = hashlib.sha1()
@@ -41,13 +40,13 @@ class HashGenerator():
         return hash.hexdigest().upper()
         
     def hash_generator_pax_zip(self, filename, z):
-        if self.algorithm == "SHA-1":
+        if self.algorithm in ("SHA1","SHA-1"):
             hash = hashlib.sha1()
         elif self.algorithm == "MD5":
             hash = hashlib.md5()
-        elif self.algorithm == "SHA-256":
+        elif self.algorithm in ("SHA256","SHA-256"):
             hash = hashlib.sha256()
-        elif self.algorithm == "SHA-512":
+        elif self.algorithm in ("SHA512","SHA-512"):
             hash = hashlib.sha512()
         else:
             hash = hashlib.sha1()

@@ -11,7 +11,52 @@ import importlib.metadata
 
 def parse_args():
     parser = argparse.ArgumentParser(description = "OPEX Manifest Generator for Preservica Uploads")
-    parser.add_argument('root', default = os.getcwd(), help = "The root path to generate Opexes for")
+    parser.add_argument('root', nargs='?', default = os.getcwd(),
+                        help = """The root path to generate Opexes for, will recursively traverse all sub-directories.
+                        Generates an Opex for each folder & (depending on options) file in the directory tree.""")
+    
+    parser.add_argument("-fx", "--fixity", required = False, nargs = '*', default = None,
+                        choices = ['SHA-1', 'MD5', 'SHA-256', 'SHA-512', 'SHA1', 'SHA256', 'SHA512'], type = str.upper, action=EmptyIsTrueFixity,
+                        help="Generates a hash for each file and adds it to the opex, can select one or more algorithms to utilise. -fx SHA-1 MD5")
+    parser.add_argument("--pax-fixity", required = False, action = 'store_true', default = False,
+                        help="""Enables use of PAX fixity generation, in line with Preservica's Recommendation.
+                        "Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.""")
+    parser.add_argument("--fixity-export", required = False, action = 'store_false', default = True,
+                        help="""Set whether to export the generated fixity list to a text file in the meta directory.
+                        Enabled by default, disable with this flag.""")
+    parser.add_argument("-z", "--zip", required = False, action = 'store_true',
+                        help="Set to zip files")
+    parser.add_argument("--remove-empty", required = False, action = 'store_true', default = False,
+                        help = "Remove and log empty directories from root. Log will be exported to 'meta' / output folder.")
+    parser.add_argument("--hidden", required = False, action = 'store_true', default = False,
+                        help="Set whether to include hidden files and folders")
+    parser.add_argument("-o", "--output", required = False, nargs = 1,
+                        help = "Sets the output to send any generated files (Remove Empty, Fixity List, AutoClass Export) to. Will not affect creation of a meta dir.")
+    parser.add_argument("-clr", "--clear-opex", required = False, action = 'store_true', default = False,
+                        help = """Clears existing opex files from a directory. If set with no further options will only clear opexes; 
+                        if multiple options are set will clear opexes and then run the program""")
+    parser.add_argument("-opt","--options-file", required = False, default=os.path.join(os.path.dirname(__file__),'options','options.properties'),
+                        help="Specify a custom Options file, changing the set presets for column headers (Title,Description,etc)")
+    parser.add_argument("--autoclass-options", required = False, default = None,
+                        help="Specify a custom Auto Classification Options file, changing the set presets for Auto Classification generation")
+    parser.add_argument("--disable-meta-dir", required = False, action = 'store_false',
+                        help = """Set whether to disable the creation of a 'meta' directory for generated files,
+                        default behaviour is to always generate this directory""")
+    # Input Options
+    parser.add_argument("-i", "--input", required = False, nargs='?', 
+                        help="Set to utilise a CSV / XLSX spreadsheet to import data from")
+    parser.add_argument("-rm", "--remove", required = False, action = "store_true", default = False,
+                        help="Set whether to enable removals of files and folders from a directory. ***Currently in testing")    
+    parser.add_argument("-mdir","--metadata-dir", required=False, nargs= '?',
+                        default = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
+                        help="Specify the metadata directory to pull XML files from")
+    parser.add_argument("-m", "--metadata", required = False, const = 'e', default = 'none',
+                        nargs = '?', choices = ['none', 'n', 'exact', 'e', 'flat', 'f'], type = str.lower,
+                        help="Set whether to include xml metadata fields in the generation of the Opex")
+    parser.add_argument("--print-xmls", required = False, action = "store_true", default = False,
+                        help="Prints the elements from your xmls to the consoles")
+    
+    # Auto Classification Options
     parser.add_argument("-c", "--autoclass", required = False,
                         choices = ['catalog', 'c', 'accession', 'a', 'both', 'b', 'generic', 'g', 'catalog-generic', 'cg', "accession-generic", "ag", "both-generic", "bg"],
                         type = str.lower,
@@ -19,7 +64,7 @@ def parse_args():
                         to generate an on the fly Reference listing.
                         
                         There are several options, {catalog} will generate
-                        a Archival Reference following an ISAD(G) sturcutre.
+                        a Archival Reference following an ISAD(G) structure.
                         {accession} will create a running number of files.
                         {both} will do both at the same time!
                         {generic} will populate the title and description fields with the folder/file's name,
@@ -30,61 +75,44 @@ def parse_args():
                         help= """Assign a prefix when utilising the --autoclass option. Prefix will append any text before all generated text.
                         When utilising the {both} option fill in like: [catalog-prefix, accession-prefix] without square brackets.                        
                         """)
-    parser.add_argument("-fx", "--fixity", required = False, nargs = '*', default = None,
-                        choices = ['NONE', 'SHA-1', 'MD5', 'SHA-256', 'SHA-512'], type = str.upper, action=EmptyIsTrueFixity,
-                        help="Generates a hash for each file and adds it to the opex, can select one or more algorithms to utilise. -fx SHA-1 MD5")
-    parser.add_argument("--pax-fixity", required = False, action = 'store_true', default = False,
-                        help="Enables use of PAX fixity generation, in line with Preservica's Recommendation. Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.")
-    parser.add_argument("-rme", "--remove-empty", required = False, action = 'store_true', default = False,
-                        help = "Remove and log empty directories from root. Log will be exported to 'meta' / output folder.")
-    parser.add_argument("-o", "--output", required = False, nargs = 1,
-                        help = "Sets the output to send any generated files to. Will not affect creation of a meta dir.")
-    parser.add_argument("--disable-meta-dir", required = False, action = 'store_false',
-                        help = """Set whether to disable the creation of a 'meta' directory for generated files,
-                        default behaviour is to always generate this directory""")
-    parser.add_argument("-clr", "--clear-opex", required = False, action = 'store_true', default = False,
-                        help = """Clears existing opex files from a directory. If set with no further options will only clear opexes; 
-                        if multiple options are set will clear opexes and then run the program""")
-    parser.add_argument("-opt","--options-file", required = False, default=os.path.join(os.path.dirname(__file__),'options.properties'),
-                        help="Specify a custom Options file, changing the set presets for column headers (Title,Description,etc)")
-    parser.add_argument("-s", "--start-ref", required = False, nargs = '?', default = 1, 
-                        help="Set a custom Starting reference for the Auto Classification generator. The generated reference will")
-    parser.add_argument("-mdir","--metadata-dir", required=False, nargs= '?',
-                        default = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
-                        help="Specify the metadata directory to pull XML files from")
-    parser.add_argument("-m", "--metadata", required = False, const = 'e', default = 'none',
-                        nargs = '?', choices = ['none', 'n', 'exact', 'e', 'flat', 'f'], type = str.lower,
-                        help="Set whether to include xml metadata fields in the generation of the Opex")
-    parser.add_argument("-ex", "--export", required = False, action = 'store_true', default = False,
-                        help="Set whether to export the generated auto classification references to an AutoClass spreadsheet")
-    parser.add_argument("-i", "--input", required = False, nargs='?', 
-                        help="Set to utilise a CSV / XLSX spreadsheet to import data from")
-    parser.add_argument("-rm", "--remove", required = False, action = "store_true", default = False,
-                        help="Set whether to enable removals of files and folders from a directory. ***Currently in testing")
-    parser.add_argument("-z", "--zip", required = False, action = 'store_true',
-                        help="Set to zip files")
-    parser.add_argument("-fmt", "--output-format", required = False, default = "xlsx", choices = ['xlsx', 'csv'],
-                        help="Set whether to output to an xlsx or csv format")
-    parser.add_argument("-v", "--version", action = 'version', version = '%(prog)s {version}'.format(version = importlib.metadata.version("opex_manifest_generator")))
+    parser.add_argument("-s", "--suffix", required = False, nargs = '?', default = '',
+                        help= "Assign a suffix when utilising the --autoclass option. Suffix will append any text after all generated text.")
+    parser.add_argument("--suffix-option", required = False, choices= ['apply_to_files','apply_to_folders','apply_to_both'], default = 'apply_to_files',
+                        help = "Set whether to apply the suffix to files, folders or both when utilising the --autoclass option.")
     parser.add_argument("--accession-mode", nargs = '?', required=False, const='file', default=None, choices=["file",'directory','both'],
                         help="""Set the mode when utilising the Accession option in autoclass.
                         file - only adds on files, folder - only adds on folders, both - adds on files and folders""")
-    parser.add_argument("--hidden", required = False, action = 'store_true', default = False,
-                        help="Set whether to include hidden files and folders")
-    parser.add_argument("--print-xmls", required = False, action = "store_true", default = False,
-                        help="Prints the elements from your xmls to the consoles")
-    parser.add_argument("-key","--keywords", nargs = '*', default = None)
-    parser.add_argument("-keym","--keywords-mode", nargs = '?', const = "intialise", default = "intialise", choices = ['intialise','firstletters'])
-    parser.add_argument("--keywords-retain-order", required = False, default = False, action = 'store_true')
-    parser.add_argument("--keywords-abbreviation-number", required = False, nargs='?', default = -3, type = int)
-    parser.add_argument("--sort-by", required=False, nargs = '?', default = 'foldersfirst', choices = ['foldersfirst','alphabetical'], type=str.lower)
-    parser.add_argument("-dlm", "--delimiter", required=False,nargs = '?', type = str)
+    parser.add_argument("-str", "--start-ref", required = False, nargs = '?', default = 1, 
+                        help="Set a custom Starting reference for the Auto Classification generator. The generated reference will")
+    parser.add_argument("-ex", "--export-autoclass", required = False, action = 'store_true', default = False,
+                        help="Set whether to export the generated auto classification references to an AutoClass spreadsheet")
+    parser.add_argument("-fmt", "--output-format", required = False, default = "xlsx", choices = ['xlsx', 'csv','json','ods','xml'],
+                        help="Set whether to export AutoClass Spreadsheet to: xlsx, csv, json, ods or xml format")
+    parser.add_argument("-dlm", "--delimiter", required=False,nargs = '?', type = str, default = '/',
+                        help="Set a custom delimiter for generated references, default is '/'")    
+    parser.add_argument("-key","--keywords", nargs = '*', default = None,
+                        help = "Set to replace reference numbers with given Keywords for folders (only Folders atm). Can be a list of keywords or a JSON file mapping folder names to keywords.")
+    parser.add_argument("-keym","--keywords-mode", nargs = '?', const = "initialise", choices = ['initialise','firstletters','from_json'], default = 'initialise',
+                        help = "Set to alternate keyword mode: 'initialise' will use initials of words; 'firstletters' will use the first letters of the string; 'from_json' will use a JSON file mapping names to keywords")
+    parser.add_argument("--keywords-case-sensitivity", required = False, action = 'store_false', default = True,
+                        help = "Set to change case keyword matching sensitivity. By default keyword matching is insensitive")
+    parser.add_argument("--keywords-retain-order", required = False, default = False, action = 'store_true', 
+                        help = "Set when using keywords to continue reference numbering. If not used keywords don't 'count' to reference numbering, e.g. if using initials 'Project Alpha' -> 'PA' then the next folder/file will still be '001' not '003'")
+    parser.add_argument("--keywords-abbreviation-number", required = False, nargs='+', default = None, type = int,
+                        help = "Set to set the number of letters to abbreviate for 'firstletters' mode, does not impact 'initialise' mode.")
+    parser.add_argument("--sort-by", required=False, nargs = '?', default = 'folders_first', choices = ['folders_first','alphabetical'], type=str.lower,
+                        help = "Set the sorting method, 'folders_first' sorts folders first then files alphabetically; 'alphabetically' sorts alphabetically (ignoring folder distinction)")
+    
+    parser.add_argument("-v", "--version", action = 'version', version = '%(prog)s {version}'.format(version = importlib.metadata.version("opex_manifest_generator")))
+
     args = parser.parse_args()
     return args
 
 def run_cli():
     args = parse_args()    
     print(f"Running Opex Generation on: {args.root}")
+    if isinstance(args.root, str):
+        args.root = args.root.strip("\"").rstrip("\\")
     if not args.output:
         args.output = os.path.abspath(args.root)
         print(f'Output path defaulting to root directory: {args.output}')
@@ -134,14 +162,14 @@ def run_cli():
                    b, both
                    g, generic
                    cg, catalog-generic
-                   ag, accesion-generic
+                   ag, accession-generic
                    bg, both-generic}''')    
             time.sleep(3)
             raise SystemExit               
     if args.fixity:
         print(f'Fixity is activated, using {args.fixity} algorithm')
     if args.sort_by:
-        if args.sort_by == "foldersfirst":
+        if args.sort_by == "folders_first":
             sort_key = lambda x: (os.path.isfile(x), str.casefold(x))
         elif args.sort_by == "alphabetical":
             sort_key = str.casefold
@@ -168,8 +196,9 @@ def run_cli():
                           clear_opex_flag = args.clear_opex, 
                           algorithm = args.fixity,
                           pax_fixity= args.pax_fixity,
-                          startref = args.start_ref, 
-                          export_flag = args.export, 
+                          fixity_export_flag = args.fixity_export,
+                          start_ref = args.start_ref, 
+                          export_flag = args.export_autoclass, 
                           meta_dir_flag = args.disable_meta_dir, 
                           metadata_flag = args.metadata,
                           metadata_dir = args.metadata_dir,
@@ -181,9 +210,11 @@ def run_cli():
                           keywords = args.keywords,
                           keywords_mode = args.keywords_mode,
                           keywords_retain_order = args.keywords_retain_order,
-                          sort_key = sort_key,
+                          keywords_case_sensitive = args.keywords_case_sensitivity,
                           delimiter = args.delimiter,
-                          keywords_abbreviation_number = args.keywords_abbreviation_number).main()
+                          keywords_abbreviation_number = args.keywords_abbreviation_number,
+                          sort_key = sort_key,
+                          ).main()
 
 class EmptyIsTrueFixity(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
