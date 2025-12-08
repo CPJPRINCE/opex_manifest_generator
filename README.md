@@ -170,9 +170,9 @@ Using this method XIP Metadata fields can be set on Ingest, including:
 XML metadata template data, from both the default templates and custom templates can also be set.
 
 <details>
-**<summary>
-Click to find out more!
-</summary>**
+<summary>
+**Click to find out more!**
+</summary>
 
 ### XIP metadata - Title, Description and Security Status
 
