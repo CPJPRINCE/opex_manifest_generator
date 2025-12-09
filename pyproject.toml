@@ -4,19 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opex_manifest_generator"
-version = "1.3.0"
+version = "1.3.1"
 authors = [
     {name="Christopher Prince", email="c.pj.prince@gmail.com"}
     ]
-description = "Opex Manifest Generator Tool for use with Opex / Preservica"
+description = "An Opex Manifest Generator tool for use with OPEX Files, as designed by Preservica"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICEN[CS]E*"]
+keywords = ["archiving","archives","digital archiving","opex","Preservica","opex generator"]
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Topic :: System :: Archiving"
     ]
-dependencies=["auto_classification_generator","pandas","openpyxl","lxml"]
+dependencies=["auto_reference_generator","pandas","openpyxl","lxml"]
+
+[project.optional-dependencies]
+addex = ["odfpy"]
+
 [project.urls]
 Homepage = "https://github.com/CPJPRINCE/opex_manifest_generator"
 Issues = "https://github.com/CPJPRINCE/opex_manifest_generator/issues"

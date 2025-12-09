@@ -10,8 +10,8 @@ license: Apache License 2.0"
 import lxml.etree as ET
 import pandas as pd
 import os, time, datetime
-from auto_classification_generator import ClassificationGenerator
-from auto_classification_generator.common import export_list_txt, export_xl, export_csv, export_json, export_ods, export_xml,define_output_file
+from auto_reference_generator import ReferenceGenerator
+from auto_reference_generator.common import export_list_txt, export_xl, export_csv, export_json, export_ods, export_xml,define_output_file
 from pandas.api.types import is_datetime64_any_dtype
 from opex_manifest_generator.hash import HashGenerator
 from opex_manifest_generator.common import *
@@ -26,18 +26,18 @@ class OpexManifestGenerator():
     :param meta_dir_flag: set whether to generate a 'meta' directory
     :param metadata_flag: set whether to incorporate metadata into opex
     :param metadata_dir: set the metadata directory to pull xml data from
-    :param autoclass_flag: set whether to generate an auto classification reference using auto_class. Has a number of 'modes' {catalog, accession, both, generic}
+    :param autoref_flag: set whether to generate an auto reference reference using autoref. Has a number of 'modes' {catalog, accession, both, generic}
     :param prefix: set a prefix to append to generated references
-    :param accession_mode: if using accession in autoclass_flag set the mode to count {file, folder, both}
+    :param accession_mode: if using accession in autoref_flag set the mode to count {file, folder, both}
     :param acc_prefix: set an accession prefix
     :param start_ref: set to set the starting reference number
     :param algorithm: set whether to generate fixities and the algorithm to use {MD5, SHA-1, SHA-256, SHA-512}
     :param empty_flag: set whether to delete and log empty directories
     :param removal_flag: set whether to enable removals; data must also contain removals column and cell be set to True 
     :param clear_opex_flag: set whether clear existing opexes
-    :param export_flag: set whether to export the spreadsheet when using autoclass
-    :param output_format: set output format when using autoclass {xlsx, csv}
-    :param input: set whether to use an AutoClass spreadsheet / dataframe to establish data.
+    :param export_flag: set whether to export the spreadsheet when using autoref
+    :param output_format: set output format when using autoref {xlsx, csv,ods,json,lxml}
+    :param input: set whether to use an autoref spreadsheet / dataframe to establish data.
     :param zip_flag: set whether to zip files and opexes together
     :param hidden_flag: set to include hidden files/directories
     :param print_xmls_flag: set to print all 
@@ -54,7 +54,7 @@ class OpexManifestGenerator():
                  meta_dir_flag: bool = True,
                  metadata_dir: str = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
                  metadata_flag: str = 'none',
-                 autoclass_flag: str = None,
+                 autoref_flag: str = None,
                  prefix: str = None,
                  suffix: str = None,
                  suffix_option: str|None = 'apply_to_files',
@@ -81,7 +81,7 @@ class OpexManifestGenerator():
                  keywords_abbreviation_number: int = 3,
                  sort_key = lambda x: (os.path.isfile(x), str.casefold(x)),
                  delimiter = "/",
-                 autoclass_options: str|None = None) -> None:
+                 autoref_options: str|None = None) -> None:
         
         self.root = os.path.abspath(root)
         # Base Parameters
@@ -111,9 +111,9 @@ class OpexManifestGenerator():
         self.metadata_dir = metadata_dir
         self.print_xmls_flag = print_xmls_flag
 
-        # Parameters for Auto Classification
-        self.autoclass_flag = autoclass_flag     
-        self.autoclass_options = autoclass_options
+        # Parameters for Auto Reference
+        self.autoref_flag = autoref_flag     
+        self.autoref_options = autoref_options
         self.prefix = prefix
         self.suffix = suffix
         self.suffix_option = suffix_option
@@ -214,8 +214,8 @@ class OpexManifestGenerator():
             time.sleep(3)
 
     def init_df(self) -> None:
-        if self.autoclass_flag:
-            ac = ClassificationGenerator(self.root,
+        if self.autoref_flag:
+            ac = ReferenceGenerator(self.root,
                                             output_path = self.output_path,
                                             prefix = self.prefix,
                                             accprefix = self.acc_prefix,
@@ -234,7 +234,7 @@ class OpexManifestGenerator():
                                             options_file = os.path.join(os.path.dirname(__file__),'options','options.properties')
                                             )
             self.df = ac.init_dataframe()
-            if self.autoclass_flag in {"accession", "a", "accession-generic", "ag"}:
+            if self.autoref_flag in {"accession", "a", "accession-generic", "ag"}:
                 self.df = self.df.drop(ARCREF_FIELD, axis=1)
             self.column_headers = self.df.columns.values.tolist()
             self.set_input_flags()
@@ -476,7 +476,7 @@ class OpexManifestGenerator():
         if security:
             self.securityxml = ET.SubElement(self.properties, f"{{{self.opexns}}}SecurityDescriptor")
             self.securityxml.text = str(security)
-        if self.autoclass_flag not in {"generic", "g"} or self.input:
+        if self.autoref_flag not in {"generic", "g"} or self.input:
             self.identifiers = ET.SubElement(self.properties, f"{{{self.opexns}}}Identifiers")
             self.ident_df_lookup(idx)
         if self.properties is None:
@@ -512,15 +512,15 @@ class OpexManifestGenerator():
         print(f"Start time: {self.start_time}")        
         if self.clear_opex_flag:
             self.clear_opex()
-            if self.autoclass_flag or self.algorithm or self.input:
+            if self.autoref_flag or self.algorithm or self.input:
                 pass
             else:
                 print_running_time(self.start_time)
                 print('Cleared OPEXES. No additional arguments passed, so ending program.'); time.sleep(3)
                 raise SystemExit()
         if self.empty_flag:
-            ClassificationGenerator(self.root, self.output_path, meta_dir_flag = self.meta_dir_flag).remove_empty_directories()
-        if not self.autoclass_flag in {"g", "generic"}:
+            ReferenceGenerator(self.root, self.output_path, meta_dir_flag = self.meta_dir_flag).remove_empty_directories()
+        if not self.autoref_flag in {"g", "generic"}:
             self.init_df()
         self.count = 1
         if not self.metadata_flag in {'none', 'n'}:
@@ -545,7 +545,7 @@ class OpexDir(OpexManifestGenerator):
         else:
             self.folder_path = folder_path
         if any([self.OMG.input,
-                self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
+                self.OMG.autoref_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
                 self.OMG.ignore_flag,
                 self.OMG.removal_flag,
                 self.OMG.sourceid_flag,
@@ -553,7 +553,7 @@ class OpexDir(OpexManifestGenerator):
                 self.OMG.description_flag,
                 self.OMG.security_flag]):
                 index = self.OMG.index_df_lookup(self.folder_path)
-        elif self.OMG.autoclass_flag in {None, "g","generic"}:
+        elif self.OMG.autoref_flag in {None, "g","generic"}:
             index = None
         else:
             index = None
@@ -575,7 +575,7 @@ class OpexDir(OpexManifestGenerator):
         self.files = ET.SubElement(self.manifest, f"{{{self.opexns}}}Files")
         if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
             self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
-        elif self.OMG.autoclass_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
+        elif self.OMG.autoref_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
             if title is not None:
                 self.title = title
             else:
@@ -608,7 +608,7 @@ class OpexDir(OpexManifestGenerator):
                     file.set("type", "content")
                     file.set("size", str(os.path.getsize(abs_file)))
                     file.text = str(rel_file)
-        if self.OMG.autoclass_flag or self.OMG.input:
+        if self.OMG.autoref_flag or self.OMG.input:
             self.OMG.generate_opex_properties(self.xmlroot, index, 
                                               title = self.title,
                                               description = self.description,
@@ -710,7 +710,7 @@ class OpexFile(OpexManifestGenerator):
             self.file_path = file_path
         if check_opex(self.file_path):
             if any([self.OMG.input,
-                    self.OMG.autoclass_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
+                    self.OMG.autoref_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
                     self.OMG.ignore_flag,
                     self.OMG.removal_flag,
                     self.OMG.sourceid_flag,
@@ -718,7 +718,7 @@ class OpexFile(OpexManifestGenerator):
                     self.OMG.description_flag,
                     self.OMG.security_flag]):
                     index = self.OMG.index_df_lookup(self.file_path)
-            elif self.OMG.autoclass_flag is None or self.OMG.autoclass_flag in {"g","generic"}:
+            elif self.OMG.autoref_flag is None or self.OMG.autoref_flag in {"g","generic"}:
                 index = None
             else:
                 index = None
@@ -734,7 +734,7 @@ class OpexFile(OpexManifestGenerator):
                     return
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
                 self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
-            elif self.OMG.autoclass_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
+            elif self.OMG.autoref_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
                 if title is not None:
                     self.title = title
                 else:
@@ -751,7 +751,7 @@ class OpexFile(OpexManifestGenerator):
                 self.title = title
                 self.description = description
                 self.security = security
-            if self.OMG.algorithm or self.OMG.autoclass_flag or self.OMG.input:
+            if self.OMG.algorithm or self.OMG.autoref_flag or self.OMG.input:
                 self.xmlroot = ET.Element(f"{{{self.opexns}}}OPEXMetadata", nsmap={"opex":self.opexns})
                 self.transfer = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}Transfer")
                 if self.OMG.sourceid_flag:
@@ -767,7 +767,7 @@ class OpexFile(OpexManifestGenerator):
                             self.generate_opex_fixity(self.file_path)
                 if self.transfer is None:
                     self.xmlroot.remove(self.transfer)
-                if self.OMG.autoclass_flag or self.OMG.input:
+                if self.OMG.autoref_flag or self.OMG.input:
                     self.OMG.generate_opex_properties(self.xmlroot, index,
                                                       title = self.title,
                                                       description = self.description,

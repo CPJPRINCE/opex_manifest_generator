@@ -31,14 +31,14 @@ def parse_args():
     parser.add_argument("--hidden", required = False, action = 'store_true', default = False,
                         help="Set whether to include hidden files and folders")
     parser.add_argument("-o", "--output", required = False, nargs = 1,
-                        help = "Sets the output to send any generated files (Remove Empty, Fixity List, AutoClass Export) to. Will not affect creation of a meta dir.")
+                        help = "Sets the output to send any generated files (Remove Empty, Fixity List, Autoref Export) to. Will not affect creation of a meta dir.")
     parser.add_argument("-clr", "--clear-opex", required = False, action = 'store_true', default = False,
                         help = """Clears existing opex files from a directory. If set with no further options will only clear opexes; 
                         if multiple options are set will clear opexes and then run the program""")
     parser.add_argument("-opt","--options-file", required = False, default=os.path.join(os.path.dirname(__file__),'options','options.properties'),
                         help="Specify a custom Options file, changing the set presets for column headers (Title,Description,etc)")
-    parser.add_argument("--autoclass-options", required = False, default = None,
-                        help="Specify a custom Auto Classification Options file, changing the set presets for Auto Classification generation")
+    parser.add_argument("--autoref-options", required = False, default = None,
+                        help="Specify a custom Auto Reference Options file, changing the set presets for Auto Reference Generator")
     parser.add_argument("--disable-meta-dir", required = False, action = 'store_false',
                         help = """Set whether to disable the creation of a 'meta' directory for generated files,
                         default behaviour is to always generate this directory""")
@@ -56,11 +56,11 @@ def parse_args():
     parser.add_argument("--print-xmls", required = False, action = "store_true", default = False,
                         help="Prints the elements from your xmls to the consoles")
     
-    # Auto Classification Options
-    parser.add_argument("-c", "--autoclass", required = False,
+    # Auto Reference Options
+    parser.add_argument("-r", "--autoref", required = False,
                         choices = ['catalog', 'c', 'accession', 'a', 'both', 'b', 'generic', 'g', 'catalog-generic', 'cg', "accession-generic", "ag", "both-generic", "bg"],
                         type = str.lower,
-                        help="""Toggles whether to utilise the auto_classification_generator 
+                        help="""Toggles whether to utilise the auto_reference_generator 
                         to generate an on the fly Reference listing.
                         
                         There are several options, {catalog} will generate
@@ -72,22 +72,22 @@ def parse_args():
                         {generic-catalog,generic-accession, generic-both} it will do both simultaneously.
                         """)
     parser.add_argument("-p", "--prefix", required = False, nargs = '+',
-                        help= """Assign a prefix when utilising the --autoclass option. Prefix will append any text before all generated text.
+                        help= """Assign a prefix when utilising the --autoref option. Prefix will append any text before all generated text.
                         When utilising the {both} option fill in like: [catalog-prefix, accession-prefix] without square brackets.                        
                         """)
     parser.add_argument("-s", "--suffix", required = False, nargs = '?', default = '',
-                        help= "Assign a suffix when utilising the --autoclass option. Suffix will append any text after all generated text.")
+                        help= "Assign a suffix when utilising the --autoref option. Suffix will append any text after all generated text.")
     parser.add_argument("--suffix-option", required = False, choices= ['apply_to_files','apply_to_folders','apply_to_both'], default = 'apply_to_files',
-                        help = "Set whether to apply the suffix to files, folders or both when utilising the --autoclass option.")
+                        help = "Set whether to apply the suffix to files, folders or both when utilising the --autoref option.")
     parser.add_argument("--accession-mode", nargs = '?', required=False, const='file', default=None, choices=["file",'directory','both'],
-                        help="""Set the mode when utilising the Accession option in autoclass.
+                        help="""Set the mode when utilising the Accession option in autoref.
                         file - only adds on files, folder - only adds on folders, both - adds on files and folders""")
     parser.add_argument("-str", "--start-ref", required = False, nargs = '?', default = 1, 
-                        help="Set a custom Starting reference for the Auto Classification generator. The generated reference will")
-    parser.add_argument("-ex", "--export-autoclass", required = False, action = 'store_true', default = False,
-                        help="Set whether to export the generated auto classification references to an AutoClass spreadsheet")
+                        help="Set a custom Starting reference for the Auto Reference Generator. The generated reference will")
+    parser.add_argument("-ex", "--export-autoref", required = False, action = 'store_true', default = False,
+                        help="Set whether to export the generated references to an AutoRef spreadsheet")
     parser.add_argument("-fmt", "--output-format", required = False, default = "xlsx", choices = ['xlsx', 'csv','json','ods','xml'],
-                        help="Set whether to export AutoClass Spreadsheet to: xlsx, csv, json, ods or xml format")
+                        help="Set whether to export AutoRef Spreadsheet to: xlsx, csv, json, ods or xml format")
     parser.add_argument("-dlm", "--delimiter", required=False,nargs = '?', type = str, default = '/',
                         help="Set a custom delimiter for generated references, default is '/'")    
     parser.add_argument("-key","--keywords", nargs = '*', default = None,
@@ -119,8 +119,8 @@ def run_cli():
     else:
         args.output = os.path.abspath(args.output[0])
         print(f'Output path set to: {args.output}')    
-    if args.input and args.autoclass:
-        print(f'Both Input and Auto-Class options have been selected, please use only one...')
+    if args.input and args.autoref:
+        print(f'Both Input and Auto ref options have been selected, please use only one...')
         time.sleep(5); raise SystemExit()
     if args.remove and not args.input:
         print('Removal flag has been given without input, please ensure an input file is utilised when using this option.')
@@ -131,10 +131,10 @@ def run_cli():
     if args.print_xmls:
         OpexManifestGenerator(root = args.root, metadata_dir=args.metadata_dir).print_descriptive_xmls()
     acc_prefix = None
-    if args.autoclass in {"accession", "a", "accession-generic", "ag", "both", "b", "both-generic", "bg"} and args.accession_mode is None:
+    if args.autoref in {"accession", "a", "accession-generic", "ag", "both", "b", "both-generic", "bg"} and args.accession_mode is None:
             args.accession_mode = "file"
     if args.prefix:
-        if args.autoclass in {"both", "b", "both-generic", "bg"}:
+        if args.autoref in {"both", "b", "both-generic", "bg"}:
             if len(args.prefix) < 2 or len(args.prefix) > 2:
                 print('"Both" option is selected, please pass only two prefixes: [-p CATALOG_PREFIX ACCESSION_PREFIX]');
                 time.sleep(3); raise SystemExit
@@ -144,16 +144,16 @@ def run_cli():
                 elif n == 1:
                     acc_prefix = str(a)
             print(f"Prefixes are set as: \t Catalog: {args.prefix} \t Acc: {acc_prefix}")
-        elif args.autoclass in {"accession", "a", "accession-generic", "ag"}:
+        elif args.autoref in {"accession", "a", "accession-generic", "ag"}:
             for a in args.prefix:
                 acc_prefix = str(a)
             print('Prefix is set as: ' + acc_prefix)                        
-        elif args.autoclass in {"catalog", "c", "catalog-generic", "cg"}:
+        elif args.autoref in {"catalog", "c", "catalog-generic", "cg"}:
             acc_prefix = None
             for a in args.prefix: 
                 args.prefix = str(a)
             print('Prefix is set as: ' + args.prefix)
-        elif args.autoclass in {"generic", "g"}:
+        elif args.autoref in {"generic", "g"}:
             pass
         else:
             print('''An invalid option has been selected, please select a valid option: 
@@ -187,7 +187,7 @@ def run_cli():
     time.sleep(3)
     OpexManifestGenerator(root = args.root, 
                           output_path = args.output, 
-                          autoclass_flag = args.autoclass, 
+                          autoref_flag = args.autoref, 
                           prefix = args.prefix, 
                           accession_mode=args.accession_mode,
                           acc_prefix = acc_prefix, 
@@ -198,7 +198,7 @@ def run_cli():
                           pax_fixity= args.pax_fixity,
                           fixity_export_flag = args.fixity_export,
                           start_ref = args.start_ref, 
-                          export_flag = args.export_autoclass, 
+                          export_flag = args.export_autoref, 
                           meta_dir_flag = args.disable_meta_dir, 
                           metadata_flag = args.metadata,
                           metadata_dir = args.metadata_dir,
