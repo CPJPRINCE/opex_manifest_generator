@@ -16,7 +16,6 @@ keywords = ["archiving","archives","digital archiving","opex","Preservica","opex
 
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Topic :: System :: Archiving"
     ]
