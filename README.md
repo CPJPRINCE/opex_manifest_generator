@@ -22,7 +22,7 @@ There are a number of features including:
 - OPEX's can be cleared out, for repeated / ease of use.
 - OPEX's can be zipped with the file, for imports use with Starter/UX2/Manual ingest methods.
 
-The Program also makes use of the Auto Classification Generator, allowing for:
+The Program also makes use of the Auto Reference Generator, allowing for:
 - Reference's can be automatically generated and embedded into the Opex, with assignable prefixes.
 - This can be utilised either in Catalog or Accession modes, or both.
 - Clear and log empty folders.
@@ -31,7 +31,7 @@ The Program also makes use of the Auto Classification Generator, allowing for:
 - Sorting!
 - Keyword assignment!
 
-A key feature of the program, is that the Auto Class spreadsheet can also act as an input, meaning you can utilise the generated spreadsheet to assign metadata to your files and folders. Currently this allows:
+A key feature of the program, is that the Auto Ref spreadsheet can also act as an input, meaning you can utilise the generated spreadsheet to assign metadata to your files and folders. Currently this allows:
 - Assignment of title, description, and security status fields.  
 - Assignment of standard and custom xml metadata templates.
 - These fields are all 'drop-in', so only the fields as they are required need to be added. 
@@ -43,7 +43,7 @@ All these features can be combined to create extensive and robust Opex files for
 Python Version 3.8+ is recommended; the program is OS independent and works on Windows, MacOS and Linux.
 
 The following modules are utilised and installed with the package:
-- auto_classification_generator
+- auto_reference_generator
 - pandas
 - openpyxl
 - lxml
@@ -127,23 +127,23 @@ Hidden files and directories can be included by utilising the `--hidden` option.
 
 ## Note on 'meta' folders
 
-Meta folders will be generated automatically when used with the `--fixity` and `-rme` options, as well as when some options from the Auto Classification Generator. You can redirect the path of the generated folder using the `-o` option: `-fx -o {/path/to/meta/output}`. Or you can also disable the generation of 'meta' folder using the `-dmd` option.  
+Meta folders will be generated automatically when used with the `--fixity` and `-rme` options, as well as when some options from the Auto Reference Generator. You can redirect the path of the generated folder using the `-o` option: `-fx -o {/path/to/meta/output}`. Or you can also disable the generation of 'meta' folder using the `-dmd` option.  
 
-## Use with the Auto Classification Generator
+## Use with the Auto Reference Generator
 
-The Opex Manifest generator becomes much more powerful when utilised with another tool: the Auto Classification Generator, see [here](https://github.com/CPJPRINCE/auto_classification_generator) for further details.
+The Opex Manifest generator becomes much more powerful when utilised with another tool: the Auto Reference Generator, see [here](https://github.com/CPJPRINCE/auto_reference_generator) for further details.
 
 This is built-in to the Opex Manifest Generator and can be utilised to embed identifiers and metadata directly to an Opex or through the use of an Excel spreadsheet or CSV file.
 
-The Opex Manifest Generator makes use of the auto_class_generator as a module, therefore it's behaviour differs a little different when compared to utilising the standalone command `auto_class.exe`.
+The Opex Manifest Generator makes use of the auto_reference_generator as a module, therefore it's behaviour differs a little different when compared to utilising the standalone command `auto_ref.exe`.
 
 ### Identifier Generation
 
-To generate an auto classification code, call on `-c` option with `catalog` choice. You can also assign a prefix using `-p "ARCH"`:
+To generate an auto reference code, call on `-c` option with `catalog` choice. You can also assign a prefix using `-p "ARCH"`:
 
 `opex_generate -c catalog -p "ARCH" C:\Users\Christopher\Downloads`
 
-This will generate Opex's with an identifier `code` for each of the files / folders. As described in the Auto Class module, the reference codes will take the hierarchy of the directories. You can also use the `-s` option to set a starting reference.
+This will generate Opex's with an identifier `code` for each of the files / folders. As described in the Auto Ref module, the reference codes will take the hierarchy of the directories. You can also use the `-s` option to set a starting reference.
 
 You can alternatively utilise the "Accession" / running number mode of generating a code using `-c accession` with the prefix "2024". You can also utilise the `--accession-mode` option to determine whether to have a running number for `file, folder, both`.
 
@@ -157,7 +157,7 @@ You can also combine the generic options, like so: `catalog-generic, accession-g
 
 ## Use of Input Override option.
 
-This program also supports utilising an Auto Class spreadsheet as an 'input override', utilising the data added into said spreadsheet instead of generating them ad hoc like above.
+This program also supports utilising an Auto Ref spreadsheet as an 'input override', utilising the data added into said spreadsheet instead of generating them ad hoc like above.
 
 Using this method XIP Metadata fields can be set on Ingest, including:
 
@@ -176,9 +176,9 @@ XML metadata template data, from both the default templates and custom templates
 
 ### XIP metadata - Title, Description and Security Status
 
-To use an input override, we need to first create a spreadsheet with the path of. You can utilise the `auto_class` tool installed alongside the Opex Generator, like so:
+To use an input override, we need to first create a spreadsheet with the path of. You can utilise the `auto_ref` tool installed alongside the Opex Generator, like so:
 
-`auto_class -p "ARCH" "C:\Users\Christopher\Downloads"`
+`auto_ref -p "ARCH" "C:\Users\Christopher\Downloads"`
 
 In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers are case-sensitive and have to match exactly. These fields would then be filled in with the relevant data.
 
@@ -186,7 +186,7 @@ In the resultant spreadsheet, add in "Title", "Description", and "Security" as n
 
 Once the cells are filled in with data, run a generation like so: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
 
-Ensure that the root directory matches the original directory of the export. In the above case this would be: `opex_generate -i "C:\Users\Christopher\Downloads\meta\Downloads_AutoClass.xlsx" "C:\Users\Christopher\Downloads"`
+Ensure that the root directory matches the original directory of the export. In the above case this would be: `opex_generate -i "C:\Users\Christopher\Downloads\meta\Downloads_AutoRef.xlsx" "C:\Users\Christopher\Downloads"`
 
 ### Headers Note
 
@@ -204,7 +204,7 @@ Custom Identifiers can be added by adding the columns: `"Archive_Reference", "Ac
 
 ![Identifier Screenshot](assets/Identifiers%20Headers.png)
 
-`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Classification Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as necessary. 
+`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Reference Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as necessary. 
 
 To add a custom identifier import, do so like: `Identifier:{YourIdentifierName}`, without the curly brackets IE: `Identifier:MyCode`. Multiple identifiers can be added as needed.
 
@@ -212,17 +212,17 @@ No additional parameter's need to be set in the command line when using Identifi
 
 ### XIP Metadata - Hashes
 
-If you utilise the Auto Classification's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if both the columns `Hash` and `Algorithm` are present, the program will read the hashes from the spreadsheet instead of generating them.
+If you utilise the Auto Reference's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if both the columns `Hash` and `Algorithm` are present, the program will read the hashes from the spreadsheet instead of generating them.
 
 ![Hash Screenshot](assets/Hash%20Headers.png)
 
-*Be aware that interruption / resuming is not currently supported with the Auto Class Tool; also doesn't support multiple hashes*
+*Be aware that interruption / resuming is not currently supported with the Auto Ref Tool; also doesn't support multiple hashes*
 
 ### XML Metadata - Basic Templates
 
 DC, MODS, GPDR, and EAD templates are supported alongside installation of the package.
 
-After exporting an Auto Class spreadsheet, you can add in additional columns to the spreadsheet and fill it out with data for an import. Like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
+After exporting an Auto Ref spreadsheet, you can add in additional columns to the spreadsheet and fill it out with data for an import. Like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
 
 ![XML Headers](assets/XML%20Headers.png)
 
@@ -265,7 +265,7 @@ The default location will be in the installation path of the program, typically 
 
 After the xml is added to that directory, all that's required is to add the matching column headers into your spreadsheet. You can also utilise `--print-xmls` to obtain this.
 
-### Additional Information for Auto Classification
+### Additional Information for Auto Reference
 #### SourceID
 
 A SourceID can also be set by adding a `SourceID` header. The behaviour of this is not fully tested, likely won't be as I don't really utilise SourceIDs in my work :\).
@@ -308,7 +308,7 @@ ALGORITHM_FIELD = Algorithm
 ```
 #### Custom Spreadsheets - Quick Note
 
-You technically don't have to utilise the AutoClass tool at all. Any old spreadsheet will do!
+You technically don't have to utilise the AutoRef tool at all. Any old spreadsheet will do!
 
 The only requirement to use the input override, is the presence of the `FullName` column. With an accurate list of paths.
 
@@ -368,10 +368,10 @@ Options:
         -opt  --options-file    Specify an 'options.properties' file to change set      [PATH/TO/FILE]
                                 presets for column headers for input.
 
-    Auto Classification Options:
+    Auto Reference Options:
 
-        -c,  --autoclass        This will utilise the AutoClassification                [{catalog, accession,both,
-                                module to generate an Auto Class spreadsheet.           generic, catalog-generic,
+        -r,  --autoref          This will utilise the auto_reference_generator          [{catalog, accession,both,
+                                module to generate an Auto Ref spreadsheet.             generic, catalog-generic,
                                                                                         accession-generic,
                                 There are several options, {catalog} will generate      both-generic}]
                                 a Archival Reference following; {accession}
@@ -387,13 +387,13 @@ Options:
         --accession-mode        Sets whether to have the running tally be for            {file,folder,both}
                                 files, folders or both,
                                 when utilising the Accession option with 
-                                autoclass. Default is file.
+                                autoref. Default is file.
         
-        -p,   --prefix          Assign a prefix to the Auto Classification,             [PREFIX]
+        -p,   --prefix          Assign a prefix to the Auto Reference,             [PREFIX]
                                 when utilising {both} fill in like:
                                 "catalog-prefix","accession-prefix".
 
-        -s    --suffix          Assign a suffix to the Auto Classification              [SUFFIX]
+        -s    --suffix          Assign a suffix to the Auto Reference              [SUFFIX]
                                 program. By Default only applies to Files
 
         --suffix-options        Set the Suffix assignment options                       {apply_to_files, apply_to_folders,
@@ -403,16 +403,16 @@ Options:
                                 Log will bee exported to 'meta' / output folder
        
         -o,   --output          Set's the output of the 'meta' folder when              [PATH/TO/FOLDER] 
-                                utilising AutoClass.
+                                utilising AutoRef.
                                 
-        -s,   --start-ref       Sets the starting Reference in the Auto Class           [int]
+        -s,   --start-ref       Sets the starting Reference in the Auto Ref           [int]
                                 process.
 
-        -i    --input           Set whether to use an Auto Class spreadsheet as an      [PATH/TO/FILE]
+        -i    --input           Set whether to use an Auto Ref spreadsheet as an      [PATH/TO/FILE]
                                 input. The input needs to be the (relative or
                                 absolute) path of the spreadsheet.
 
-                                This allows for use of the Auto Class spreadsheet
+                                This allows for use of the Auto Ref spreadsheet
                                 to customise the XIP metadata (and custom xml 
                                 metadata).
 
@@ -448,7 +448,7 @@ Options:
         --disable-meta-dir      Will disable the creation of the 'meta' folder.         [boolean flag]
                                 Can also be enabled with output.
   
-        -ex     --export        Set whether to export any Auto Class generation         [boolean flag] 
+        -ex     --export        Set whether to export any Auto Ref generation         [boolean flag] 
                                 to a spreadsheet
 
         -fmt,   --format        Set whether to export as a CSV or XLSX file.            {csv,xlsx}
@@ -511,8 +511,8 @@ Options:
 
 - ~~Customisable Filtering~~ *Added!*
 - ~~Adjust Accession so the different modes can utilised from Opex.~~ *Added!*
-- ~~Add SourceID as option for use with Auto Class Spreadsheets.~~ *Added!*
-- ~~Allow for multiple Identifier's to be added with Auto Class Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accession_Reference". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...~~ *Added!*
+- ~~Add SourceID as option for use with Auto Ref Spreadsheets.~~ *Added!*
+- ~~Allow for multiple Identifier's to be added with Auto Ref Spreadsheets. Currently only 1 or 2 identifiers can be added at a time, under "Archive_Reference" or "Accession_Reference". These are also tied to be either "code" or "accref". An Option needs to be added to allow custom setting of identifier...~~ *Added!*
 - ~~Add an option / make it a default for Metadata XML's to be located in a specified directory rather than in the package.~~ *Added!*
 - Zipping to conform to PAX - Last on the check list; it technically does...
 - In theory, this tool should be compatible with any system that makes use of the OPEX standard... But in theory Communism works, in theory...
