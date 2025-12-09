@@ -277,7 +277,7 @@ class OpexManifestGenerator():
                     print(f'Cleared Opex: {file_path}')
     
     def index_df_lookup(self, path: str) -> pd.Index:
-        idx = self.df[INDEX_FIELD].index[self.df[INDEX_FIELD] == path]
+        idx = self.df.loc[self.df[INDEX_FIELD ==path], INDEX_FIELD].index
         return idx
 
     def xip_df_lookup(self, idx: pd.Index) -> tuple:
@@ -289,11 +289,11 @@ class OpexManifestGenerator():
                 pass
             else:
                 if self.title_flag:
-                    title = check_nan(self.df[TITLE_FIELD].loc[idx].item())
+                    title = check_nan(self.df.loc[idx,TITLE_FIELD].item())
                 if self.description_flag:
-                    description = check_nan(self.df[DESCRIPTION_FIELD].loc[idx].item())
+                    description = check_nan(self.df.loc[idx,DESCRIPTION_FIELD].item())
                 if self.security_flag:
-                    security = check_nan(self.df[SECURITY_FIELD].loc[idx].item())
+                    security = check_nan(self.df.loc[idx,SECURITY_FIELD].item())
             return title,description,security
         except Exception as e:
             print('Error Looking up XIP Metadata')
@@ -304,7 +304,7 @@ class OpexManifestGenerator():
             if idx.empty:
                 return False
             else:
-                remove = check_nan(self.df[REMOVAL_FIELD].loc[idx].item())
+                remove = check_nan(self.df.loc[idx,REMOVAL_FIELD].item())
                 if remove is not None:
                     return True
                 else:
@@ -318,7 +318,7 @@ class OpexManifestGenerator():
             if idx.empty:
                 return False
             else:
-                ignore = check_nan(self.df[IGNORE_FIELD].loc[idx].item())
+                ignore = check_nan(self.df.loc[idx,IGNORE_FIELD].item())
             return bool(ignore)
         except Exception as e:
             print('Error looking up Ignore')
@@ -329,7 +329,7 @@ class OpexManifestGenerator():
             if idx.empty:
                 pass
             else:
-                sourceid = check_nan(self.df[SOURCEID_FIELD].loc[idx].item())
+                sourceid = check_nan(self.df.loc[idx,SOURCEID_FIELD].item())
                 if sourceid:
                     source_xml = ET.SubElement(xml_element,f"{{{self.opexns}}}SourceID")
                     source_xml.text = str(sourceid)
@@ -344,8 +344,8 @@ class OpexManifestGenerator():
             else:
                 for algorithm_type in self.algorithm:
                     self.fixity = ET.SubElement(xml_fixities,f"{{{self.opexns}}}Fixity")  
-                    self.hash = self.df[HASH_FIELD].loc[idx].item()
-                    self.algorithm = self.df[ALGORITHM_FIELD].loc[idx].item()
+                    self.hash = self.df.loc[idx,HASH_FIELD].item()
+                    self.algorithm = self.df.loc[idx,ALGORITHM_FIELD].item()
                     self.fixity.set('type', algorithm_type)
                     self.fixity.set('value',self.hash)
         except Exception as e:
@@ -370,7 +370,7 @@ class OpexManifestGenerator():
                             key_name = ACCREF_CODE
                         else:
                             key_name = IDENTIFIER_DEFAULT
-                        ident = check_nan(self.df[header].loc[idx].item())                    
+                        ident = check_nan(self.df.loc[idx,header].item())                    
                         if ident:
                             self.identifier = ET.SubElement(self.identifiers, f"{{{self.opexns}}}Identifier") 
                             self.identifier.set("type", key_name)
@@ -431,10 +431,10 @@ class OpexManifestGenerator():
                         ns = elem_dict.get('Namespace')
                         try:
                             if self.metadata_flag in {'e', 'exact'}:
-                                val_series = self.df[path].loc[idx]
+                                val_series = self.df.loc[idx,path]
                                 val = check_nan(val_series.item())
                             elif self.metadata_flag in {'f', 'flat'}:
-                                val_series = self.df[name].loc[idx]
+                                val_series = self.df.loc[idx,name]
                                 val = check_nan(val_series.item())
                             if val is None:
                                 continue
