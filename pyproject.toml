@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opex_manifest_generator"
-version = "1.3.2"
+version = "1.3.3"
 authors = [
     {name="Christopher Prince", email="c.pj.prince@gmail.com"}
     ]
