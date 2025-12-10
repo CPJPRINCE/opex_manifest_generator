@@ -239,7 +239,7 @@ class OpexManifestGenerator():
             self.column_headers = self.df.columns.values.tolist()
             self.set_input_flags()
             if self.export_flag:
-                output_path = define_output_file(self.output_path, self.root, meta_dir_flag = self.meta_dir_flag, output_format = self.output_format)                
+                output_path = define_output_file(self.output_path, self.root, METAFOLDER, meta_dir_flag = self.meta_dir_flag, output_format = self.output_format)                
                 if self.output_format == "xlsx":
                     export_xl(self.df, output_path)
                 elif self.output_format == "csv":
@@ -527,11 +527,11 @@ class OpexManifestGenerator():
             self.init_generate_descriptive_metadata()
         OpexDir(self, self.root).generate_opex_dirs(self.root)
         if self.algorithm:
-            output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = FIXITY_SUFFIX, output_format = "txt")
+            output_path = define_output_file(self.output_path, self.root, METAFOLDER, self.meta_dir_flag, output_suffix = FIXITY_SUFFIX, output_format = "txt")
             if self.fixity_export_flag:
                 export_list_txt(self.list_fixity, output_path)
         if self.removal_flag:
-            output_path = define_output_file(self.output_path, self.root, self.meta_dir_flag, output_suffix = REMOVALS_SUFFIX, output_format = "txt")
+            output_path = define_output_file(self.output_path, self.root, METADFOLDER, self.meta_dir_flag, output_suffix = REMOVALS_SUFFIX, output_format = "txt")
             export_list_txt(self.removal_list, output_path)
         print_running_time(self.start_time)
 
