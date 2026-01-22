@@ -23,6 +23,7 @@ dependencies=["auto_reference_generator","pandas","openpyxl","lxml"]
 
 [project.optional-dependencies]
 addex = ["odfpy"]
+dev = ["pytest>=7.0"]
 
 [project.urls]
 Homepage = "https://github.com/CPJPRINCE/opex_manifest_generator"
@@ -34,3 +35,8 @@ opex_generate = "opex_manifest_generator.cli:run_cli"
 where = ['.']
 include = ['opex_manifest_generator']
 exclude = []
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
