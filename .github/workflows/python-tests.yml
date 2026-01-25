@@ -3,9 +3,24 @@ name: Run Tests
 on:
   push:
     branches: [ master ]
+      tags:
+        - 'v*'
+        - 'test-*'
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'assets/**'
+      - '.github/**'
   pull_request:
     branches: [ master ]
-
+      tags:
+        - 'v*'
+        - 'test-*'
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'assets/**'
+      - '.github/**'
 jobs:
   build:
     runs-on: ubuntu-latest
