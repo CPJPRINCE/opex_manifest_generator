@@ -6,8 +6,7 @@ on:
       - 'v*'
   pull_request:
     # The branches below must be a subset of the branches above
-    tags:
-      - 'v*'
+    branches: [ master]
 
 
 jobs:

@@ -23,8 +23,7 @@ on:
       - '.github/**'
   pull_request:
     # The branches below must be a subset of the branches above
-    tags:
-      - 'v*'
+    branches: [ master]
     # avoid running on doc-only / asset-only changes
     paths-ignore:
       - 'README.md'

@@ -5,14 +5,6 @@ on:
     tags:
       - 'v*'
       - 'test-*'
-  pull_request:
-    # The branches below must be a subset of the branches above
-    tags:
-      - 'v*'
-      - 'test-*'
-  workflow_dispatch: {}
-
-
 
 jobs:
   build-windows:
@@ -45,8 +37,8 @@ jobs:
             --windows-console-mode=attach `
             --company-name="Opex Manifest Generator" `
             --product-name="Opex Manifest Generator" `
-            --file-version="${{ github.ref_name }}" `
-            --product-version="${{ github.ref_name }}" `
+            --file-version="$version" `
+            --product-version="$version" `
             --copyright="Copyright $(Get-Date -Format yyyy)" `
             opex_manifest_generator/cli.py
 
@@ -106,12 +98,30 @@ jobs:
 
       - name: Rename executable
         run: |
-          mv build/cli build/opex_generate
+          ls -la build/
+          # Find and rename the executable file
+          if [ -f "build/cli" ]; then
+            mv build/cli build/opex_generate
+          else
+            # Fallback: find any executable
+            EXEC=$(find build -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)
+            if [ -n "$EXEC" ]; then
+              mv "$EXEC" build/opex_generate
+            else
+              echo "Error: No executable found in build directory"
+              exit 1
+            fi
+          fi
+          ls -la build/opex_generate
 
       - name: Create Linux artifact archive
         run: |
           version="${{ github.ref_name }}"
           version="${version#v}"
+          version="${version#test-}"
+          if [ -z "$version" ] || [ "$version" = "master" ]; then
+            version="1.3.5"
+          fi
           tar -czf "opex_generate_linux_${version}.tar.gz" -C build opex_generate
 
       - name: Upload Linux artifact
@@ -157,11 +167,30 @@ jobs:
 
       - name: Rename executable
         run: |
-          mv build/cli build/opex_generate
+          ls -la build/
+          # Find and rename the executable file
+          if [ -f "build/cli" ]; then
+            mv build/cli build/opex_generate
+          else
+            # Fallback: find any executable
+            EXEC=$(find build -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)
+            if [ -n "$EXEC" ]; then
+              mv "$EXEC" build/opex_generate
+            else
+              echo "Error: No executable found in build directory"
+              exit 1
+            fi
+          fi
+          ls -la build/opex_generate
+
       - name: Create macOS artifact archive
         run: |
           version="${{ github.ref_name }}"
           version="${version#v}"
+          version="${version#test-}"
+          if [ -z "$version" ] || [ "$version" = "master" ]; then
+            version="1.3.5"
+          fi
           tar -czf "opex_generate_macos_${version}.tar.gz" -C build opex_generate
 
       - name: Upload macOS artifact

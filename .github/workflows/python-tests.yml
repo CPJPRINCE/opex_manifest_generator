@@ -11,9 +11,7 @@ on:
       - 'assets/**'
       - '.github/**'
   pull_request:
-    tags:
-      - 'v*'
-      - 'test-*'
+    branches: [ master]
     paths-ignore:
       - 'README.md'
       - 'docs/**'
