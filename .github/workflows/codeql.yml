@@ -13,7 +13,6 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master ]
     tags:
       - 'v*'
     # avoid running on doc-only / asset-only changes
@@ -24,7 +23,6 @@ on:
       - '.github/**'
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master ]
     tags:
       - 'v*'
     # avoid running on doc-only / asset-only changes
