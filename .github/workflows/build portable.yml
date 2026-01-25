@@ -99,7 +99,7 @@ jobs:
             --onefile \
             --output-dir=build \
             --include-package=opex_manifest_generator \
-            --include-data-dir=opex_manifest_generator/options:opex_manifest_generator/options \
+            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             opex_manifest_generator/cli.py
 
       - name: Rename executable
@@ -149,7 +149,7 @@ jobs:
             --onefile \
             --output-dir=build \
             --include-package=opex_manifest_generator \
-            --include-data-dir=opex_manifest_generator/options:opex_manifest_generator/options \
+            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             --macos-create-app-bundle \
             opex_manifest_generator/cli.py
 
