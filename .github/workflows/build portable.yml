@@ -26,6 +26,9 @@ jobs:
 
       - name: Build Windows executable with Nuitka
         run: |
+          $tag = "${{ github.ref_name }}"
+          $version = [regex]::Match($tag, '\d+\.\d+\.\d+').Value
+          if ($version -eq "") { $version = "1.0.0" }
           python -m nuitka `
             --onefile `
             --output-dir=build `
@@ -49,7 +52,7 @@ jobs:
           Compress-Archive -Path build/opex_generate.exe -DestinationPath "opex_generate_windows_$version.zip"
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: opex_generate-windows
           path: opex_generate_windows_*.zip
@@ -89,8 +92,7 @@ jobs:
             --onefile \
             --output-dir=build \
             --include-package=opex_manifest_generator \
-            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
-            --linux-onefile-target-glibc=2.29 \
+            --include-data-dir=opex_manifest_generator/options:opex_manifest_generator/options \
             opex_manifest_generator/cli.py
 
       - name: Rename executable
@@ -104,7 +106,7 @@ jobs:
           tar -czf "opex_generate_linux_${version}.tar.gz" -C build opex_generate
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: opex_generate-linux
           path: opex_generate_linux_*.tar.gz
@@ -139,7 +141,7 @@ jobs:
             --onefile \
             --output-dir=build \
             --include-package=opex_manifest_generator \
-            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
+            --include-data-dir=opex_manifest_generator/options:opex_manifest_generator/options \
             --macos-create-app-bundle \
             opex_manifest_generator/cli.py
 
@@ -153,7 +155,7 @@ jobs:
           tar -czf "opex_generate_macos_${version}.tar.gz" -C build opex_generate
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: opex_generate-macos
           path: opex_generate_macos_*.tar.gz
