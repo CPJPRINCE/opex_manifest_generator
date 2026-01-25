@@ -3,13 +3,13 @@ name: Publish Python distribution to PyPI
 on: 
   push:
     branches: [ master ]    
-      tags:
-        - 'v*'
+    tags:
+      - 'v*'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ master ]
-      tags:
-        - 'v*'
+    tags:
+      - 'v*'
 
 
 jobs:

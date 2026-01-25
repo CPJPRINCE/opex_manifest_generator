@@ -3,9 +3,9 @@ name: Run Tests
 on:
   push:
     branches: [ master ]
-      tags:
-        - 'v*'
-        - 'test-*'
+    tags:
+      - 'v*'
+      - 'test-*'
     paths-ignore:
       - 'README.md'
       - 'docs/**'
@@ -13,9 +13,9 @@ on:
       - '.github/**'
   pull_request:
     branches: [ master ]
-      tags:
-        - 'v*'
-        - 'test-*'
+    tags:
+      - 'v*'
+      - 'test-*'
     paths-ignore:
       - 'README.md'
       - 'docs/**'
