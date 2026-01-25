@@ -40,6 +40,7 @@ jobs:
             --file-version="$version" `
             --product-version="$version" `
             --copyright="Copyright $(Get-Date -Format yyyy)" `
+            --assume-yes-for-downloads `
             opex_manifest_generator/cli.py
 
       - name: Rename executable
@@ -94,6 +95,7 @@ jobs:
             --output-dir=build \
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
+            --assume-yes-for-downloads \
             opex_manifest_generator/cli.py
 
       - name: Rename executable
@@ -163,6 +165,7 @@ jobs:
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             --macos-create-app-bundle \
+            --assume-yes-for-downloads \
             opex_manifest_generator/cli.py
 
       - name: Rename executable
