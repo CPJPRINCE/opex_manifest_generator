@@ -1,0 +1,190 @@
+name: Build Portable Executables with Nuitka
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'test-*'
+
+jobs:
+  build-windows:
+    name: Build Windows Portable
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install nuitka ordered-set zstandard
+          pip install -e .
+
+      - name: Build Windows executable with Nuitka
+        run: |
+          python -m nuitka `
+            --onefile `
+            --output-dir=build `
+            --include-package=opex_manifest_generator`
+            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options `
+            --windows-console-mode=attach `
+            --company-name="Opex Manifest Generator" `
+            --product-name="Opex Manifest Generator" `
+            --file-version="${{ github.ref_name }}" `
+            --product-version="${{ github.ref_name }}" `
+            --copyright="Copyright $(Get-Date -Format yyyy)" `
+            opex_manifest_generator/cli.py
+
+      - name: Rename executable
+        run: |
+          Rename-Item -Path "build/cli.exe" -NewName "opex_generate.exe"
+
+      - name: Create Windows artifact archive
+        run: |
+          $version = "${{ github.ref_name }}" -replace "^v", ""
+          Compress-Archive -Path build/opex_generate.exe -DestinationPath "opex_generate_windows_$version.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: opex_generate-windows
+          path: opex_generate_windows_*.zip
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: opex_generate_windows_*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    name: Build Linux Portable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install nuitka ordered-set zstandard
+          pip install -e .
+
+      - name: Build Linux executable with Nuitka
+        run: |
+          python -m nuitka \
+            --onefile \
+            --output-dir=build \
+            --include-package=opex_manifest_generator \
+            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
+            --linux-onefile-target-glibc=2.29 \
+            opex_manifest_generator/cli.py
+
+      - name: Rename executable
+        run: |
+          mv build/cli build/opex_generate
+
+      - name: Create Linux artifact archive
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          tar -czf "opex_generate_linux_${version}.tar.gz" -C build opex_generate
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: opex_generate-linux
+          path: opex_generate_linux_*.tar.gz
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: opex_generate_linux_*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: Build macOS Portable
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install nuitka ordered-set zstandard
+          pip install -e .
+
+      - name: Build macOS executable with Nuitka
+        run: |
+          python -m nuitka \
+            --onefile \
+            --output-dir=build \
+            --include-package=opex_manifest_generator \
+            --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
+            --macos-create-app-bundle \
+            opex_manifest_generator/cli.py
+
+      - name: Rename executable
+        run: |
+          mv build/cli build/opex_generate
+      - name: Create macOS artifact archive
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          tar -czf "opex_generate_macos_${version}.tar.gz" -C build opex_generate
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: opex_generate-macos
+          path: opex_generate_macos_*.tar.gz
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: opex_generate_macos_*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create-release-notes:
+    name: Create Release Notes
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux, build-macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Release Notes
+        run: |
+          echo "## Portable Executables" > release_notes.md
+          echo "" >> release_notes.md
+          echo "### Downloads" >> release_notes.md
+          echo "- **Windows**: \`opex_generate_windows_\`" >> release_notes.md
+          echo "- **Linux**: \`opex_generate_linux_\`" >> release_notes.md
+          echo "- **macOS**: \`opex_generate_macos_\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "These are standalone executables that do not require Python to be installed." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Usage" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "./opex_generate /path/to/root -p PREFIX -o /path/to/output" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
