@@ -10,6 +10,8 @@ on:
     tags:
       - 'v*'
       - 'test-*'
+  workflow_dispatch: {}
+
 
 
 jobs:
