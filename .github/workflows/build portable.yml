@@ -40,7 +40,7 @@ jobs:
           python -m nuitka `
             --onefile `
             --output-dir=build `
-            --include-package=opex_manifest_generator`
+            --include-package=opex_manifest_generator `
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options `
             --windows-console-mode=attach `
             --company-name="Opex Manifest Generator" `
