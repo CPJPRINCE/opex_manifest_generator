@@ -2,9 +2,17 @@ name: Build Portable Executables with Nuitka
 
 on:
   push:
-    tags:
-      - 'v*'
-      - 'test-*'
+    branches: [ master ]
+      tags:
+        - 'v*'
+        - 'test-*'
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
+      tags:
+        - 'v*'
+        - 'test-*'
+
 
 jobs:
   build-windows:
