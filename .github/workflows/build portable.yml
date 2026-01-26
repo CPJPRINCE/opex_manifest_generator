@@ -25,6 +25,8 @@ jobs:
           pip install -e .
 
       - name: Build Windows executable with Nuitka
+        env:
+          NUITKA_CACHE_DIR: ${{ runner.temp }}/nuitka_cache
         run: |
           $tag = "${{ github.ref_name }}"
           $version = [regex]::Match($tag, '\d+\.\d+\.\d+').Value
@@ -41,6 +43,7 @@ jobs:
             --product-version="$version" `
             --copyright="Copyright $(Get-Date -Format yyyy)" `
             --assume-yes-for-downloads `
+            --quiet `
             opex_manifest_generator/cli.py
 
       - name: Rename executable
@@ -96,21 +99,25 @@ jobs:
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             --assume-yes-for-downloads \
+            --quiet \
             opex_manifest_generator/cli.py
 
       - name: Rename executable
         run: |
           ls -la build/
-          # Find and rename the executable file
-          if [ -f "build/cli" ]; then
+          # Nuitka creates an executable named after the module (cli.bin or cli)
+          if [ -f "build/cli.bin" ]; then
+            mv build/cli.bin build/opex_generate
+          elif [ -f "build/cli" ]; then
             mv build/cli build/opex_generate
           else
-            # Fallback: find any executable
-            EXEC=$(find build -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)
+            # Fallback: find any executable in build directory
+            EXEC=$(find build -maxdepth 1 -type f \( -executable -o -name "*.bin" \) 2>/dev/null | grep -v ".dist" | head -1)
             if [ -n "$EXEC" ]; then
               mv "$EXEC" build/opex_generate
             else
               echo "Error: No executable found in build directory"
+              ls -la build/
               exit 1
             fi
           fi
@@ -166,21 +173,25 @@ jobs:
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             --macos-create-app-bundle \
             --assume-yes-for-downloads \
+            --quiet \
             opex_manifest_generator/cli.py
 
       - name: Rename executable
         run: |
           ls -la build/
-          # Find and rename the executable file
-          if [ -f "build/cli" ]; then
+          # Nuitka creates an executable named after the module (cli.bin or cli)
+          if [ -f "build/cli.bin" ]; then
+            mv build/cli.bin build/opex_generate
+          elif [ -f "build/cli" ]; then
             mv build/cli build/opex_generate
           else
-            # Fallback: find any executable
-            EXEC=$(find build -maxdepth 1 -type f -perm +111 2>/dev/null | head -1)
+            # Fallback: find any executable in build directory
+            EXEC=$(find build -maxdepth 1 -type f \( -executable -o -name "*.bin" \) 2>/dev/null | grep -v ".dist" | head -1)
             if [ -n "$EXEC" ]; then
               mv "$EXEC" build/opex_generate
             else
               echo "Error: No executable found in build directory"
+              ls -la build/
               exit 1
             fi
           fi
