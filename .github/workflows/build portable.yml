@@ -171,7 +171,7 @@ jobs:
           if [ -z "$version" ] || [ "$version" = "master" ]; then
             version="1.3.5"
           fi
-          tar -czf "opex_generate_macos_${version}.tar.gz" -C build opex_generate.app
+          tar -czf "opex_generate_macos_${version}.tar.gz" -C build opex_generate
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
