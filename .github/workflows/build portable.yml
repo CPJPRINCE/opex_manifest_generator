@@ -38,6 +38,8 @@ jobs:
             --onefile `
             -o opex_generate `
             --output-dir=build `
+            --include-package=odf `
+            --include-package=pandas `
             --include-package=opex_manifest_generator `
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options `
             --windows-console-mode=attach `
@@ -97,6 +99,8 @@ jobs:
             --onefile \
             -o opex_generate \
             --output-dir=build \
+            --include-package=odf \
+            --include-package=pandas \
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             --assume-yes-for-downloads \
@@ -150,6 +154,8 @@ jobs:
             --onefile \
             -o opex_generate \
             --output-dir=build \
+            --include-package=odf \
+            --include-package=pandas \
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=opex_manifest_generator/options \
             --macos-create-app-bundle \
