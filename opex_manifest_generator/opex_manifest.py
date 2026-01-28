@@ -72,7 +72,7 @@ class OpexManifestGenerator():
                  autoref_flag: str = None,
                  prefix: str = None,
                  suffix: str = None,
-                 suffix_option: str|None = 'apply_to_files',
+                 suffix_option: Optional[str] = 'apply_to_files',
                  acc_prefix: str = None,
                  accession_mode: str = False,
                  start_ref: int = 1,
@@ -98,7 +98,7 @@ class OpexManifestGenerator():
                  keywords_abbreviation_number: int = 3,
                  sort_key = lambda x: (os.path.isfile(x), str.casefold(x)),
                  delimiter = "/",
-                 autoref_options: str|None = None) -> None:
+                 autoref_options: Optional[str] = None) -> None:
         
         self.root = os.path.abspath(root)
         # Base Parameters
@@ -667,7 +667,7 @@ class OpexManifestGenerator():
         if len(self.properties) == 0:
             xmlroot.remove(self.properties)
 
-    def generate_opex_fixity(self, file_path: str, algorithm: list | None = None) -> list:
+    def generate_opex_fixity(self, file_path: str, algorithm: Optional[list] = None) -> list:
         """Generate fixities for a file. If algorithm is None, defaults to ['SHA-1']."""
         algorithm = algorithm or ['SHA-1']
         list_fixity = []
@@ -679,7 +679,7 @@ class OpexManifestGenerator():
             list_fixity.append([algorithm_type, hash_value, file_path])
         return list_fixity
     
-    def generate_pax_folder_opex_fixity(self, folder_path: str, fixitiesxml: ET._Element, filesxml: ET._Element, algorithm: list | None = None) -> list:
+    def generate_pax_folder_opex_fixity(self, folder_path: str, fixitiesxml: ET._Element, filesxml: ET._Element, algorithm: Optional[list] = None) -> list:
         """Generate fixities for files inside a pax folder. If algorithm is None, defaults to ['SHA-1']."""
         algorithm = algorithm or ['SHA-1']
         list_fixity = []
@@ -704,7 +704,7 @@ class OpexManifestGenerator():
         return list_fixity, list_path
 
 
-    def generate_pax_zip_opex_fixity(self, file_path: str, algorithm: list | None = None) -> list:
+    def generate_pax_zip_opex_fixity(self, file_path: str, algorithm: Optional[list] = None) -> list:
         """Generate fixities for files inside a pax/zip. If algorithm is None, defaults to ['SHA-1']."""
         algorithm = algorithm or ['SHA-1']
         list_fixity = []
