@@ -52,6 +52,7 @@ jobs:
             --assume-yes-for-downloads `
             --quiet `
             --clang `
+            --mingw64 `
             opex_manifest_generator/cli.py
 
       - name: Create Windows artifact archive
