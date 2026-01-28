@@ -7,6 +7,7 @@ license: Apache License 2.0"
 
 import zipfile, os, sys, stat, shutil, logging, lxml
 from datetime import datetime, timedelta
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def win_path_delimiter() -> str:
     else:
         return "/"
 
-def check_nan(value) -> str | None:
+def check_nan(value) -> Optional[str]:
     if str(value).lower() in {"nan","nat"}:
         value = None
     return value
