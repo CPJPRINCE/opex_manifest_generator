@@ -41,7 +41,7 @@ jobs:
             --follow-imports `
             -o opex_generate `
             --output-dir=build `
-            --include-package=odfpy `
+            --include-package=odf `
             --include-package=pandas `
             --include-package=opex_manifest_generator `
             --include-data-dir=opex_manifest_generator/options=options `
@@ -105,7 +105,7 @@ jobs:
             --follow-imports \
             -o opex_generate \
             --output-dir=build \
-            --include-package=odfpy \
+            --include-package=odf \
             --include-package=pandas \
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=options \
@@ -163,7 +163,7 @@ jobs:
             --follow-imports \
             -o opex_generate \
             --output-dir=build \
-            --include-package=odfpy \
+            --include-package=odf \
             --include-package=pandas \
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=options \
