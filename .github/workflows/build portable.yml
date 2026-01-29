@@ -103,7 +103,7 @@ jobs:
           python -m nuitka \
             --onefile \
             --standalone \
-            --follow-imports \            
+            --follow-imports \
             -o opex_generate \
             --output-dir=build \
             --include-package=odf \
@@ -161,7 +161,7 @@ jobs:
           python -m nuitka \
             --onefile \
             --standalone \
-            --follow-imports \            
+            --follow-imports \
             -o opex_generate \
             --output-dir=build \
             --include-package=odf \
