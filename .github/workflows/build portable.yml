@@ -37,6 +37,8 @@ jobs:
           if ($version -eq "") { $version = "1.0.0" }
           python -m nuitka `
             --onefile `
+            --standalone `
+            --follow-imports `
             -o opex_generate `
             --output-dir=build `
             --include-package=odf `
@@ -100,6 +102,8 @@ jobs:
         run: |
           python -m nuitka \
             --onefile \
+            --standalone \
+            --follow-imports \            
             -o opex_generate \
             --output-dir=build \
             --include-package=odf \
@@ -156,6 +160,8 @@ jobs:
         run: |
           python -m nuitka \
             --onefile \
+            --standalone \
+            --follow-imports \            
             -o opex_generate \
             --output-dir=build \
             --include-package=odf \
