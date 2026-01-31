@@ -40,12 +40,14 @@ jobs:
             --standalone `
             --follow-imports `
             -o opex_generate `
+            --windows-console-mode=force `
             --output-dir=build `
+            --nofollow-import-to=pandas.tests `
+            --nofollow-import-to=pandas.conftest `
             --include-package=odf `
             --include-package=pandas `
             --include-package=opex_manifest_generator `
             --include-data-dir=opex_manifest_generator/options=options `
-            --windows-console-mode=attach `
             --company-name="Opex Manifest Generator" `
             --product-name="Opex Manifest Generator" `
             --file-version="$version" `
@@ -56,12 +58,28 @@ jobs:
             --clang `
             opex_manifest_generator/cli.py
 
-      - name: Create Windows artifact archive
+      - name: Create Windows package
         run: |
           $version = "${{ github.ref_name }}" -replace "^v", ""
-          Compress-Archive -Path build/opex_generate.exe -DestinationPath "opex_generate_windows_$version.zip"
+          if ($version -eq "") { $version = "1.0.0" }
+          
+          # Create folder structure
+          New-Item -ItemType Directory -Force -Path "opex_generate/bin" | Out-Null
+          
+          # Copy executable and wrapper
+          Copy-Item -Path "build/opex_generate.exe" -Destination "opex_generate/bin/"
+          Copy-Item -Path "installer/opex_generate.cmd" -Destination "opex_generate/bin/"
+          
+          # Copy documentation and scripts
+          Copy-Item -Path "installer/README.txt" -Destination "opex_generate/"
+          Copy-Item -Path "installer/install.cmd" -Destination "opex_generate/"
+          Copy-Item -Path "installer/uninstall.cmd" -Destination "opex_generate/"
+          Copy-Item -Path "LICENSE.md" -Destination "opex_generate/" -ErrorAction SilentlyContinue
+          
+          # Create portable ZIP
+          Compress-Archive -Path "opex_generate" -DestinationPath "opex_generate_windows_$version.zip"
 
-      - name: Upload Windows artifact
+      - name: Upload Windows portable artifact
         uses: actions/upload-artifact@v4
         with:
           name: opex_generate-windows
@@ -101,12 +119,13 @@ jobs:
         run: |
           python -m nuitka \
             --onefile \
-            --standalone \
             --follow-imports \
             -o opex_generate \
             --output-dir=build \
             --include-package=odf \
             --include-package=pandas \
+            --nofollow-import-to=pandas.tests \
+            --nofollow-import-to=pandas.conftest \
             --include-package=opex_manifest_generator \
             --include-data-dir=opex_manifest_generator/options=options \
             --assume-yes-for-downloads \
@@ -159,10 +178,12 @@ jobs:
         run: |
           python -m nuitka \
             --onefile \
-            --standalone \
+            --macos-console-mode=force \
             --follow-imports \
             -o opex_generate \
             --output-dir=build \
+            --nofollow-import-to=pandas.tests \
+            --nofollow-import-to=pandas.conftest \
             --include-package=odf \
             --include-package=pandas \
             --include-package=opex_manifest_generator \
