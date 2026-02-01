@@ -61,20 +61,20 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}" -replace "^v", ""
           if ($version -eq "") { $version = "1.0.0" }
-          
+
           # Create folder structure
           New-Item -ItemType Directory -Force -Path "opex_generate/bin" | Out-Null
-          
+
           # Copy executable and wrapper
           Copy-Item -Path "build/opex_generate.exe" -Destination "opex_generate/bin/"
           Copy-Item -Path "installer/opex_generate.cmd" -Destination "opex_generate/bin/"
-          
+
           # Copy documentation and scripts
           Copy-Item -Path "installer/README.txt" -Destination "opex_generate/"
           Copy-Item -Path "installer/install.cmd" -Destination "opex_generate/"
           Copy-Item -Path "installer/uninstall.cmd" -Destination "opex_generate/"
           Copy-Item -Path "LICENSE.md" -Destination "opex_generate/" -ErrorAction SilentlyContinue
-          
+
           # Create portable ZIP
           Compress-Archive -Path "opex_generate" -DestinationPath "opex_generate_windows_$version.zip"
 

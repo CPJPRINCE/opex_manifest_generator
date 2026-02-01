@@ -9,8 +9,8 @@ from .opex_manifest import OpexManifestGenerator,OpexDir,OpexFile
 from .hash import HashGenerator
 from .common import *
 from .cli import create_parser,run_cli
-import importlib.metadata
+from importlib import metadata
 
 __author__ = "Christopher Prince (c.pj.prince@gmail.com)"
 __license__ = "Apache License Version 2.0"
-__version__ = importlib.metadata.version("opex_manifest_generator")
+__version__ = metadata.version("opex_manifest_generator")

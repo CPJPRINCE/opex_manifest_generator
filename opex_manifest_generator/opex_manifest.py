@@ -48,17 +48,17 @@ class OpexManifestGenerator():
     :param start_ref: set to set the starting reference number
     :param algorithm: set whether to generate fixities and the algorithm to use {MD5, SHA-1, SHA-256, SHA-512}
     :param empty_flag: set whether to delete and log empty directories
-    :param removal_flag: set whether to enable removals; data must also contain removals column and cell be set to True 
+    :param removal_flag: set whether to enable removals; data must also contain removals column and cell be set to True
     :param clear_opex_flag: set whether clear existing opexes
     :param export_flag: set whether to export the spreadsheet when using autoref
     :param output_format: set output format when using autoref {xlsx, csv,ods,json,lxml}
     :param input: set whether to use an autoref spreadsheet / dataframe to establish data.
     :param zip_flag: set whether to zip files and opexes together
     :param hidden_flag: set to include hidden files/directories
-    :param print_xmls_flag: set to print all 
+    :param print_xmls_flag: set to print all
     :param options_file: set to specify options file
     :param keywords: set to replace numbers in reference with alphabetical characters, specified in list or all if unset
-    :param keywords_mode: set to specify keywords mode [initialise, firstletters,from_json] 
+    :param keywords_mode: set to specify keywords mode [initialise, firstletters,from_json]
     :param keywords_retain_order: set to continue counting reference, if keyword is used, skips numbers if not
     :param keywords_abbreviation: set int for number of characters to abbreviate to for keywords mode
     :param sort_key: set the sort key, can be any valid function for sorted
@@ -99,10 +99,10 @@ class OpexManifestGenerator():
                  sort_key = lambda x: (os.path.isfile(x), str.casefold(x)),
                  delimiter = "/",
                  autoref_options: Optional[str] = None) -> None:
-        
+
         self.root = os.path.abspath(root)
         # Base Parameters
-        self.opexns = "http://www.openpreservationexchange.org/opex/v1.2"      
+        self.opexns = "http://www.openpreservationexchange.org/opex/v1.2"
         self.start_time = datetime.now()
         self.list_path = []
         self.list_fixity = []
@@ -132,14 +132,14 @@ class OpexManifestGenerator():
         self.metadata_dir = metadata_dir
 
         # Parameters for Auto Reference
-        self.autoref_flag = autoref_flag     
+        self.autoref_flag = autoref_flag
         self.autoref_options = autoref_options
         self.prefix = prefix
         self.suffix = suffix
         self.suffix_option = suffix_option
         self.start_ref = start_ref
         self.acc_prefix = acc_prefix
-        self.accession_mode = accession_mode        
+        self.accession_mode = accession_mode
         self.keywords_list = keywords
         self.keywords_mode = keywords_mode
         self.keywords_retain_order = keywords_retain_order
@@ -158,13 +158,13 @@ class OpexManifestGenerator():
         self.hash_from_spread = False
 
         self.parse_config(options_file=os.path.abspath(options_file))
-    
+
     def parse_config(self, options_file: str = os.path.join('options','options.properties')) -> None:
         config = configparser.ConfigParser()
         read_config = config.read(options_file, encoding='utf-8')
         if not read_config:
             logger.warning(f"Options files not found or not reable: {options_file}. Using defaults.")
-        
+
         section = config['options'] if 'options' in config else {}
 
         self.INDEX_FIELD = section.get('INDEX_FIELD', "FullName")
@@ -206,7 +206,7 @@ class OpexManifestGenerator():
         except Exception as e:
             logger.exception(f'Failed to print Descriptive metadta files, ensure correct path {e}')
             raise
-    
+
     def convert_descriptive_xmls(self) -> None:
         try:
             for file in os.scandir(self.metadata_dir):
@@ -279,7 +279,7 @@ class OpexManifestGenerator():
                 self.column_headers = self.df.columns.values.tolist()
                 self.set_input_flags()
                 if self.export_flag:
-                    output_path = define_output_file(self.output_path, self.root, self.METAFOLDER, meta_dir_flag = self.meta_dir_flag, output_format = self.output_format)                
+                    output_path = define_output_file(self.output_path, self.root, self.METAFOLDER, meta_dir_flag = self.meta_dir_flag, output_format = self.output_format)
                     if self.output_format == "xlsx":
                         export_xl(self.df, output_path)
                     elif self.output_format == "csv":
@@ -313,22 +313,22 @@ class OpexManifestGenerator():
                 self.column_headers = None
                 return False
         except Exception as e:
-            logger.exception(f'Failed to intialise Dataframe: {e}')       
-            raise 
+            logger.exception(f'Failed to intialise Dataframe: {e}')
+            raise
 
     def clear_opex(self) -> None:
         try:
             walk = list(os.walk(self.root))
             for dir, _, files in walk[::-1]:
                 for file in files:
-                    file_path = win_256_check(os.path.join(dir, file))   
+                    file_path = win_256_check(os.path.join(dir, file))
                     if str(file_path).endswith('.opex'):
                         os.remove(file_path)
                         logger.info(f'Cleared Opex: {file_path}')
         except Exception as e:
             logger.exception(f'Error looking up Clearing Opex: {e}')
             raise
-    
+
     def index_df_lookup(self, path: str) -> pd.Index:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
@@ -379,11 +379,11 @@ class OpexManifestGenerator():
         except Exception as e:
             logger.exception(f'Error looking up XIP from Dataframe: {e}')
             raise
-    
+
     def removal_df_lookup(self, idx: pd.Index) -> bool:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
-            raise RuntimeError('Dataframe not initialised, cannot perform lookup')        
+            raise RuntimeError('Dataframe not initialised, cannot perform lookup')
         try:
             if idx.empty:
                 return False
@@ -409,7 +409,7 @@ class OpexManifestGenerator():
     def ignore_df_lookup(self, idx: pd.Index) -> bool:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
-            raise RuntimeError('Dataframe not initialised, cannot perform lookup')        
+            raise RuntimeError('Dataframe not initialised, cannot perform lookup')
         try:
             if idx.empty:
                 return False
@@ -432,7 +432,7 @@ class OpexManifestGenerator():
     def sourceid_df_lookup(self, xml_element: ET.SubElement, idx: pd.Index) -> None:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
-            raise RuntimeError('Dataframe not initialised, cannot perform lookup')        
+            raise RuntimeError('Dataframe not initialised, cannot perform lookup')
         try:
             if idx.empty:
                 pass
@@ -457,12 +457,12 @@ class OpexManifestGenerator():
     def hash_df_lookup(self, xml_fixities: ET.SubElement, idx: pd.Index) -> None:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
-            raise RuntimeError('Dataframe not initialised, cannot perform lookup')        
+            raise RuntimeError('Dataframe not initialised, cannot perform lookup')
         try:
             hash_value = None
             algo_value = None
             file_path = None
-            
+
             if idx.empty:
                 return
             else:
@@ -503,7 +503,7 @@ class OpexManifestGenerator():
     def ident_df_lookup(self, idx: pd.Index, default_key: str = None) -> None:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
-            raise RuntimeError('Dataframe not initialised, cannot perform lookup')        
+            raise RuntimeError('Dataframe not initialised, cannot perform lookup')
         try:
             if idx.empty:
                 pass
@@ -514,22 +514,22 @@ class OpexManifestGenerator():
                         if f'{self.IDENTIFIER_FIELD}:' in header:
                             key_name = str(header).split(':',1)[-1]
                         elif self.IDENTIFIER_FIELD in header:
-                            key_name = self.IDENTIFIER_DEFAULT    
+                            key_name = self.IDENTIFIER_DEFAULT
                         elif self.ARCREF_FIELD in header:
                             key_name = self.IDENTIFIER_DEFAULT
                         elif self.ACCREF_FIELD in header:
                             key_name = self.ACCREF_CODE
                         else:
                             key_name = self.IDENTIFIER_DEFAULT
-                        ident = check_nan(self.df.loc[idx,header].item())                    
+                        ident = check_nan(self.df.loc[idx,header].item())
                         if ident:
-                            self.identifier = ET.SubElement(self.identifiers, f"{{{self.opexns}}}Identifier") 
+                            self.identifier = ET.SubElement(self.identifiers, f"{{{self.opexns}}}Identifier")
                             self.identifier.set("type", key_name)
                             self.identifier.text = str(ident)
                         logger.debug(f'Adding Identifer: {header}: {ident}')
         except KeyError as e:
             logger.exception(f'Key Error in Identifer Lookup: {e}' \
-            '\n Please ensure column header\'s are an exact match.')            
+            '\n Please ensure column header\'s are an exact match.')
             raise
         except IndexError as e:
             logger.warning(f'Index Error in Identifier Lookup: {e}. Proceeding...' \
@@ -537,7 +537,7 @@ class OpexManifestGenerator():
             '\nafter generating your input spreadsheet. An opex will still be generated but xml information may be missing.' \
             '\nTo ensure metadata match up please regenerate the spreadsheet.')
         except Exception as e:
-            logger.exception(f'Error looking up Identifiers: {e}')    
+            logger.exception(f'Error looking up Identifiers: {e}')
             raise
 
     def init_generate_descriptive_metadata(self) -> None:
@@ -637,7 +637,7 @@ class OpexManifestGenerator():
                     xml_desc_elem.append(xml_new.find('.'))
         except KeyError as e:
             logger.exception(f'Key Error in XML Lookup: {e}' \
-            '\n please ensure column header\'s are an exact match.')            
+            '\n please ensure column header\'s are an exact match.')
             raise
         except IndexError as e:
             logger.warning(f'Index Error: {e}' \
@@ -656,7 +656,7 @@ class OpexManifestGenerator():
             self.titlexml.text = str(title)
         if description:
             self.descriptionxml = ET.SubElement(self.properties, f"{{{self.opexns}}}Description")
-            self.descriptionxml.text = str(description)      
+            self.descriptionxml.text = str(description)
         if security:
             self.securityxml = ET.SubElement(self.properties, f"{{{self.opexns}}}SecurityDescriptor")
             self.securityxml.text = str(security)
@@ -678,7 +678,7 @@ class OpexManifestGenerator():
             self.fixity.set("value", hash_value)
             list_fixity.append([algorithm_type, hash_value, file_path])
         return list_fixity
-    
+
     def generate_pax_folder_opex_fixity(self, folder_path: str, fixitiesxml: ET._Element, filesxml: ET._Element, algorithm: Optional[list] = None) -> list:
         """Generate fixities for files inside a pax folder. If algorithm is None, defaults to ['SHA-1']."""
         algorithm = algorithm or ['SHA-1']
@@ -719,7 +719,7 @@ class OpexManifestGenerator():
                     self.fixity.set("value", hash_value)
                     list_fixity.append([algorithm_type, hash_value, f"{file_path}/{file.filename}"])
         return list_fixity
-    
+
     def main(self) -> None:
         if self.clear_opex_flag:
             self.clear_opex()
@@ -792,7 +792,7 @@ class OpexDir(OpexManifestGenerator):
         self.folders = ET.SubElement(self.manifest, f"{{{self.opexns}}}Folders")
         self.files = ET.SubElement(self.manifest, f"{{{self.opexns}}}Files")
         if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-            self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
+            self.title, self.description, self.security = self.OMG.xip_df_lookup(index)
         elif self.OMG.autoref_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
             if title is not None:
                 self.title = title
@@ -819,7 +819,7 @@ class OpexDir(OpexManifestGenerator):
             self.OMG.list_fixity.extend(tmp_list_fixity)
             self.OMG.list_path.extend(tmp_list_path)
         if self.OMG.autoref_flag or self.OMG.input:
-            self.OMG.generate_opex_properties(self.xmlroot, index, 
+            self.OMG.generate_opex_properties(self.xmlroot, index,
                                               title = self.title,
                                               description = self.description,
                                               security = self.security)
@@ -833,27 +833,27 @@ class OpexDir(OpexManifestGenerator):
                 list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory)
                                         if not f.name.startswith('.')
                                         and filter_win_hidden(win_256_check(os.path.join(directory, f.name))) is False
-                                        and not f.name in ('opex_generate.exe','opex_generate.bin') 
+                                        and not f.name in ('opex_generate.exe','opex_generate.bin')
                                         and f.name != self.OMG.METAFOLDER
                                         and f.name != os.path.basename(__file__)],
                                         key=sort_key)
             elif self.OMG.hidden_flag is True:
                 list_directories = sorted([win_256_check(os.path.join(directory, f.name)) for f in os.scandir(directory) \
                                         if f.name != self.OMG.METAFOLDER
-                                        and not f.name in ('opex_generate.exe','opex_generate.bin') 
+                                        and not f.name in ('opex_generate.exe','opex_generate.bin')
                                         and f.name != os.path.basename(__file__)],
                                         key=sort_key)
             return list_directories
         except Exception as e:
             logger.exception(f'Failed to Filter Directories: {e}')
             raise
-        
+
     def generate_opex_dirs(self, path: str) -> None:
         """"
         This function loops recursively through a given directory.
-        
+
         There are two loops to first generate Opexes for Files; Then Generate the Folder Opex Manifests.
-        """    
+        """
         current = OpexDir(self.OMG, path)
         if current.OMG.algorithm and current.OMG.pax_fixity_flag is True and current.folder_path.endswith(".pax"):
             opex_path = os.path.abspath(current.folder_path)
@@ -872,14 +872,14 @@ class OpexDir(OpexManifestGenerator):
                     if current.ignore is True or \
                     (current.OMG.removal_flag is True and \
                      current.OMG.removal_df_lookup(current.OMG.index_df_lookup(f_path)) is True):
-                        #If Ignore is True, or the Folder below is marked for Removal: Don't add to Opex 
+                        #If Ignore is True, or the Folder below is marked for Removal: Don't add to Opex
                         pass
                     else:
                         #Add Folder to OPEX Manifest (doesn't get written yet...)
                         current.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
                         current.folder.text = str(os.path.basename(f_path))
                     if current.OMG.algorithm and current.OMG.pax_fixity_flag is True and current.folder_path.endswith(".pax"):
-                        #If using fixity, but the current folder is a PAX & using PAX Fixity: End descent. 
+                        #If using fixity, but the current folder is a PAX & using PAX Fixity: End descent.
                         pass
                     else:
                         #Recurse Descent.
@@ -907,16 +907,16 @@ class OpexDir(OpexManifestGenerator):
                             file.set("size", str(os.path.getsize(f_path)))
                         file.text = str(os.path.basename(f_path))
                         logger.debug(f'Adding File to Opex Manifest: {f_path}')
-                #Writes Folder OPEX 
+                #Writes Folder OPEX
                 write_opex(opex_path, current.xmlroot)
             else:
-                #Avoids Override if exists, lets you continue where left off. 
+                #Avoids Override if exists, lets you continue where left off.
                 logger.info(f"Avoiding override, Opex exists at: {opex_path}")
 
 class OpexFile(OpexManifestGenerator):
     def __init__(self, OMG: OpexManifestGenerator, file_path: str, title: str = None, description: str = None, security: str = None) -> None:
         self.OMG = OMG
-        self.opexns = self.OMG.opexns  
+        self.opexns = self.OMG.opexns
         if file_path.startswith(u'\\\\?\\'):
             self.file_path = file_path.replace(u'\\\\?\\', "")
         else:
@@ -939,13 +939,13 @@ class OpexFile(OpexManifestGenerator):
             if self.OMG.ignore_flag:
                 self.ignore = self.OMG.ignore_df_lookup(index)
                 if self.ignore:
-                    return                    
+                    return
             if self.OMG.removal_flag:
                 self.removal = self.OMG.removal_df_lookup(index)
                 if self.removal:
                     return
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
-                self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
+                self.title, self.description, self.security = self.OMG.xip_df_lookup(index)
             elif self.OMG.autoref_flag in {"generic", "catalog-generic", "accession-generic", "both-generic"}:
                 if title is not None:
                     self.title = title
@@ -972,7 +972,7 @@ class OpexFile(OpexManifestGenerator):
                 if self.OMG.algorithm:
                     self.fixities = ET.SubElement(self.transfer, f"{{{self.opexns}}}Fixities")
                     if self.OMG.hash_from_spread:
-                        self.OMG.hash_df_lookup(self.fixities, index)  
+                        self.OMG.hash_df_lookup(self.fixities, index)
                     else:
                         self.OMG.list_path.append(self.file_path)
                         if self.OMG.pax_fixity_flag is True and (self.file_path.endswith("pax.zip") or self.file_path.endswith(".pax")):
@@ -991,7 +991,7 @@ class OpexFile(OpexManifestGenerator):
                         self.xml_descmeta = ET.SubElement(self.xmlroot, f"{{{self.opexns}}}DescriptiveMetadata")
                         self.OMG.generate_descriptive_metadata(self.xml_descmeta, index)
                 opex_path = write_opex(self.file_path, self.xmlroot)
-                # Zip cannot be activated unless another flag - which 
+                # Zip cannot be activated unless another flag - which
             if self.OMG.zip_flag:
                 zip_opex(self.file_path, opex_path)
                 if self.OMG.zip_file_removal:
