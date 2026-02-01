@@ -3,163 +3,213 @@
 [![Supported Versions](https://img.shields.io/pypi/pyversions/opex_manifest_generator.svg)](https://pypi.org/project/opex_manifest_generator)
 [![CodeQL](https://github.com/CPJPRINCE/opex_manifest_generator/actions/workflows/codeql.yml/badge.svg)](https://github.com/CPJPRINCE/opex_manifest_generator/actions/workflows/codeql.yml)
 
-The Opex Manifest Generator is a Python programme for generating OPEX files for use with Preservica and system's compatible with the OPEX standard. It will recursively go through a 'root' directory and generate an OPEX files for each folder or, depending on specified options, files.
+A small Python programme for generating opex manifest files. Used for safe transfer of files and metadata ingests into opex compatable systems (Preservica). The program will recurse through a given hierarchy and generate manifests for all folders/files (depending on option).
+
+## Quick Start
+
+### Option 1: Using pip (Recemmend for Python users / long-term use) 
+```bash
+pip install -U opex_manifest_generator
+opex_generate /path/to/root
+```
+### Option 2: Using Portable Executable (No Python Required)
+
+Download the latest portable executable for your platform from [Releases](https://github.com/CPJPRINCE/opex_manifest_generator/releases)
+
+Extract and run:
+```bash
+# Windows
+cd opex_generate\bin
+.\opex_generate.cmd .\path\to\root -fx SHA-256
+
+# Linux\macOS
+./opex_generate /path/to/root -fx SHA-256
+```
+On Windows you can also use the install.cmd with admin priviledges to install and run the command, without navigating to the .cmd directory (see Option 1 for use) 
+
+## Version & Package info
+
+Python Version:
+
+Python Version 3.10+ is recommended. Earlier version my work but are not tested.
+
+Additional Packages:
+- auto_reference_generator (required)
+- pandas (required)
+- tqdm (required)
+- openpyxl (required)
+- lxml (required)
+- odfpy (optional - ods export)
+
+To install using Python:
+
+```bash
+pip install pandas openpyxl pyodf lxml tqdm
+```
+
+If using Python ensure it is added to Environment. 
+
+### Output
+Will generate an `.opex` manifest file for each of your directories. This manifest will contain a list of all files/folders in that directory.
+
+File manifests may also be generated if using additional options. When file manifests are active the folder manifest automatically accounts for additional opexes. 
 
 ## Why use this tool?
 
-This tool was primarily intended to allow users, to undertake larger uploads safely utilising bulk ingests, utilising the Opex Ingest Workflow, with Folder Manifest's checked to ensure safe transfer. However, it has been tested as functioning with:
-- Bulk / Opex Ingest Workflow
-- PUT Tool / Auto Ingest Workflows
-- Manual Ingest
-- Starter/UX2 Ingest uploads (Both File and Folder)
+This tool was primarily intended to allow users, to undertake larger uploads safely utilising bulk ingests. 
 
-## Features
+It's functional will all methods of Opex Ingests. For Preservica this includes:
+- **Opex Incremental Workflow**
+- **PUT Tool**
+- **Starter Drag 'n' Drop**
+- **Manual Ingest**
 
-There are a number of features including:
-- Generating Fixities for files, with SHA1, MD5, SHA256, SHA512 (Default is SHA1).
-- Generate Multiple Fixities.
-- Generate PAX fixities.
-- OPEX's can be cleared out, for repeated / ease of use.
-- OPEX's can be zipped with the file, for imports use with Starter/UX2/Manual ingest methods.
+## Additional Features
 
-The Program also makes use of the Auto Reference Generator, allowing for:
-- Reference's can be automatically generated and embedded into the Opex, with assignable prefixes.
-- This can be utilised either in Catalog or Accession modes, or both.
-- Clear and log empty folders.
-- Remove and log Files / Folders.
-- Ignore specific Files / Folders.
-- Sorting!
-- Keyword assignment!
+- **Hash generation (MD5, SHA1, SHA256, SH512) - for additional security checks.**
+- **Generate multiple algorithm hashes**
+- **Generate hashes for PAX files**
+- **Continous running by default - allowing closure / crashes to pick up where left off**
+- **Opex removal**
+- **Zip functionality**
 
-A key feature of the program, is that the Auto Ref spreadsheet can also act as an input, meaning you can utilise the generated spreadsheet to assign metadata to your files and folders. Currently this allows:
-- Assignment of title, description, and security status fields.  
-- Assignment of standard and custom xml metadata templates.
-- These fields are all 'drop-in', so only the fields as they are required need to be added. 
+The Program also includes the [Auto Reference Generator](https://github.com/CPJPRINCE/auto_reference_generator), built in allowing for:
+- **Automated Reference generation straight to Opex files**
+- **Clearing and log empty folders**
+- **A Removal mode to delete and log files / folders**
+- **Sorting - by alphabetically or 'folders first'**
+- **Keyword assignment - replacing numericals with specified keywords (intials, first letter, JSON map)**
+- **And more! See the github page for details**
 
-All these features can be combined to create extensive and robust Opex files for file transfers.
+A key function built off ARG is the `--input` mode, allowing you to utilise a spreadsheet to assign XIP/XML metadata to your files and folders. Currently this allows:
+- **Assignment of XIP title, description, and security status fields**
+- **Assignment of standard and custom xml metadata templates**
+- **'Drop-in/drop-out' operationso only needed columns are added** 
 
-## Prerequisites
+All these options can be combined to create extensive and robust Opex files for file transfers.
 
-Python Version 3.8+ is recommended; the program is OS independent and works on Windows, MacOS and Linux.
+## Expected Output
 
-The following modules are utilised and installed with the package:
-- auto_reference_generator
-- pandas
-- openpyxl
-- lxml
+At a basic level: `opex_generate`, the program will only generate folder manifests.
 
-Please ensure that Python is also added to your System's environmental variables.
+![Opex in Folder](assets/Opex%20Folder.png)
 
-## Installation / Updates
+Which will contain a simple list of files/folders in that directory:
 
-To install the package, simply run: `pip install -U opex_manifest_generator`. To update it simply run the same command.
+![Opex Folder Manifest](assets/Opex%20Manifest.png)
 
-## Usage
+When using an option that effects files, you will generate indvidual Opexes for files:
 
-Usage of the program is from a command line interface / terminal program, such as PowerShell on Windows, Terminal on Mac, or one of the many terminal programs on Linux. 
+![Opex Files](assets/Opex%20Files.png)
 
-### Folder Manifest Generation
+These will contain the data about the files (which will vary based selected options).
 
-The basic version of the program will generate only folder manifests, this acts recursively, so every folder within that folder will have an Opex generated.
+![Opex File Manifest](assets/Opex%20File%20Manifest.png)
 
-To run open up a terminal and run the command:
+When individual opex files are generated the folder manifest will include these as ***metadata*** files.
 
-`opex_generate "{path/to/your/folder}"`
+![Opex Folder Manifest](assets/Opex%20Manifest%20with%20files.png)
 
-Replacing `{path/to/your/folder}` with your folder path in quotations; for instance, on Windows this looks like:
+## Advanced Usage
 
-`opex_generate "C:\Users\Christopher\Downloads"`
+**Important Notes**
+
+- The term `meta` is hard coded to always be ignored. This is case sensitive.
+- A meta folder will only be created using `--fixity`, `--remove-empty` or `-rm` options. You can disable this using the `--disable-meta-dir` option or `-o` option to relocate it.
 
 ### Fixity Generation
 
-To generate a fixity for each file within a given folder and create an opex file. this also creates a text document of Fixities. To use the `-fx` option to enable this.
+```bash
+# Generate with SHA-256 Hash
+opex_generate "/path/to/folder" -fx SHA-256
 
-`opex_generate "C:\Users\Christopher\Downloads\" -fx`
+# Generate with MD5 and SHA-256 Hash
+opex_generate "/path/to/folder" -fx MD5 SHA-256
 
-By default this will run with the SHA-1 algorithm. You can also utilise MD5, SHA-1, SHA-256, SHA-512 algorithms. Specify it like so:
+# Generate with SHA-512 for PAX - PAXes can be zipped or a folder titled '.pax'
+opex_generate "/path/to/paxfolders" -fx SHA-1 --pax-fixity
 
-`opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256`
+# Generate with MD5 and SHA1 for PAX
+opex_generate "/path/to/paxfolders" -fx MD5 SHA-1  
+```
 
-You can also generate multiple fixities, by comma separation - Shout-out to Andrew Doty for adding this:
+### Continuous Operation
 
-`opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256,SHA-1`
+By default the program won't override an existing opex. If an opex is present it will state
 
-You can also enable PAX Fixity generation to generate fixity checks for individual files in PAXes. This is done, as detailed [here (see PAX section)](https://developers.preservica.com/documentation/open-preservation-exchange-opex#opex-sections):
+```
+Avoiding override, Opex exists at: /path/to/opex
+```
 
-`opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-256 --pax-fixity`
+This allows for continous operation, as long generations - particuarly if you have large files, can be cancelled at any point, then picked up later. To halt the program, simply: `ctrl + C` in the console.
 
-*Side-note, you can also generate multiple fixities for PAX files*
-
-### Continuous Generation
-
-If dealing with a large amount of files / large sized files the program is in built with the ability to continue where you left off.
-
-By default, the program won't override any previously generated OPEXes. This means you can end the program (using Ctrl + C) and rerun the same (or a different) command and not worry about losing any progress.
+There is no way to force an override, doing so also makes things more complicated than need be. If you need to rerun a generation, use the `-clr` option. 
 
 ### Clearing Opex's
 
-Of course if you do make a mistake you or wish to start over, can utilise the clear option will remove all existing Opex's in a directory.
+```bash
+# Will clear existing opexes recursively then end
+opex_generate /path/to/folder -clr
 
-`opex_generate "C:\Users\Christopher\Downloads\" -clr`
-
-Running this command with no additional options will end the program after clearing the Opex's; if other options are enabled it will proceed with a new generation.
+# If other options are enabled will clear and rerun generation
+opex_generate /path/to/folder -clr -fx SHA1
+```
 
 ### Zipping 
 
-You can also utilise the zip option to bundle the opex and content into a zip file. For use with manual ingests or for Starter / UX2 users.
+```bash
+# Will zip opex and file into a zip file
+opex_generate /path/to/folder -fx SHA-1 -z`
 
-`opex_generate "C:\Users\Christopher\Downloads\" -fx SHA-1 -z`
+# Will zip opex and file and remove the original files
+ opex_generate /path/to/folder -fx SHA-1 -z --remove-zipped-files`
 
-Currently, no files will be removed after the zipping. **Be aware that because of this running this command multiple times in row can lead to lots of zips... Ensure you're at an end point before running this, as there's no easy way to undo this!**
+```
+**Use zipping with caution, repeated use can get quite messy... fast.**
 
 ### Removing Empty Directories
 
-You can also clear any empty directories by using the `-rme` or `--remove-empty` option. This will remove any empty directories and generate a simple text document listing the directories that were removed. This process is not reversible and you will be asked to confirm your choice.
+```bash
+# Remove and generate a text log to the 'meta' folder of removed directories
+opex_generate /path/to/folder --remove-empty
 
-### Filtering
+# You will be asked to give confirmation that you want to proceed
+```
 
-Currently 2 filters are applied across all generations.
+### Hidden Directories
 
-1) Hidden directories / files, either by the hidden attribute in Windows or by a starting '.' in MacOS / Linux, are not included.
-2) Folder's titled `meta` are not included.
+```bash
+# By default hidden directories/files are not included. Adding --hidden include hidden files
+opex_generate /path/to/folder --hidden
+```
 
-Hidden files and directories can be included by utilising the `--hidden` option. `meta` folders currently can not be included except by changing their name.
+## Auto Reference Usage
 
-## Note on 'meta' folders
+As mentioned, built into the OMG is the Auto Reference Generator, allowing archival references to be assigned directly to Opexes. By default codes generated using this method are hard coded to the identifer `code`.
 
-Meta folders will be generated automatically when used with the `--fixity` and `-rme` options, as well as when some options from the Auto Reference Generator. You can redirect the path of the generated folder using the `-o` option: `-fx -o {/path/to/meta/output}`. Or you can also disable the generation of 'meta' folder using the `-dmd` option.  
+If you want to understand what these Reference will look like, plese see [here](https://github.com/CPJPRINCE/auto_reference_generator?tab=readme-ov-file#structure-of-references).
 
-## Use with the Auto Reference Generator
+```bash
+# Will generate a reference code for the heirachy with the prefix "ARCH"
+opex_generate /path/to/folder -r catalog -p ARCH
 
-The Opex Manifest generator becomes much more powerful when utilised with another tool: the Auto Reference Generator, see [here](https://github.com/CPJPRINCE/auto_reference_generator) for further details.
+# Will generate a reference code with prefix "ARCH-1-2-3", suffix "Z" and delimiter "-"
+opex_generate /path/to/folder -r catalog -p "ARCH-1-2-3" -s Z -dlm "-"
 
-This is built-in to the Opex Manifest Generator and can be utilised to embed identifiers and metadata directly to an Opex or through the use of an Excel spreadsheet or CSV file.
+# Will generate a reference code without a prefix - this will only be the numericals.
 
-The Opex Manifest Generator makes use of the auto_reference_generator as a module, therefore it's behaviour differs a little different when compared to utilising the standalone command `auto_ref.exe`.
+opex_generate /path/to/folder -r catalog
 
-### Identifier Generation
+# Will generate an accession code / 'running number' with the prefix "2026-X"
+opex_generate /path/to/folder -r accession -p 2026-X
 
-To generate an auto reference code, call on `-c` option with `catalog` choice. You can also assign a prefix using `-p "ARCH"`:
+# Will fill in title, description and secuirty tag data based upon file and folder names and sets to the default security tag 'open'
+opex_generate -c generic /path/to/folder
+```
 
-`opex_generate -c catalog -p "ARCH" C:\Users\Christopher\Downloads`
+## Input Option
 
-This will generate Opex's with an identifier `code` for each of the files / folders. As described in the Auto Ref module, the reference codes will take the hierarchy of the directories. You can also use the `-s` option to set a starting reference.
-
-You can alternatively utilise the "Accession" / running number mode of generating a code using `-c accession` with the prefix "2024". You can also utilise the `--accession-mode` option to determine whether to have a running number for `file, folder, both`.
-
-`opex_generate -c accession -p "2024" C:\Users\Christopher\Downloads --accession-mode file`
-
-To note: when using the `catalog` option, the key `code` is set by default, when using `accession` the default key is `accref`. *The default identifier can be set by the options.property file (accref cannot be changes)*
-
-There are also options to generate `both` (Accession and Catalog references); or generate a `generic` set of metadata which will take the XIP metadata for the Title and Description fields, from the basename of the folder/file. It will also set the Security Status to "open": `opex_generate -c generic C:\Users\Christopher\Downloads`
-
-You can also combine the generic options, like so: `catalog-generic, accession-generic, both-generic` to generate an identifier alongside generic data: `opex_generate -c catalog-generic C:\Users\Christopher\Downloads`
-
-## Use of Input Override option.
-
-This program also supports utilising an Auto Ref spreadsheet as an 'input override', utilising the data added into said spreadsheet instead of generating them ad hoc like above.
-
-Using this method XIP Metadata fields can be set on Ingest, including:
+This program also supports utilising a spreadsheet as an `input`. This allows the data to be prefilled in and set on ingest. The following XIP Metadata fields can be set:
 
  - Title
  - Description
@@ -167,130 +217,155 @@ Using this method XIP Metadata fields can be set on Ingest, including:
  - Identifiers
  - SourceID
 
-XML metadata template data, from both the default templates and custom templates can also be set.
+XML metadata data is also supported for both default and custom XMLs.
 
-<details>
-<summary>
-**Click to find out more!**
-</summary>
+### XIP metadata - Title, Description and Security Tags
 
-### XIP metadata - Title, Description and Security Status
+To use an input override, we need to first create a spreadsheet with the path of. It's not necessary, but for convience, I'd recommend using the `auto_ref` tool. Like so: 
+```bash
+auto_ref -p "ARCH" /path/to/root
+```
 
-To use an input override, we need to first create a spreadsheet with the path of. You can utilise the `auto_ref` tool installed alongside the Opex Generator, like so:
+The column headers are all 'drop-in/drop-out`, simply add new columns for the data you'd like to edit. The column headers are case-sensitive and have to match exactly. For Reference, these are the following:
 
-`auto_ref -p "ARCH" "C:\Users\Christopher\Downloads"`
-
-In the resultant spreadsheet, add in "Title", "Description", and "Security" as new columns. The column headers are case-sensitive and have to match exactly. These fields would then be filled in with the relevant data.
+```
+- Title
+- Description
+- Security
+```
+These fields would then be filled in with the relevant data. **For Security Tags** ensure they are an exact match to the tag on your system, which are also case-sensistive.
 
 ![ScreenshotXIPColumns](assets/Column%20Headers.png)
 
-Once the cells are filled in with data, run a generation like so: `opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}"`
+Once the cells are filled in with respective data, run a generation using the `-i` option and input the full path to your spreadsheet. Ensure that the `/path/to/root` is the same root as you generated the spreadsheet for.
 
-Ensure that the root directory matches the original directory of the export. In the above case this would be: `opex_generate -i "C:\Users\Christopher\Downloads\meta\Downloads_AutoRef.xlsx" "C:\Users\Christopher\Downloads"`
+```bash
+# Will use the 'spreadsheet.xlsx' as an input. 
+opex_generate -i /path/to/your/spreadsheet.xlsx /path/to/root
 
-### Headers Note
+# These can still be combined with the above options.
+opex_generate -i /path/to/your/spreadsheet.xlsx -fx SHA-1 /path/to/root
+```
 
-The column headers are drop-in, drop-out, meaning you can the columns as and when you need them. You can also leave cell's blank if you don't want them to have any data in that field.
-
-To note: When assigning the `Security` field, the tag must be a match to an existing tag in your system. This is case-sensitive, so "Closed" will NOT match to a tag called "closed".
-
-### Another Important Note
-
-If there are any changes to the hierarchy data, such as a file/folder (not including a 'meta' folder) being removed or added after the export of the spreadsheet, the data may not be assigned correctly, or it may be assigned as "ERROR", or the program may simply fail.
+**To note** 
+- If you leave blank cells it will simply skip the details.
+- If you rearrange the hierachy after your spreadsheet generation you may recieve errors or mismatches, due to the folders/files being incorrectly looked up - in these cases you may need to regenerate your list and migrate the data to it.
+- Assignment is not specific to Folders/Files.
 
 ### XIP Metadata - Identifiers
 
-Custom Identifiers can be added by adding the columns: `"Archive_Reference", "Accession_Reference", "Identifier", or "Identifier:Keyname"`.
+Identifers are also supported and can be added to the column header following this convention:
+```
+- Identifier:Key
+```
+The `Key` will determine the identifer name and cells the value.
 
 ![Identifier Screenshot](assets/Identifiers%20Headers.png)
 
-`Archive_Reference` or `Identifier` will default to the keyname `code`; `Accession_Reference` will default to `accref`. When using the Auto Reference Generator it will always generate a column called `Archive_Reference`, but you can simply rename or remove this column as necessary. 
+You can also utilise the following columns headers:
+```
+# Defaults to 'code` key
+- Identifier 
+- Archive_Reference
+# Defaults to 'accref' key
+- Accession_Reference
+```
 
-To add a custom identifier import, do so like: `Identifier:{YourIdentifierName}`, without the curly brackets IE: `Identifier:MyCode`. Multiple identifiers can be added as needed.
+### Samples
 
-No additional parameter's need to be set in the command line when using Identifier's, addition is enabled by default. Leaving a cell blank will not add an identifier.
+A completed Opex based on this data:
 
-### XIP Metadata - Hashes
+![Sample Spreadsheet input](assets/Spreadsheet%20Input%20Sample.png)
 
-If you utilise the Auto Reference's tool for generating Hashes; when utilising the `-fx` option in combination with `-i`, if both the columns `Hash` and `Algorithm` are present, the program will read the hashes from the spreadsheet instead of generating them.
+Using the command: `opex_generate /home/chris/dev/opex_manifest_generator -i /home/chris/Dev/opex_manifest_generator/meta/opex_manifest_generator_AutoRef.xlsx`
 
-![Hash Screenshot](assets/Hash%20Headers.png)
+Will generate the following for folder manifest:
 
-*Be aware that interruption / resuming is not currently supported with the Auto Ref Tool; also doesn't support multiple hashes*
+![Folder Manifest](assets/Folder%20Opex%20Input%20Sample.png)
+
+For file manifest:
+
+![File Manifest](assets/File%20Opex%20Input%20Sample.png)
+
+### Custom Spreadsheets
+
+The OMG is only dependent on the `FullName` header being present for correct functionality. You can utilise any spreadsheet as long as the `FullName` header is present and correctly matches the hierachy. Additional headers can be dropped in/out without interferring.
+
+![FullName Column](assets/FullName%20Column.png)
 
 ### XML Metadata - Basic Templates
 
-DC, MODS, GPDR, and EAD templates are supported alongside installation of the package.
+DC, MODS, GPDR, and EAD templates are supported out of the box. This works in the same way as XIP data and column headers are 'drop-in/drop-out'
 
-After exporting an Auto Ref spreadsheet, you can add in additional columns to the spreadsheet and fill it out with data for an import. Like the XIP data, all fields are optional, and can added on a 'drop-in' basis. 
+XML Column Headers do need to written as: `ns:tagname`. `ns` being the xmls namespace and tagname the tagname.
 
 ![XML Headers](assets/XML%20Headers.png)
 
-The column header's can be added in either of two ways, what I term: `exactly` or `flatly`. (There are probably better words to describe this).
-
-An `exactly` match requires that the full path of the tag in the XML document is added to the column header. With each parent and child separated by a `/`; 'flatly' requires only the matching end tag.
-
-To give an example, from the mods template:
+There are two ways to enter the column header: `exactly` or `flatly`(There are probably better words to describe this). When entering in `exact`, you must enter in all parents of the tag seperated by `/`. Flatly only requires the end tag be present. In both cases, case-sensistivity matters. `exact` is the default method.
 
 ```
-Exactly:
+# Exactly:
 mods:recordInfo/mods:recordIdentifier
 
-Flatly:
+# Flatly:
 mods:recordIdentifier
 ```
 
-Both cases match to the field `recordIdentifier`. Note that header includes both the namespace and tag, and is also case sensitive.
+In both cases these match to the same `recordIdentifier` field. 
 
-While using the `flatly` method is easier, be aware that if there's non-unique tags, such as `mods:note` in the Mods template. This method will only import to the first match, which might not be it's intended destination. Using the `exactly` method resolves this issue.
+While using the `flatly` method is easier, if non-unique tags are present, such as in `mods:note`, this will match to the first match, which might not be it's intended destination. For complex XMLs I'd recommend sticking with the `exact` method.
 
+Once you have added in your headers and data you can run like so:
 
-Once you have added in your headers and the necessary data to create the OPEX's simply add the `-m` option, with the chosen method of import `flat|exact`, so:
-`opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m flat` or 
-`opex_generate -i "{/path/to/your/spreadsheet.xlsx}" "{/path/to/root/directory}" -m exact`
+```bash
+# Run with flat method
+opex_generate -i "/path/to/your/spreadsheet.xlsx" "/path/to/root/directory" -m flat
 
-### XML Metadata - Quick Note 
+# Run with exact method
+opex_generate -i "/path/to/your/spreadsheet.xlsx" "/path/to/root/directory" -m exact
+```
 
-When you have non-unique tags, again, such as `mods:note`, you will need add an index in square brackets `[0]` to indicate which tag to assign the data to, like: `mods:note[1] mods:notes[2] ...` The number of field will simply be the order they appear in the XML.
+### XML Metadata - Quick Notes
 
-For convenience I've included the full templates for DC, MODS, GDPR and EAD, with the `exact` names in the headers [here](https://github.com/CPJPRINCE/opex_manifest_generator/tree/master/samples/spreads). I also created the `--print-xmls` function to display this info (including square bracket placement).
+- You can utilise `--print-xmls` to display the correct header names of your XMLs to the console.
+- Or you can utilise `--convert-xmls` to automatically conver them into spreadsheets with the right headers.
+- I've included samples for DC, MODS, GDPR and EAD templates, with the `exact` headers [here](https://github.com/CPJPRINCE/opex_manifest_generator/tree/master/samples/spreads). 
 
-Also be aware that when using `-m` option and column headers for that XML document are present in the spreadsheet, it will add a metadata template to the OPEX, even if all the cells are left blank. As this is a useful function (adding blank templates to your import), I will leave this for now, but may adjust this in the future.
+- When you have multiple non-unique tags, such as `mods:note`, you will need add an index in square brackets `[0]` like so: `mods:note[1] mods:notes[2] ...` The number should correspond to the order they appear in the XML tree.
+- When using the -m option if you have headers present a 'blank XML' for the corresponding headers will be added to the Opex, regardless of if data is filled out.
 
 ### XML Metadata Templates - Custom Templates
 
-Any custom XML template, that is functioning in Preservica will work with this method. All XML's in a given `metadata` directory are checked when enabling the `-m` option.
+Any custom XML template, that is functioning will work! All XML's in the assigned `metadata` (not to be confused with `meta`) directory are checked when enabling the `-m` option.
 
-The default location will be in the installation path of the program, typically under `/path/to/ptyhoninstall/Lib/site-packages/opex_manifest_generator/metadata`. However, you can also utilise the `-mdir` option to set this to a specific folder, to have a dedicated section.
+By default this location is on the install path of python. To use your own folder, you can use the `-mdir` option to point the source of XMLs to a specific folder and then place your Template XMLs in this folder. You can also utilise `--print-xmls` and `--convert-xmls` in conjunction with this.
 
-After the xml is added to that directory, all that's required is to add the matching column headers into your spreadsheet. You can also utilise `--print-xmls` to obtain this.
+```bash
+# Will use /path/to/metadata as source for files.
+opex_generate /path/to/root -mdir /path/to/metadata
 
-### Additional Information for Auto Reference
-#### SourceID
+```
 
-A SourceID can also be set by adding a `SourceID` header. The behaviour of this is not fully tested, likely won't be as I don't really utilise SourceIDs in my work :\).
+### Input Hashes
 
-#### Ignore
+You add in the columns headers `Hash` and `Algorithm` with hash data. When utilising the `-fx` option in combination with `-i`, the program will read the hashes from the spreadsheet instead of generating them.
 
-Ignoring Files can also be set by adding an `Ignore` header. When this is set to `TRUE` this will skip the generation of an Opex for the specified File or Folder; when done for folder's, the folder Opex will still include any ignored file's in its manifest.
+![Hash Screenshot](assets/Hash%20Headers.png)
 
-#### Removals
+### Removals & Ignore
 
-Removing Files or Folders is also possible, by adding a `Removals` header. When this is set to `TRUE`, the specified File or Folder will be removed from the system. As a safeguard this must be enabled by adding the parameter `-rm, --remove`, and confirming the deletion when prompted.
+You can set the column header `Removals`, and when the cell is marked TRUE, the specified folder/file will be deleted. to activate use the option `-rm` and confirm when prompted. A text log will be generated for the deleted files to `meta`.
 
-#### Keywords
+Similarly, you can set the column header `Ignore` and when the cell is marked `TRUE` it will skip the generation of an Opex for the specified file / folder.
+ 
+### Options File
 
-You can utilise keywords to replace reference numbers with abbreviated characters for instance: `--keywords "Secret Metadata Folder"` will replace the reference number with `"SMF"`. You can also set different modes with `--keywords-mode`. `initialise` will take the initials of each letter like in the previous example; `firstletters` will take the first x number of letters. So the above becomes `"SEC"`. You can set multiple keywords with by comma separation. If `--keywords` is set without any set strings it will be applied to every word.
-
-There are further details in the Options Section.
-
-#### Sorting
-
-You can also sort utilising `--sort-by`. There are currently two options: `foldersfirst` and `alphabetical`. Folders first sorts folders first, then files (both alphabetically); alphabetically sorts both folders and files alphabetically.
-
-#### Options File
-
-You can utilise your own option-file to change the default column headers for the Input override method. See the option `--option-file path/to/file`. Defaults are:
+You can utilise your own `options.properties` file to change the default column headers, and some other settings. 
+Like so 
+```bash
+opex_generate --options-file path/to/options.properties /path/to/root
+```
+The default options look like:
 
 ```[options]
 
@@ -305,207 +380,33 @@ IGNORE_FIELD = Ignore
 SOURCEID_FIELD = SourceID
 HASH_FIELD = Hash
 ALGORITHM_FIELD = Algorithm
+
+ACCREF_CODE = accref
+ARCREF_FIELD = Archive_Reference
+ACCREF_FIELD = Accession_Reference
+
+METAFOLDER = meta
+FIXITY_SUFFIX = _Fixity
+REMOVALS_SUFFIX = _Removals
+GENERIC_DEFAULT_SECURITY = open
 ```
+
 #### Custom Spreadsheets - Quick Note
 
 You technically don't have to utilise the AutoRef tool at all. Any old spreadsheet will do!
 
 The only requirement to use the input override, is the presence of the `FullName` column. With an accurate list of paths.
 
-![FullName Column](assets/FullName%20Column.png)
 
-</details>
+## Full Options
 
-## Further Options
-
-The full options are given below; also see `opex_generate --help`
-
-<details>
-<summary>
-Click here
-</summary>
+The below covers the full range of options. Use `-h` option to show this dialong.
 
 ```
-Options:
-        -h,     --help          Show Help dialog                                        [boolean flag]
+<!-- argparse_to_md:opex_manifest_generator:create_parser -->
+<!-- argparse_to_md_end -->
 
-        -v,     --version       Display version information                             [boolean flag]
-
-    Required Option:
-
-        root                    The path to the root folder you wish to
-                                Generate a Manifest for. Will recurse through
-                                the specified folder.
-
-                                If no path is given will utilise the Current
-                                Working Directory.
-
-    Opex Options:
-
-        -fx,  --fixity          Generate a Fixity Check for files.                      [SHA-1,MD5, SHA-256, SHA-512
-                                Can set multiple fixities with comma.                     | boolean flag]
-                                IE MD5,SHA-1.                            
-                                [Defaults to SHA-1 if not specified]                    
-
-        --pax-fixity            Generates a Fixity Check for PAX files / Folders        [boolean flag]
-                                If not set PAX files / folders will be treated 
-                                as standard.
-                
-        -clr, --clear-opex      Will remove all existing Opex folders,                  [boolean flag]
-                                When utilised with no other options, will end
-                                the program.
-        
-        -z,   --zip             Will zip the Opex's with the file itself to create      [boolean flag]
-                                a zip file. Existing file's are currently not removed.
-                                ***Use with caution, repeating the command multiple 
-                                times in a row, will break the Opex's / Generally
-                                cause a mess...
-        
-        --hidden                Will generate Opex's for hidden files and directories   [boolean flag]
-
-        -rm,  --remove          Will enable removals from a spreadsheet import          [boolean flag]
-                        
-        -opt  --options-file    Specify an 'options.properties' file to change set      [PATH/TO/FILE]
-                                presets for column headers for input.
-
-    Auto Reference Options:
-
-        -r,  --autoref          This will utilise the auto_reference_generator          [{catalog, accession,both,
-                                module to generate an Auto Ref spreadsheet.             generic, catalog-generic,
-                                                                                        accession-generic,
-                                There are several options, {catalog} will generate      both-generic}]
-                                a Archival Reference following; {accession}
-                                will create a running number of files
-                                (Currently this is not configurable).
-                                {both} will do Both!
-                                {generic} will populate the Title and 
-                                Description fields with the folder/file's name,
-                                if used in conjunction with one of the above options:
-                                {generic-catalog,generic-accession, generic-both}
-                                it will do both simultaneously.
-        
-        --accession-mode        Sets whether to have the running tally be for            {file,folder,both}
-                                files, folders or both,
-                                when utilising the Accession option with 
-                                autoref. Default is file.
-        
-        -p,   --prefix          Assign a prefix to the Auto Reference,             [PREFIX]
-                                when utilising {both} fill in like:
-                                "catalog-prefix","accession-prefix".
-
-        -s    --suffix          Assign a suffix to the Auto Reference              [SUFFIX]
-                                program. By Default only applies to Files
-
-        --suffix-options        Set the Suffix assignment options                       {apply_to_files, apply_to_folders,
-                                                                                        apply_to_both}
-        
-        --remove-empty          Remove and log empty directories in a structure         [boolean flag]
-                                Log will bee exported to 'meta' / output folder
-       
-        -o,   --output          Set's the output of the 'meta' folder when              [PATH/TO/FOLDER] 
-                                utilising AutoRef.
-                                
-        -s,   --start-ref       Sets the starting Reference in the Auto Ref           [int]
-                                process.
-
-        -i    --input           Set whether to use an Auto Ref spreadsheet as an      [PATH/TO/FILE]
-                                input. The input needs to be the (relative or
-                                absolute) path of the spreadsheet.
-
-                                This allows for use of the Auto Ref spreadsheet
-                                to customise the XIP metadata (and custom xml 
-                                metadata).
-
-                                The following fields have to be added to the
-                                spreadsheet and titled exactly as:
-                                Title, Description, Security.
-
-        -m    --metadata        Toggles use of the metadata import method.              {none,flat,exact} 
-                                                                                        
-                                There are two methods utilised by this:
-                                'exact',or 'flat'.
-
-                                Exact requires that the column names in the spread
-                                sheet match exactly to the XML:
-                                {example:path/example:to/example:thing}
-
-                                Flat only requires the final tag match.
-                                IE {example:thing}. However, for more complex sets
-                                of metadata, Flat will not function correctly.
-
-                                Enabled with -m. 
-                                [Defaults to 'exact' method if not
-                                specified]
-                                
-                                Use of metadata requires, XML documents to 
-                                be added to the metadata folder, see docs for
-                                details.
-
-        -mdir   --metadata      Specify the metadata directory to pull the XMLs files   [PATH/TO/FOLDER]
-                -dir            from.
-                                [Defaults to lib folder if not set]
-
-        --disable-meta-dir      Will disable the creation of the 'meta' folder.         [boolean flag]
-                                Can also be enabled with output.
-  
-        -ex     --export        Set whether to export any Auto Ref generation         [boolean flag] 
-                                to a spreadsheet
-
-        -fmt,   --format        Set whether to export as a CSV or XLSX file.            {csv,xlsx}
-                                [Default is to xlsx].
-
-        -dlm    --delimiter     Set to specify the delimiter between References         [DELIMITER STRING]
-        
-        -key    --keywords      Specify which keywords to look for and replace the      [KEYWORDS ... | boolean flag]
-                                 generated reference with an abbreviation of the 
-                                word (depending on mode). For instance:
-                                "A list Strings" will be abbreviated ALS. 
-                                
-                                Has to be an exact match to files / folders
-                                names. Can set multiple strings to look for with
-                                commas like so: "My Strings,I wish,to replace"
-                                
-                                Can also be set without specifying any words to
-                                apply to everything.
-
-        --keym  --keywords      Specify the mode to use for keywords                    {initialise,firstletters,from_json}
-                -mode           Either 'initialise' taking the first letter of each
-                                word between spaces IE "Department of Justice" becomes
-                                "DOJ".
-
-                                'firstletters' takes the first n amount of letters.
-                                The aforementioned becomes "DEP"
-
-                                'from_json'' allows you to enter in the path to a
-                                JSON file formatted as a Dict. The Key will be
-                                used as the string to replace and the value,
-                                what will be used as the replacement.
-                                IE {'Important Document':'IMD', 'Human Resources': 'HR'}
-
-        --keywords-case         Toggle to enable Case-Sensitivity, by Default
-        -sensitive              Keywords matching is insensitive
-
-        --keywords-retain-      Specify if you wish continue or reset reference         [boolean flag]
-        -order                  numbering for references not in keywords. 
-                                
-                                IE By default if a keyword is found and replaced,
-                                where it would normally be reference number '3'. 
-                                The next reference down would be given the number 3.
-
-                                Using this option, the next reference would be given
-                                4.
-
-        --keywords-abbreviation Set the number of characters to abbreviate to for       [int]
-        -number                 keywords option
-                                [Default is 3 first letters, -1 for initialise]
-        
-        --sort-by               Set the method to sort. Can either utilise              {folders_first,alphabetical}
-                                'foldersfirst' to sort folders first then
-                                alphabetically or 'alphabetical to sort
-                                both folders and files alphabetically
-                                [Default is foldersfirst.]
 ```
-</details>
 
 ## Future Developments
 
@@ -517,14 +418,19 @@ Options:
 - Zipping to conform to PAX - Last on the check list; it technically does...
 - In theory, this tool should be compatible with any system that makes use of the OPEX standard... But in theory Communism works, in theory...
 
+## Troubleshooting
+
+- On Windows ensure that when you enter the root folder it does not end in a `\`. This is slightly annoying as it adds it by default when tabbing.
+- In the examples above I've used linux paths. If your on Windows don't forgot to change these to backslashes `\`
+- There are a number of helpers when entering options: use SHA1 instead of SHA-1, c for catalog, acc for accession.
+
 ## Developers
 
-For Developers you can also embed / use the program directly in Python. Though be warned I haven't tested this functionally much!
+For Developers you can also use the tool as a module
+```python
+from opex_manifest_generator import OpexManifestGenerator
 
-```
-from opex_manifest_generator import OpexManifestGenerator as OMG
- 
-OMG(root="/my/directory/path", algorithm = "SHA-256").main()
+omg = OpexManifestGenerator(root="/my/directory/path", algorithm = "SHA-256").main()
 
 ```
 

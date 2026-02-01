@@ -1,39 +1,55 @@
-Opex Manifest Generator - Portable Distribution
-================================================
+Opex Manifest Generator - Portable Edition
+===========================================
 
-FOLDER STRUCTURE:
-  opex_generate/
-  ├─ bin/
-  │  ├─ opex_generate.exe      # Nuitka onefile executable
-  │  └─ opex_generate.cmd      # Command wrapper
-  ├─ README.txt
-  ├─ install.cmd
-  └─ uninstall.cmd
+This is a standalone, portable distribution of Opex Manifest Generator.
 
-PORTABLE USE:
-  Run directly from this folder without installation:
-  
-    bin\opex_generate.cmd [options]
-  
-  Example:
-    bin\opex_generate.cmd --help
-    bin\opex_generate.cmd C:\path\to\files -fx SHA-256
+Installation
+============
 
-INSTALLATION:
-  To install to your system, run:
-  
-    install.cmd
-  
-  This will copy files to:
-    - C:\Program Files\Opex Generate (if run as Administrator)
-    - %LOCALAPPDATA%\Opex Generate (if run as regular user)
+For Windows:
+1. Extract the ZIP file to your desired location
+2. Navigate to the opex_manifest_generator folder
+3. Run install.cmd (right-click and select "Run as Administrator")
+4. Follow the on-screen instructions
 
-UNINSTALLATION:
-  To remove the installed version, run:
-  
-    uninstall.cmd
-  
-  Note: This only removes installed files, not the portable folder.
+After installation, you can use opex_manifest_generator from any command prompt.
 
-For full documentation and options, visit:
-  https://github.com/cprincetn/opex_manifest_generator
+Usage
+=====
+
+Basic usage:
+  opex_generate /path/to/root [options]
+
+For full options:
+  opex_generate --help
+
+Examples
+========
+
+Generate Opex manifests with fixity:
+  opex_generate C:\MyFiles -fx SHA-256
+
+Generate with auto-reference (catalog):
+  opex_generate C:\MyFiles -r catalog -p ARCH
+
+Generate with CSV input and metadata:
+  opex_generate C:\MyFiles -i metadata.xlsx -m exact
+
+Zip files and generate fixity:
+  opex_generate C:\MyFiles -z -fx MD5 SHA-1
+
+Uninstallation
+==============
+
+To uninstall from Windows:
+1. Navigate to the opex_manifest_generator folder
+2. Run uninstall.cmd (right-click and select "Run as Administrator")
+3. Follow the on-screen instructions
+
+Support
+=======
+
+For more information, visit the project repository or consult the documentation.
+
+This executable was built using Nuitka and includes all necessary dependencies.
+No additional Python installation is required.

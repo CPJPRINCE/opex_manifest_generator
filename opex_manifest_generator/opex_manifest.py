@@ -72,7 +72,7 @@ class OpexManifestGenerator():
                  autoref_flag: str = None,
                  prefix: str = None,
                  suffix: str = None,
-                 suffix_option: Optional[str] = 'apply_to_files',
+                 suffix_option: Optional[str] = 'file',
                  acc_prefix: str = None,
                  accession_mode: str = False,
                  start_ref: int = 1,
@@ -308,7 +308,7 @@ class OpexManifestGenerator():
                 logger.debug(f'Input Dataframe initialised with columns: {self.column_headers}')
                 return True
             else:
-                logger.warning('No Auto Reference or Input file specified, proceeding without Dataframe')
+                logger.debug('No Auto Reference or Input file specified, proceeding without Dataframe')
                 self.df = None
                 self.column_headers = None
                 return False
@@ -609,10 +609,10 @@ class OpexManifestGenerator():
                         name = elem_dict.get('Name')
                         path = elem_dict.get('Path')
                         ns = elem_dict.get('Namespace')
-                        if self.metadata_flag in {'e', 'exact'}:
+                        if self.metadata_flag in {'exact'}:
                             val_series = self.df.loc[idx,path]
                             val = check_nan(val_series.item())
-                        elif self.metadata_flag in {'f', 'flat'}:
+                        elif self.metadata_flag in {'flat'}:
                             val_series = self.df.loc[idx,name]
                             val = check_nan(val_series.item())
                         if val is None:
@@ -621,13 +621,13 @@ class OpexManifestGenerator():
                             if is_datetime64_any_dtype(val_series):
                                 val = pd.to_datetime(val)
                                 val = datetime.strftime(val, "%Y-%m-%dT%H:%M:%S.000Z")
-                        if self.metadata_flag in {'e','exact'}:
+                        if self.metadata_flag in {'exact'}:
                             n = path.replace(localname + ":", f"{{{ns}}}")
                             elem = xml_new.find(f'./{n}')
                             if elem is None:
                                 logger.warning(f'XML element not found for path: {n} in {xml_file.get("xmlfile")}')
                                 continue
-                        elif self.metadata_flag in {'f', 'flat'}:
+                        elif self.metadata_flag in {'flat'}:
                             n = name.split(':')[-1]
                             elem = xml_new.find(f'.//{{{ns}}}{n}')
                             if elem is None:
@@ -924,7 +924,7 @@ class OpexFile(OpexManifestGenerator):
         if check_opex(self.file_path):
             index = None
             if any([self.OMG.input,
-                    self.OMG.autoref_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
+                    self.OMG.autoref_flag in {"catalog","accession","both","catalog-generic","accession-generic","both-generic"},
                     self.OMG.ignore_flag,
                     self.OMG.removal_flag,
                     self.OMG.sourceid_flag,
@@ -932,7 +932,7 @@ class OpexFile(OpexManifestGenerator):
                     self.OMG.description_flag,
                     self.OMG.security_flag]):
                     index = self.OMG.index_df_lookup(self.file_path)
-            elif self.OMG.autoref_flag is None or self.OMG.autoref_flag in {"g","generic"}:
+            elif self.OMG.autoref_flag is None or self.OMG.autoref_flag in {"generic"}:
                 index = None
             self.ignore = False
             self.removal = False
@@ -946,7 +946,7 @@ class OpexFile(OpexManifestGenerator):
                     return
             if self.OMG.title_flag or self.OMG.description_flag or self.OMG.security_flag:
                 self.title, self.description, self.security = self.OMG.xip_df_lookup(index) 
-            elif self.OMG.autoref_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
+            elif self.OMG.autoref_flag in {"generic", "catalog-generic", "accession-generic", "both-generic"}:
                 if title is not None:
                     self.title = title
                 else:

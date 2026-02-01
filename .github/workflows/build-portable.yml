@@ -37,7 +37,6 @@ jobs:
           if ($version -eq "") { $version = "1.0.0" }
           python -m nuitka `
             --onefile `
-            --standalone `
             --follow-imports `
             -o opex_generate `
             --windows-console-mode=force `
@@ -79,7 +78,7 @@ jobs:
           # Create portable ZIP
           Compress-Archive -Path "opex_generate" -DestinationPath "opex_generate_windows_$version.zip"
 
-      - name: Upload Windows portable artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: opex_generate-windows
@@ -178,7 +177,6 @@ jobs:
         run: |
           python -m nuitka \
             --onefile \
-            --macos-console-mode=force \
             --follow-imports \
             -o opex_generate \
             --output-dir=build \

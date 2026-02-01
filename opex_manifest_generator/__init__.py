@@ -8,7 +8,7 @@ license: Apache License 2.0"
 from .opex_manifest import OpexManifestGenerator,OpexDir,OpexFile
 from .hash import HashGenerator
 from .common import *
-from .cli import parse_args,run_cli
+from .cli import create_parser,run_cli
 import importlib.metadata
 
 __author__ = "Christopher Prince (c.pj.prince@gmail.com)"
