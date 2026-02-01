@@ -152,7 +152,6 @@ def create_parser():
     return parser
 
 def run_cli(args = None):
-    print(args)
 
     # Configure logging early so other modules inherit the settings
     try:
