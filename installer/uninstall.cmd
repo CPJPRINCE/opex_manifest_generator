@@ -1,46 +1,66 @@
 @echo off
-REM Uninstaller for Opex Manifest Generator
-REM Removes installed files from Program Files or LocalAppData
-SETLOCAL ENABLEDELAYEDEXPANSION
+REM Opex Manifest Generator Windows Uninstaller
+REM This script removes the Opex Manifest Generator from the system
 
-REM Detect admin rights to determine install location
-NET SESSION >nul 2>&1
-IF %ERRORLEVEL%==0 (
-    SET DEST=%ProgramFiles%\Opex Generate
-) ELSE (
-    SET DEST=%LocalAppData%\Opex Generate
-)
-
-IF NOT EXIST "%DEST%" (
-    echo Opex Generate is not installed at: %DEST%
-    echo Nothing to uninstall.
-    pause
-    exit /b 0
-)
-
-echo This will remove Opex Generate from:
-echo   %DEST%
-echo.
-SET /P CONFIRM=Are you sure? [Y/N]: 
-IF /I NOT "%CONFIRM%"=="Y" (
-    echo Uninstall cancelled.
-    pause
-    exit /b 0
-)
+setlocal enabledelayedexpansion
 
 echo.
-echo Removing installation...
-RD /S /Q "%DEST%"
-IF %ERRORLEVEL%==0 (
-    echo.
-    echo Uninstall complete!
-) ELSE (
-    echo.
-    echo ERROR: Failed to remove directory. Try running as Administrator.
+echo ===============================================
+echo Opex Manifest Generator Uninstallation
+echo ===============================================
+echo.
+
+REM Check if running as administrator
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo ERROR: This uninstaller must be run as Administrator.
+    echo Please right-click and select "Run as Administrator"
     pause
     exit /b 1
 )
 
+REM Define installation directory
+set INSTALL_DIR=%ProgramFiles%\Opex Manifest Generator
+set BIN_DIR=!INSTALL_DIR!\bin
+
+REM Confirm uninstallation
+echo This will remove Opex Manifest Generator from:
+echo !INSTALL_DIR!
+echo.
+set /p CONFIRM="Are you sure you want to uninstall? (Y/N): "
+if /i not "!CONFIRM!"=="Y" (
+    echo Uninstallation cancelled
+    pause
+    exit /b 0
+)
+
+REM Remove from PATH
+echo Removing from PATH...
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v PATH 2^>nul') do (
+    set "OLD_PATH=%%B"
+)
+
+if not "!OLD_PATH!"=="" (
+    REM Remove the bin directory from PATH
+    setlocal enabledelayedexpansion
+    set "NEW_PATH=!OLD_PATH:!BIN_DIR!=!"
+    set "NEW_PATH=!NEW_PATH:;;=;!"
+
+    if not "!NEW_PATH!"=="!OLD_PATH!" (
+        setx /M PATH "!NEW_PATH!"
+        echo Removed from PATH
+    )
+)
+
+REM Remove installation directory
+if exist "!INSTALL_DIR!" (
+    echo Removing installation directory...
+    rmdir /S /Q "!INSTALL_DIR!"
+)
+
+echo.
+echo ===============================================
+echo Uninstallation Complete!
+echo ===============================================
 echo.
 pause
-EXIT /B 0
