@@ -106,7 +106,7 @@ def test_generate_descriptive_metadata_flat_mode(tmp_path):
     omg = OpexManifestGenerator(root=str(tmp_path), metadata_dir=str(md_dir))
     omg.column_headers = ["root:a"]
     omg.df = pd.DataFrame([{omg.INDEX_FIELD: 'file', 'root:a': 'VALUE'}])
-    omg.metadata_flag = 'f'
+    omg.metadata_flag = 'flat'
     omg.init_generate_descriptive_metadata()
 
     idx = omg.index_df_lookup('file')
