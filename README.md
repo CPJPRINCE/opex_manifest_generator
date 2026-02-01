@@ -448,10 +448,7 @@ GENERIC_DEFAULT_SECURITY = open
 ## Full Options
 
 The below covers the full range of options. Use `-h` option to show this dialog.
-<details>
-<summary>
-Full Options:
-</summary>
+
 <!-- argparse_to_md:opex_manifest_generator:create_parser -->
 Usage:
 ```
@@ -566,7 +563,7 @@ Export Options:
 - `-ex`, `--export-autoref`: Set whether to export the generated references to an AutoRef spreadsheet
 - `-fmt {xlsx`, `csv`, `json`, `ods`, `xml}`, `--output-format {xlsx`, `csv`, `json`, `ods`, `xml}`: Set whether to export AutoRef Spreadsheet to: xlsx, csv, json, ods or xml format
 <!-- argparse_to_md_end -->
-</details>
+
 ## Future Developments
 
 - ~~Customizable Filtering~~ *Added!*
