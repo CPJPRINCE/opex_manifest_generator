@@ -19,6 +19,10 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
+REM Get the directory where this script is located
+set SCRIPT_DIR=%~dp0
+set SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
+
 REM Define installation paths
 set INSTALL_DIR=%ProgramFiles%\Opex Manifest Generator
 set BIN_DIR=!INSTALL_DIR!\bin
@@ -39,15 +43,32 @@ if not exist "!BIN_DIR!" (
 
 REM Copy executable and wrapper
 echo Copying files...
-xcopy /Y "bin\opex_generate.exe" "!BIN_DIR!\" >nul
-xcopy /Y "bin\opex_generate.cmd" "!BIN_DIR!\" >nul
-xcopy /Y "README.txt" "!INSTALL_DIR!\" >nul
-xcopy /Y "LICENSE.md" "!INSTALL_DIR!\" >nul 2>nul
-
-if errorlevel 1 (
-    echo ERROR: Failed to copy installation files
+if exist "%SCRIPT_DIR%\bin\opex_generate.exe" (
+    xcopy /Y "%SCRIPT_DIR%\bin\opex_generate.exe" "!BIN_DIR!\" >nul
+) else (
+    echo ERROR: Cannot find opex_generate.exe at %SCRIPT_DIR%\bin\opex_generate.exe
     pause
     exit /b 1
+)
+
+if exist "%SCRIPT_DIR%\bin\opex_generate.cmd" (
+    xcopy /Y "%SCRIPT_DIR%\bin\opex_generate.cmd" "!BIN_DIR!\" >nul
+) else (
+    echo ERROR: Cannot find opex_generate.cmd at %SCRIPT_DIR%\bin\opex_generate.cmd
+    pause
+    exit /b 1
+)
+
+if exist "%SCRIPT_DIR%\README.txt" (
+    xcopy /Y "%SCRIPT_DIR%\README.txt" "!INSTALL_DIR!\" >nul
+) else (
+    echo WARNING: Cannot find README.txt
+)
+
+if exist "%SCRIPT_DIR%\LICENSE.md" (
+    xcopy /Y "%SCRIPT_DIR%\LICENSE.md" "!INSTALL_DIR!\" >nul
+) else (
+    echo WARNING: Cannot find LICENSE.md
 )
 
 REM Add to PATH
