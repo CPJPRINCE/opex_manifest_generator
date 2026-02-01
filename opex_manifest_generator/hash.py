@@ -6,7 +6,7 @@ license: Apache License 2.0"
 """
 
 import hashlib, logging
-from opex_manifest_generator.common import win_256_check 
+from opex_manifest_generator.common import win_256_check
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class HashGenerator():
         except Exception as e:
             logger.exception(f'Error Generating Hash: {e}')
             raise
-        
+
     def hash_generator_pax_zip(self, filename: str, z):
         if self.algorithm in ("SHA1","SHA-1"):
             hash = hashlib.sha1()
@@ -61,7 +61,7 @@ class HashGenerator():
             hash = hashlib.sha1()
         logger.info(f'Generating Fixity using {self.algorithm} for: {filename}')
         try:
-            with z.open(filename, 'r') as data:            
+            with z.open(filename, 'r') as data:
                 while True:
                     buff = data.read(self.buffer)
                     if not buff:

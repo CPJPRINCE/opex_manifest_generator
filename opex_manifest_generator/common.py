@@ -31,7 +31,7 @@ def remove_tree(path: str, removed_list: list) -> None:
         for dp,d,f in os.walk(path):
             for fn in f:
                 removed_list.append(win_256_check(dp+win_path_delimiter()+fn))
-                logger.info(f'Removing {dp + win_path_delimiter() + fn}')            
+                logger.info(f'Removing {dp + win_path_delimiter() + fn}')
             for dn in d:
                 removed_list.append(win_256_check(dp+win_path_delimiter()+dn))
                 logger.info(f'Removing {dp + win_path_delimiter() + dn}')
@@ -45,7 +45,7 @@ def win_256_check(path) -> str:
     if len(path) > 255 and sys.platform == "win32":
         logger.debug(f'Path: {path} is greater than 255 Characters')
         if path.startswith(u"\\\\?\\"):
-            path = path 
+            path = path
         else:
             path = u"\\\\?\\" + path
     return path
@@ -58,7 +58,7 @@ def filter_win_hidden(path: str) -> bool:
             return False
     else:
         return False
-    
+
 def win_path_delimiter() -> str:
     if sys.platform == "win32":
         return "\\"
@@ -71,10 +71,10 @@ def check_nan(value) -> Optional[str]:
     return value
 
 def check_opex(opex_path:str) -> bool:
-    opex_path = opex_path + ".opex" 
+    opex_path = opex_path + ".opex"
     if os.path.exists(win_256_check(opex_path)):
         return False
-    else: 
+    else:
         return True
 
 def write_opex(path: str, opexxml: lxml.etree.Element) -> str:
@@ -87,5 +87,5 @@ def write_opex(path: str, opexxml: lxml.etree.Element) -> str:
     return opex_path
 
 def running_time(start_time) -> timedelta:
-    running_time = datetime.now() - start_time 
+    running_time = datetime.now() - start_time
     return running_time

@@ -7,17 +7,23 @@ license: Apache License 2.0"
 
 import argparse, os, inspect, time, logging
 from opex_manifest_generator.opex_manifest import OpexManifestGenerator
-import importlib.metadata
+from importlib import metadata
 from datetime import datetime
-from opex_manifest_generator.common import running_time 
+from opex_manifest_generator.common import running_time
 
 logger = logging.getLogger(__name__)
 
+def _get_version():
+    try:
+        return metadata.version("opex_manifest_generator")
+    except metadata.PackageNotFoundError:
+        return "0.0.0"
+
 def create_parser():
 
-    parser = argparse.ArgumentParser(description = "OPEX Manifest Generator for Preservica Uploads")
+    parser = argparse.ArgumentParser(prog="Opex_Manifest_Generator", description = "OPEX Manifest Generator for Preservica Uploads")
 
-    parser.add_argument("-v", "--version", action = 'version', version = '%(prog)s {version}'.format(version = importlib.metadata.version("opex_manifest_generator")))
+    parser.add_argument("-v", "--version", action = 'version', version = '%(prog)s {version}'.format(version =_get_version())),
     parser.add_argument('root', nargs='?', default = os.getcwd(),
                         help = """The root path to generate Opexes for, will recursively traverse all sub-directories.
                         Generates an Opex for each folder & (depending on options) file in the directory tree.""")
@@ -42,13 +48,13 @@ def create_parser():
     opexgroup.add_argument("--hidden", required = False, action = 'store_true', default = False,
                         help="Set whether to include hidden files and folders")
     opexgroup.add_argument("-clr", "--clear-opex", required = False, action = 'store_true', default = False,
-                        help = """Clears existing opex files from a directory. If set with no further options will only clear opexes; 
+                        help = """Clears existing opex files from a directory. If set with no further options will only clear opexes;
                         if multiple options are set will clear opexes and then run the program""")
     opexgroup.add_argument("-opt","--options-file", required = False, default=os.path.join(os.path.dirname(__file__),'options','options.properties'),
                         help="Specify a custom Options file, changing the set presets for column headers (Title,Description,etc)")
 
     inputgroup = parser.add_argument_group('Input Override Options', 'Options that control the Input Override features')
-    inputgroup.add_argument("-i", "--input", required = False, nargs='?', 
+    inputgroup.add_argument("-i", "--input", required = False, nargs='?',
                         help="Set to utilise a CSV / XLSX spreadsheet to import data from")
     inputgroup.add_argument("-mdir","--metadata-dir", required=False, nargs= '?',
                         default = os.path.join(os.path.dirname(os.path.realpath(__file__)), "metadata"),
@@ -57,7 +63,7 @@ def create_parser():
                         nargs = '?', choices = ['exact', 'flat'], type = metadata_helper,
                         help="Set whether to include xml metadata fields in the generation of the Opex")
     inputgroup.add_argument("-rm", "--remove", required = False, action = "store_true", default = False,
-                        help="Set whether to enable removals of files and folders from a directory. ***Currently in testing")    
+                        help="Set whether to enable removals of files and folders from a directory. ***Currently in testing")
     inputgroup.add_argument("--print-xmls", required = False, action = "store_true", default = False,
                         help="Prints the elements from your xmls to the consoles")
     inputgroup.add_argument("--convert-xmls", required=False, action ='store_true', default = False,
@@ -71,7 +77,7 @@ def create_parser():
     autorefgroup.add_argument("-r", "--autoref", required = False,
                         choices = ['catalog', 'accession', 'both', 'generic', 'catalog-generic', "accession-generic", "both-generic"],
                         type = autoref_helper,
-                        help="""Toggles whether to utilise the auto_reference_generator 
+                        help="""Toggles whether to utilise the auto_reference_generator
                         to generate an on the fly Reference listing.\n
                         There are several options, {catalog} will generate
                         a Archival Reference following an ISAD(G) structure.\n
@@ -83,7 +89,7 @@ def create_parser():
                         """)
     autorefgroup.add_argument("-p", "--prefix", required = False, nargs = '+',
                         help= """Assign a prefix when utilising the --autoref option. Prefix will append any text before all generated text.
-                        When utilising the {both} option fill in like: [catalog-prefix, accession-prefix] without square brackets.                        
+                        When utilising the {both} option fill in like: [catalog-prefix, accession-prefix] without square brackets.
                         """)
     autorefgroup.add_argument("-s", "--suffix", required = False, nargs = '?', default = '',
                         help= "Assign a suffix when utilising the --autoref option. Suffix will append any text after all generated text.")
@@ -92,10 +98,10 @@ def create_parser():
     autorefgroup.add_argument("--accession-mode", nargs = '?', required=False, const='file', default=None, choices=["file", 'directory', 'both'], type = suffix_helper,
                         help="""Set the mode when utilising the Accession option in autoref.
                         file - only adds on files, folder - only adds on folders, both - adds on files and folders""")
-    autorefgroup.add_argument("-str", "--start-ref", required = False, type=int, nargs = '?', default = 1, 
+    autorefgroup.add_argument("-str", "--start-ref", required = False, type=int, nargs = '?', default = 1,
                         help="Set a custom Starting reference for the Auto Reference Generator. The generated reference will")
     autorefgroup.add_argument("-dlm", "--delimiter", required=False,nargs = '?', type = str, default = '/',
-                        help="Set a custom delimiter for generated references, default is '/'")    
+                        help="Set a custom delimiter for generated references, default is '/'")
     autorefgroup.add_argument("--sort-by", required=False, nargs = '?', default = 'folders_first', choices = ['folders_first','alphabetical'], type=str.lower,
                         help = "Set the sorting method, 'folders_first' sorts folders first then files alphabetically; 'alphabetically' sorts alphabetically (ignoring folder distinction)")
 
@@ -107,7 +113,7 @@ def create_parser():
                         help = "Set to alternate keyword mode: 'initialise' will use initials of words; 'firstletters' will use the first letters of the string; 'from_json' will use a JSON file mapping names to keywords")
     keywordsgroup.add_argument("--keywords-case-sensitivity", required = False, action = 'store_false', default = True,
                         help = "Set to change case keyword matching sensitivity. By default keyword matching is insensitive")
-    keywordsgroup.add_argument("--keywords-retain-order", required = False, default = False, action = 'store_true', 
+    keywordsgroup.add_argument("--keywords-retain-order", required = False, default = False, action = 'store_true',
                         help = "Set when using keywords to continue reference numbering. If not used keywords don't 'count' to reference numbering, e.g. if using initials 'Project Alpha' -> 'PA' then the next folder/file will still be '001' not '003'")
     keywordsgroup.add_argument("--keywords-abbreviation-number", required = False, nargs='+', default = None, type = int,
                         help = "Set to set the number of letters to abbreviate for 'firstletters' mode, does not impact 'initialise' mode.")
@@ -128,7 +134,7 @@ def create_parser():
                         help = """Set whether to disable the creation of a 'meta' directory for generated files,
                         default behaviour is to always generate this directory""")
     exportgroup.add_argument("--disable-all-exports", required = False, action = 'store_true', default = False,
-                        help="Set to prevent all exports (Fixity, Removal, Empty) from being created in the meta directory.")    
+                        help="Set to prevent all exports (Fixity, Removal, Empty) from being created in the meta directory.")
     exportgroup.add_argument("--disable-fixity-export", required = False, action = 'store_false', default = True,
                         help="""Set whether to export the generated fixity list to a text file in the meta directory.
                         Enabled by default, disable with this flag.""")
@@ -142,11 +148,11 @@ def create_parser():
                         help="Set whether to export the generated references to an AutoRef spreadsheet")
     exportgroup.add_argument("-fmt", "--output-format", required = False, default = "xlsx", choices = ['xlsx', 'csv','json','ods','xml'], type=fmthelper,
                         help="Set whether to export AutoRef Spreadsheet to: xlsx, csv, json, ods or xml format")
-        
-        
+
     return parser
 
 def run_cli(args = None):
+    print(args)
 
     # Configure logging early so other modules inherit the settings
     try:
@@ -165,14 +171,14 @@ def run_cli(args = None):
         'If you are utilising Windows ensure that the path does not end with \\\' or \\"')
         raise FileNotFoundError(f'Please ensure that root path {args.root} exists. \n' \
         'If you are utilising Windows ensure that the path does not end with \\\' or \\" ')
-    
+
     if isinstance(args.root, str):
         args.root = args.root.strip("\"").rstrip("\\")
     logger.info(f"Running Opex Generation on: {args.root}")
 
     if not args.output:
         args.output = os.path.abspath(args.root)
-        logger.debug(f'Output path set to root directory: {args.output}')        
+        logger.debug(f'Output path set to root directory: {args.output}')
     else:
         args.output = os.path.abspath(args.output)
         logger.info(f'Output path set to {args.output}')
@@ -185,7 +191,7 @@ def run_cli(args = None):
         raise ValueError('Removal flag has been given without input, please ensure an input file is utilised when using this option.')
     if args.metadata is not None and not args.input:
         logger.warning(f'Warning: Metadata Flag has been given without Input. Metadata won\'t be generated.')
-  
+
     if args.print_xmls:
         logger.info(f'Printing xmls in {args.metadata_dir} then ending')
         OpexManifestGenerator(root = args.root, metadata_dir=args.metadata_dir).print_descriptive_xmls()
@@ -209,7 +215,7 @@ def run_cli(args = None):
     if args.prefix:
         if args.autoref in {"both", "both-generic"}:
             if len(args.prefix) < 2 or len(args.prefix) > 2:
-                logger.error('"Both" option is selected, please pass only two prefixes: [-p CATALOG_PREFIX ACCESSION_PREFIX]'); 
+                logger.error('"Both" option is selected, please pass only two prefixes: [-p CATALOG_PREFIX ACCESSION_PREFIX]');
                 raise ValueError('"Both" option is selected, please pass only two prefixes: [-p CATALOG_PREFIX ACCESSION_PREFIX]')
             for n, a in enumerate(args.prefix):
                 if n == 0:
@@ -220,20 +226,20 @@ def run_cli(args = None):
         elif args.autoref in {"accession", "accession-generic"}:
             for a in args.prefix:
                 acc_prefix = str(a)
-            logger.info('Prefix is set as: ' + acc_prefix)                        
+            logger.info('Prefix is set as: ' + acc_prefix)
         elif args.autoref in {"catalog", "catalog-generic"}:
             acc_prefix = None
-            for a in args.prefix: 
+            for a in args.prefix:
                 args.prefix = str(a)
             logger.info('Prefix is set as: ' + args.prefix)
         elif args.autoref in {"generic"}:
             logger.info('Using Generic mode')
             pass
         else:
-            logger.error('''An invalid option has been selected, please select a valid option: 
-                  {catalog, accession, both, generic, catalog-generic, accession-generic, both-generic}''')    
-            raise ValueError('An invalid option has been selected, please select a valid option.')   
-    
+            logger.error('''An invalid option has been selected, please select a valid option:
+                  {catalog, accession, both, generic, catalog-generic, accession-generic, both-generic}''')
+            raise ValueError('An invalid option has been selected, please select a valid option.')
+
     if args.fixity:
         logger.info(f'Fixity is activated, using {args.fixity} algorithm')
 
@@ -254,10 +260,10 @@ def run_cli(args = None):
                                 "\n***"))
         i = input(inspect.cleandoc("Please type Y if you wish to proceed, otherwise the program will close: "))
         if not i.lower() == "y":
-            logger.info("Y not typed, safetly aborted...")
+            logger.info("Y not typed, safely aborted...")
             raise SystemExit()
         else:
-            logger.info("Confirmation recieved proceeding to remove files")
+            logger.info("Confirmation received proceeding to remove files")
 
     if args.remove_empty:
         logger.warning(inspect.cleandoc("\n***WARNING***" \
@@ -267,37 +273,37 @@ def run_cli(args = None):
                                 "\n***"))
         i = input(inspect.cleandoc("Please type Y if you wish to proceed, otherwise the program will close: "))
         if not i.lower() == "y":
-            logger.info("Y not typed, safetly aborted...")
+            logger.info("Y not typed, safely aborted...")
             raise SystemExit()
         else:
-            logger.info("Confirmation recieved proceeding to remove empty folders...")
+            logger.info("Confirmation received proceeding to remove empty folders...")
 
     start_time = datetime.now()
-    OpexManifestGenerator(root = args.root, 
-                          output_path = args.output, 
-                          autoref_flag = args.autoref, 
-                          prefix = args.prefix, 
+    OpexManifestGenerator(root = args.root,
+                          output_path = args.output,
+                          autoref_flag = args.autoref,
+                          prefix = args.prefix,
                           suffix = args.suffix,
                           suffix_option = args.suffix_option,
                           accession_mode=args.accession_mode,
-                          acc_prefix = acc_prefix, 
-                          empty_flag = args.remove_empty, 
+                          acc_prefix = acc_prefix,
+                          empty_flag = args.remove_empty,
                           empty_export_flag = args.disable_empty_export,
-                          removal_flag = args.remove, 
+                          removal_flag = args.remove,
                           removal_export_flag = args.disable_removal_export,
-                          clear_opex_flag = args.clear_opex, 
+                          clear_opex_flag = args.clear_opex,
                           algorithm = args.fixity,
                           pax_fixity= args.pax_fixity,
                           fixity_export_flag = args.disable_fixity_export,
-                          start_ref = args.start_ref, 
-                          export_flag = args.export_autoref, 
-                          meta_dir_flag = args.disable_meta_dir, 
+                          start_ref = args.start_ref,
+                          export_flag = args.export_autoref,
+                          meta_dir_flag = args.disable_meta_dir,
                           metadata_flag = args.metadata,
                           metadata_dir = args.metadata_dir,
                           hidden_flag= args.hidden,
-                          zip_flag = args.zip, 
+                          zip_flag = args.zip,
                           zip_file_removal= args.remove_zipped_files,
-                          input = args.input, 
+                          input = args.input,
                           output_format = args.output_format,
                           options_file=args.options_file,
                           keywords = args.keywords,
@@ -308,7 +314,7 @@ def run_cli(args = None):
                           keywords_abbreviation_number = args.keywords_abbreviation_number,
                           sort_key = sort_key,
                           ).main()
-    logger.info(f"Run Complete! Ran for: {running_time(start_time)}")    
+    logger.info(f"Run Complete! Ran for: {running_time(start_time)}")
 
 def fixity_helper(x: str):
     x = x.upper()
@@ -381,10 +387,13 @@ class EmptyIsTrueFixity(argparse.Action):
             values = ["SHA-1"]
         setattr(namespace, self.dest, values)
 
-if __name__ == "__main__":
+def main():
     try:
         parser = create_parser()
         args = parser.parse_args()
         run_cli(args)
     except KeyboardInterrupt:
         logger.warning("Process interrupted by user, exiting...")
+
+if __name__ == "__main__":
+    main()
