@@ -10,21 +10,12 @@ echo Opex Manifest Generator Installation
 echo ===============================================
 echo.
 
-REM Check if running as administrator
-net session >nul 2>&1
-if %errorLevel% neq 0 (
-    echo ERROR: This installer must be run as Administrator.
-    echo Please right-click and select "Run as Administrator"
-    pause
-    exit /b 1
-)
-
 REM Get the directory where this script is located
 set SCRIPT_DIR=%~dp0
 set SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 
 REM Define installation paths
-set INSTALL_DIR=%ProgramFiles%\Opex Manifest Generator
+set INSTALL_DIR=%LOCALAPPDATA%\Opex Manifest Generator
 set BIN_DIR=!INSTALL_DIR!\bin
 
 echo Installing to: !INSTALL_DIR!
@@ -73,21 +64,7 @@ if exist "%SCRIPT_DIR%\LICENSE.md" (
 
 REM Add to PATH
 echo Adding to PATH...
-for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v PATH 2^>nul') do (
-    set "OLD_PATH=%%B"
-)
-
-if not "!OLD_PATH!"=="" (
-    echo !OLD_PATH! | find /I "!BIN_DIR!" >nul
-    if errorlevel 1 (
-        setx /M PATH "!OLD_PATH!;!BIN_DIR!"
-        echo Added !BIN_DIR! to PATH
-    ) else (
-        echo Already in PATH
-    )
-) else (
-    setx /M PATH "!BIN_DIR!"
-)
+%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$path = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($path -notlike '*%LOCALAPPDATA%\Opex Manifest Generator\bin*') { [Environment]::SetEnvironmentVariable('Path', $path + ';%LOCALAPPDATA%\Opex Manifest Generator\bin', 'User'); Write-Host 'Added to PATH' } else { Write-Host 'Already in PATH' }"
 
 echo.
 echo ===============================================
@@ -95,6 +72,7 @@ echo Installation Complete!
 echo ===============================================
 echo.
 echo You can now use 'opex_generate' from the command line.
+echo Note: You may need to restart your command prompt for PATH changes to take effect.
 echo.
 echo To get started, type: opex_generate --help
 echo.
