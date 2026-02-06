@@ -864,7 +864,7 @@ class OpexDir(OpexManifestGenerator):
             #If removal is True for Folder, then it will be removed - Does not need to descend.
             pass
         else:
-            for f_path in current.filter_directories(path):
+            for f_path in current.filter_directories(current.folder_path):
                 if f_path.endswith('.opex'):
                     #Ignores OPEX files / directories...
                     pass
@@ -876,7 +876,7 @@ class OpexDir(OpexManifestGenerator):
                         pass
                     else:
                         #Add Folder to OPEX Manifest (doesn't get written yet...)
-                        current.folder = ET.SubElement(self.folders, f"{{{self.opexns}}}Folder")
+                        current.folder = ET.SubElement(current.folders, f"{{{self.opexns}}}Folder")
                         current.folder.text = str(os.path.basename(f_path))
                     if current.OMG.algorithm and current.OMG.pax_fixity_flag is True and current.folder_path.endswith(".pax"):
                         #If using fixity, but the current folder is a PAX & using PAX Fixity: End descent.
