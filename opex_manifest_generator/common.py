@@ -70,6 +70,12 @@ def check_nan(value) -> Optional[str]:
         value = None
     return value
 
+def check_bool(value):
+    if str(value).lower() in {"true","1","yes"}:
+        return True
+    elif check_nan(value) in {None,"","false","0","no"}:
+        return False
+
 def check_opex(opex_path:str) -> bool:
     opex_path = opex_path + ".opex"
     if os.path.exists(win_256_check(opex_path)):

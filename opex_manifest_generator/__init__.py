@@ -13,4 +13,7 @@ from importlib import metadata
 
 __author__ = "Christopher Prince (c.pj.prince@gmail.com)"
 __license__ = "Apache License Version 2.0"
-__version__ = metadata.version("opex_manifest_generator")
+try:
+	__version__ = metadata.version("opex_manifest_generator")
+except metadata.PackageNotFoundError:
+	__version__ = "0.0.0"

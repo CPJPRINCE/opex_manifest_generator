@@ -39,6 +39,8 @@ def create_parser():
     opexgroup.add_argument("--pax-fixity", required = False, action = 'store_true', default = False,
                         help="""Enables use of PAX fixity generation, in line with Preservica's Recommendation.
                         "Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.""")
+    opexgroup.add_argument("--max-workers", required = False, nargs='?', type=int, default = 1,
+                        help="""Sets the number of Threads to use for Fixity Generation.""")
     opexgroup.add_argument("-z", "--zip", required = False, action = 'store_true',
                         help="Set to zip files")
     opexgroup.add_argument("--remove-zipped-files", required = False, action = 'store_true',
@@ -291,7 +293,7 @@ def run_cli(args = None):
                           removal_flag = args.remove,
                           removal_export_flag = args.disable_removal_export,
                           clear_opex_flag = args.clear_opex,
-                          algorithm = args.fixity,
+                          fixity = args.fixity,
                           pax_fixity= args.pax_fixity,
                           fixity_export_flag = args.disable_fixity_export,
                           start_ref = args.start_ref,
@@ -312,6 +314,7 @@ def run_cli(args = None):
                           delimiter = args.delimiter,
                           keywords_abbreviation_number = args.keywords_abbreviation_number,
                           sort_key = sort_key,
+                          max_workers = args.max_workers
                           ).main()
     logger.info(f"Run Complete! Ran for: {running_time(start_time)}")
 

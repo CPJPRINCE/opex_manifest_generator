@@ -453,9 +453,10 @@ The below covers the full range of options. Use `-h` option to show this dialog.
 Usage:
 ```
 Opex_Manifest_Generator [-h] [-v] [-fx [{SHA-1,MD5,SHA-256,SHA-512} ...]] [--pax-fixity]
-                                   [-z] [--remove-zipped-files] [--remove-empty] [--hidden] [-clr]
-                                   [-opt OPTIONS_FILE] [-i [INPUT]] [-mdir [METADATA_DIR]]
-                                   [-m [{exact,flat}]] [-rm] [--print-xmls] [--convert-xmls]
+                                   [--max-workers [MAX_WORKERS]] [-z] [--remove-zipped-files]
+                                   [--remove-empty] [--hidden] [-clr] [-opt OPTIONS_FILE]
+                                   [-i [INPUT]] [-mdir [METADATA_DIR]] [-m [{exact,flat}]] [-rm]
+                                   [--print-xmls] [--convert-xmls]
                                    [--autoref-options AUTOREF_OPTIONS]
                                    [-r {catalog,accession,both,generic,catalog-generic,accession-generic,both-generic}]
                                    [-p PREFIX [PREFIX ...]] [-s [SUFFIX]]
@@ -491,6 +492,7 @@ If no algorithm is specified defaults to SHA-1.
 
 - `--pax-fixity`: Enables use of PAX fixity generation, in line with Preservica's Recommendation.
                         "Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.
+- `--max-workers [MAX_WORKERS]`: Sets the number of Threads to use for Fixity Generation.
 - `-z`, `--zip`: Set to zip files
 - `--remove-zipped-files`: Set to remove the original files that have been zipped
 - `--remove-empty`: Remove and log empty directories from root. Log will be exported to 'meta' / output folder.
