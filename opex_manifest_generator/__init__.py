@@ -7,7 +7,7 @@ license: Apache License 2.0"
 
 from .opex_manifest import OpexManifestGenerator,OpexDir,OpexFile
 from .hash import HashGenerator
-from .common import *
+from .common import zip_opex,remove_tree,win_256_check,filter_win_hidden,win_path_delimiter
 from .cli import create_parser,run_cli
 from importlib import metadata
 
