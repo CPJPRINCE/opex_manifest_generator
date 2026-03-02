@@ -12,9 +12,6 @@ from typing import Iterable, Optional, Dict
 import zipfile
 logger = logging.getLogger(__name__)
 
-import time
-
-
 class HashGenerator():
     def __init__(self, algorithm: str = "SHA-1", buffer: int = 4096):
         self.algorithm = algorithm
