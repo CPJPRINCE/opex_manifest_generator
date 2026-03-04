@@ -67,7 +67,6 @@ class OpexManifestGenerator():
     :param input: set whether to use an autoref spreadsheet / dataframe to establish data.
     :param zip_flag: set whether to zip files and opexes together
     :param hidden_flag: set to include hidden files/directories
-    :param print_xmls_flag: set to print all
     :param options_file: set to specify options file
     :param keywords: set to replace numbers in reference with alphabetical characters, specified in list or all if unset
     :param keywords_mode: set to specify keywords mode [initialise, firstletters,from_json]
@@ -451,7 +450,7 @@ class OpexManifestGenerator():
             raise RuntimeError('Dataframe not initialised, cannot perform lookup')
         try:
             if idx.empty:
-                pass
+                return None
             else:
                 return check_nan(self.df.loc[idx,self.SOURCEID_FIELD].item())
         except KeyError as e:
@@ -467,8 +466,7 @@ class OpexManifestGenerator():
             logger.exception(f'Error looking up SourceID from Dataframe: {e}')
             raise
 
-    # Needs to be reworked... Remove OPEX generation from this function and just return the hash value, then generate fixity in main function and add to OPEX generation there, also needs to be reworked to take into account Pax Zip files
-    def hash_df_lookup(self, idx: pd.Index, algorithms: list) -> None:
+    def hash_df_lookup(self, idx: pd.Index, algorithms: list) -> Optional[Dict[str, str]]:
         if getattr(self, 'df', None) is None:
             logger.error('Dataframe not initialised, cannot perform lookup')
             raise RuntimeError('Dataframe not initialised, cannot perform lookup')
@@ -488,20 +486,6 @@ class OpexManifestGenerator():
                 logger.warning('No Algorithm specified in Spreadsheet for this entry')
                 return None
             return hash_values
-
-                    # if hash_value is not None:
-                        #fixity_xml = ET.SubElement(xml_fixities, f"{{{self.opexns}}}Fixity")
-                        #fixity_xml.set('type', algorithm)
-                        #fixity_xml.set('value', str(hash_value))
-
-                    # else:
-                    #     if file_path is not None:
-                    #         # fallback to configured algorithms - should this be here?
-                    #         logger.debug('No Algorithm specified in Spreadsheet for this entry; ')
-                    #         if file_path.endswith('.pax.zip') or file_path.endswith('.pax'):
-                    #             self.generate_pax_zip_opex_fixity(file_path, algorithm, hash_map)
-                    #         else:
-                    #             self.generate_opex_fixity(file_path, algorithm, hash_map)
         except KeyError as e:
             logger.exception(f'Key Error in Hash Lookup: {e}'
             '\n Please ensure column header\'s are an exact match.')
@@ -515,7 +499,7 @@ class OpexManifestGenerator():
             logger.exception(f'Error looking up Hash from Dataframe: {e}')
             raise
 
-    def ident_df_lookup(self, idx: pd.Index, default_key: str = None) -> None:
+    def ident_df_lookup(self, idx: pd.Index, default_key: str = None) -> Optional[Dict[str, str]]:
         """
         Looks up identifiers in the dataframe for the given index, checking for any column headers that contain the identifier field, arcref field, or accref field.
         If a matching header is found, the corresponding value is retrieved from the dataframe and added to a dictionary of identifiers with the appropriate key name based on the header.
@@ -543,10 +527,6 @@ class OpexManifestGenerator():
                         else:
                             key_name = default_key if default_key else self.IDENTIFIER_DEFAULT
                         ident = check_nan(self.df.loc[idx,header].item())
-                        #if ident:
-                            #self.identifier = ET.SubElement(self.identifiers, f"{{{self.opexns}}}Identifier")
-                            #self.identifier.set("type", key_name)
-                            #self.identifier.text = str(ident)
                         logger.debug(f'Adding Identifer: {header}: {ident}')
                         identifiers.update({key_name: ident})
                 return identifiers
@@ -564,7 +544,7 @@ class OpexManifestGenerator():
             logger.exception(f'Error looking up Identifiers: {e}')
             raise
 
-    def init_generate_descriptive_metadata(self) -> None:
+    def init_generate_descriptive_metadata(self) -> list:
         """
         Initialises the descriptive metadata by parsing the XML files in the metadata directory, generating a list of the elements and their namespaces, and comparing them against the column headers in the spreadsheet to filter out non-matching data.
         The resulting list of matching elements is stored in self.xml_files for use in generating the descriptive metadata in the Opex manifest.
@@ -589,7 +569,7 @@ class OpexManifestGenerator():
                         raise
                     root_element = ET.QName(xml_file.find('.'))
                     root_element_ln = root_element.localname
-                    #root_element_ns = root_element.namespace
+                    root_element_ns = root_element.namespace
                     elements_list = []
                     for elem in xml_file.findall('.//'):
                         elem_path = xml_file.getelementpath(elem)
@@ -609,7 +589,7 @@ class OpexManifestGenerator():
                     except Exception as e:
                         logger.exception(f'Failed comparing Column headers in XML: {e}')
                         raise
-                if len(list_xml) != 0:
+                if len(list_xml) > 0:
                     self.xml_files.append({'data': list_xml, 'localname': root_element_ln, 'xmlfile': path})
                     logger.debug(f'XML file: {file.name} with matching columns added for descriptive metadata.')
                 else:
@@ -622,7 +602,7 @@ class OpexManifestGenerator():
             logger.exception(f'Failed to intialise XML Metadata: {e}')
             raise
 
-    def generate_descriptive_metadata(self, idx: pd.Index) -> None:
+    def generate_descriptive_metadata(self, idx: pd.Index) -> ET._Element:
         """
         Composes the data into an xml file.
         Iterates through the list of matching elements generated in init_generate_descriptive_metadata, looks up the corresponding value in the spreadsheet for each element, and inserts it into the XML file at the correct path.
@@ -631,23 +611,31 @@ class OpexManifestGenerator():
         try:
             xml_desc_elem = ET.Element()
             for xml_file in self.xml_files:
+                assert isinstance(list_xml, list)
+                assert isinstance(localname, str)
                 list_xml = xml_file.get('data')
                 localname = xml_file.get('localname')
-                if len(list_xml) == 0 or idx.empty:
-                    pass
+                localns = xml_file.get('localns')
+                if len(list_xml) == 0 or list_xml is None:
+                    logger.warning(f'No matching columns found for XML file: {xml_file.get("xmlfile")}, skipping.')
+                    return None
                 else:
                     xml_new = ET.parse(xml_file.get('xmlfile'))
                     for elem_dict in list_xml:
+                        assert isinstance(elem_dict, dict)
                         name = elem_dict.get('Name')
                         path = elem_dict.get('Path')
                         ns = elem_dict.get('Namespace')
+                        assert isinstance(path, str)
+                        assert isinstance(name, str)
+                        assert isinstance(ns, str)
                         if self.metadata_flag in {'exact'}:
                             val_series = self.df.loc[idx,path]
                             val = check_nan(val_series.item())
                         elif self.metadata_flag in {'flat'}:
                             val_series = self.df.loc[idx,name]
                             val = check_nan(val_series.item())
-                        if val is None:
+                        if pd.isnull(val) or val is None:
                             continue
                         else:
                             if is_datetime64_any_dtype(val_series):
@@ -665,7 +653,8 @@ class OpexManifestGenerator():
                             if elem is None:
                                 logger.warning(f'XML element not found for name: {name} in {xml_file.get("xmlfile")}')
                                 continue
-                        elem.text = str(val)
+                        if elem is not None:
+                            elem.text = str(val)
                     xml_desc_elem.append(xml_new.find('.'))
             return xml_desc_elem
         except KeyError as e:
@@ -1760,7 +1749,8 @@ class OpexFileWriter():
                     raise
             elif isinstance(self.descriptive_metadata, str) and self.descriptive_metadata.endswith('.xml'):
                 try:
-                    self.descmeta_opex.append(ET.parse(self.descriptive_metadata))
+                    tree = ET.parse(self.descriptive_metadata)
+                    self.descmeta_opex.append(tree.getroot())
                 except (ET.ParseError, FileNotFoundError) as e:
                     logger.exception(f'Failed to parse descriptive metadata XML file: {e}')
                     raise

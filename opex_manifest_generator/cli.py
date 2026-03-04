@@ -320,14 +320,16 @@ def run_cli(args = None):
 
 def fixity_helper(x: str):
     x = x.upper()
-    if x in ('MD5', 'M5', 'M'):
+    if x in ('MD5', 'M5', 'M', '5'):
         x = 'MD5'
-    if x in ('SHA1', 'SHA-1', 'S1'):
+    if x in ('SHA1', 'SHA-1', 'S1', '1'):
         x = 'SHA-1'
-    if x in ('SHA256', 'SHA-256', 'S256'):
+    if x in ('SHA256', 'SHA-256', 'S256', '256'):
         x = 'SHA-256'
-    if x in ('SHA512', 'SHA-512', 'S512'):
+    if x in ('SHA512', 'SHA-512', 'S512', '512'):
         x = 'SHA-512'
+    if x not in ('SHA-1', 'MD5', 'SHA-256', 'SHA-512'):
+        raise argparse.ArgumentTypeError(f"Invalid fixity algorithm: {x}. Valid options are: SHA-1, MD5, SHA-256, SHA-512.")
     return x.upper()
 
 def autoref_helper(x: str):
@@ -346,6 +348,8 @@ def autoref_helper(x: str):
         x = 'accession-generic'
     if x == ('bg', 'both-generic', 'all-generic', 'all-gen'):
         x = 'both-generic'
+    if x not in ('catalog', 'accession', 'both', 'generic', 'catalog-generic', 'accession-generic', 'both-generic'):
+        raise argparse.ArgumentTypeError(f"Invalid autoref option: {x}. Valid options are: catalog, accession, both, generic, catalog-generic, accession-generic, both-generic.")
     return x.lower()
 
 def suffix_helper(x: str):
@@ -356,6 +360,8 @@ def suffix_helper(x: str):
         x = 'directory'
     if x in ('b', 'both'):
         x = 'both'
+    if x not in ('file', 'directory', 'both'):
+        raise argparse.ArgumentTypeError(f"Invalid suffix option: {x}. Valid options are: file, directory, both.")
     return x.lower()
 
 def metadata_helper(x: str):
@@ -364,6 +370,8 @@ def metadata_helper(x: str):
         x = 'exact'
     if x in ('f', 'flat'):
         x = 'flat'
+    if x not in ('exact', 'flat'):
+        raise argparse.ArgumentTypeError(f"Invalid metadata option: {x}. Valid options are: exact, flat.")
     return x.lower()
 
 def fmthelper(x: str):
@@ -380,6 +388,8 @@ def fmthelper(x: str):
         x = 'xml'
     if x in ('dict','dictionary', 'd'):
         x = 'dict'
+    if x not in ('xlsx', 'csv', 'json', 'ods', 'xml', 'dict'):
+        raise argparse.ArgumentTypeError(f"Invalid output format: {x}. Valid options are: xlsx, csv, json, ods, xml, dict.")
     return x.lower()
 
 
