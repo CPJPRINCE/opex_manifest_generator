@@ -3,7 +3,6 @@ et_xmlfile==2.0.0
 lxml==6.0.2
 numpy==2.4.2
 openpyxl==3.1.5
--e git+https://github.com/CPJPRINCE/opex_manifest_generator.git@ac5b814442bb94c288b5fb9b71c4b93d00761fa4#egg=opex_manifest_generator
 pandas==3.0.0
 python-dateutil==2.9.0.post0
 six==1.17.0

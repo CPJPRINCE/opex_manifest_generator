@@ -4,19 +4,21 @@ on:
   push:
     tags:
       - 'v*'
-      - 'test-*'
+    branches:
+      - 'dev'
     paths-ignore:
       - 'README.md'
       - 'docs/**'
       - 'assets/**'
       - '.github/**'
   pull_request:
-    branches: [ master]
+    branches: [master, dev]
     paths-ignore:
       - 'README.md'
       - 'docs/**'
       - 'assets/**'
       - '.github/**'
+
 jobs:
   build:
     runs-on: ubuntu-latest
