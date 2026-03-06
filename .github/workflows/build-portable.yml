@@ -36,8 +36,15 @@ jobs:
       - name: Check branch/tag rules
         id: check-ref
         run: |
+          event_name="${{ github.event_name }}"
           ref_type="${{ github.ref_type }}"
           ref_name="${{ github.ref_name }}"
+
+          if [ "$event_name" = "pull_request" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "Build enabled for pull request."
+            exit 0
+          fi
 
           if [ "$ref_type" = "branch" ] && [ "$ref_name" = "dev" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"

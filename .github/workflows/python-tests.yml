@@ -12,7 +12,9 @@ on:
       - 'assets/**'
       - '.github/**'
   pull_request:
-    branches: [master, dev]
+    branches:
+      - master
+      - dev
     paths-ignore:
       - 'README.md'
       - 'docs/**'
