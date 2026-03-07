@@ -452,12 +452,12 @@ The below covers the full range of options. Use `-h` option to show this dialog.
 <!-- argparse_to_md:opex_manifest_generator:create_parser -->
 Usage:
 ```
-Opex_Manifest_Generator [-h] [-v] [-fx [{SHA-1,MD5,SHA-256,SHA-512} ...]] [--pax-fixity]
+Opex Manifest Generator [-h] [--version] [-fx [{SHA-1,MD5,SHA-256,SHA-512} ...]] [-pax]
                                    [--max-workers [MAX_WORKERS]] [-z] [--remove-zipped-files]
                                    [--remove-empty] [--hidden] [-clr] [-opt OPTIONS_FILE]
                                    [-i [INPUT]] [-mdir [METADATA_DIR]] [-m [{exact,flat}]] [-rm]
                                    [--print-xmls] [--convert-xmls]
-                                   [--autoref-options AUTOREF_OPTIONS]
+                                   [--autoref-options AUTOREF_OPTIONS] [--column-sensitivity]
                                    [-r {catalog,accession,both,generic,catalog-generic,accession-generic,both-generic}]
                                    [-p PREFIX [PREFIX ...]] [-s [SUFFIX]]
                                    [--suffix-option {file,directory,both}]
@@ -468,7 +468,7 @@ Opex_Manifest_Generator [-h] [-v] [-fx [{SHA-1,MD5,SHA-256,SHA-512} ...]] [--pax
                                    [--keywords-case-sensitivity] [--keywords-retain-order]
                                    [--keywords-abbreviation-number KEYWORDS_ABBREVIATION_NUMBER [KEYWORDS_ABBREVIATION_NUMBER ...]]
                                    [--log-level [{DEBUG,INFO,WARNING,ERROR}]]
-                                   [--log-file [LOG_FILE]] [-o [OUTPUT]] [--disable-meta-dir]
+                                   [--log-file [LOG_FILE]] [-v] [-o [OUTPUT]] [--disable-meta-dir]
                                    [--disable-all-exports] [--disable-fixity-export]
                                    [--disable-empty-export] [--disable-removal-export] [-ex]
                                    [-fmt {xlsx,csv,json,ods,xml}]
@@ -481,7 +481,7 @@ Positional arguments:
                         Generates an Opex for each folder & (depending on options) file in the directory tree.
 
 Optional arguments:
-- `-v`, `--version`: show program's version number and exit
+- `--version`: show program's version number and exit
 
 Opex Options:
   Options that control the generation of Opex Manifests
@@ -490,7 +490,7 @@ Opex Options:
 Can select one or more algorithms to utilise: {-fx MD5 SHA-1}
 If no algorithm is specified defaults to SHA-1.
 
-- `--pax-fixity`: Enables use of PAX fixity generation, in line with Preservica's Recommendation.
+- `-pax`, `--pax-flag`: Enables recognition of PAX Folders and use of PAX fixity generation, in line with Preservica's model.
                         "Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.
 - `--max-workers [MAX_WORKERS]`: Sets the number of Threads to use for Fixity Generation.
 - `-z`, `--zip`: Set to zip files
@@ -511,6 +511,7 @@ Input Override Options:
 - `--print-xmls`: Prints the elements from your xmls to the consoles
 - `--convert-xmls`: Convert XMLs templates files in mdir to spreadsheets/csv files
 - `--autoref-options AUTOREF_OPTIONS`: Specify a custom Auto Reference Options file, changing the set presets for Input Override / Auto Reference Generator
+- `--column-sensitivity`: Set whether to make column header matching for input spreadsheets case sensitive, default is sensitive
 
 Auto Reference Generator Options:
   Options that control the Auto Reference Generator features
@@ -552,6 +553,7 @@ Export Options:
 
 - `--log-level [{DEBUG`, `INFO`, `WARNING`, `ERROR}]`: Set the logging level (default: INFO)
 - `--log-file [LOG_FILE]`: Optional path to write logs to a file (default: stdout)
+- `-v`, `--verbose`: Set whether to output log stream instead of progress bar during processing, default is True (will not output log stream, will show progress bar)Enable to display log stream but disable progress bar
 - `-o [OUTPUT]`, `--output [OUTPUT]`: Sets the output of the meta folder to send any generated files (Remove Empty, Fixity List, Autoref Export) to. Can be used in conjunction with --disable-meta-dir to set output location without generating meta directory.
 - `--disable-meta-dir`: Set whether to disable the creation of a 'meta' directory for generated files,
                         default behaviour is to always generate this directory
