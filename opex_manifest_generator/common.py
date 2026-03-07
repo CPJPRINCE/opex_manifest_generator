@@ -11,19 +11,6 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-def zip_opex(file_path,opex_path = None) -> str:
-    zip_file = f"{file_path}.zip"
-    if not os.path.exists(zip_file):
-        with zipfile.ZipFile(zip_file,'w') as z:
-            if os.path.exists(file_path):
-                z.write(file_path,os.path.basename(file_path))
-            if opex_path is not None and os.path.exists(opex_path):
-                z.write(opex_path,os.path.basename(opex_path))
-        logger.debug(f'File has been zipped to: {zip_file}')
-    else:
-        logger.warning(f'A Zip file already exists for: {zip_file}')
-    return zip_file
-
 def remove_tree(path: str, removed_list: list) -> None:
     removed_list.append(path)
     logger.info(f"Removing: {path}")
@@ -77,6 +64,10 @@ def check_bool(value):
         return False
 
 def check_opex(opex_path:str) -> bool:
+    """
+    Deprecatated
+    Moved to Class
+    """
     opex_path = opex_path + ".opex"
     if os.path.exists(win_256_check(opex_path)):
         return False
@@ -84,6 +75,10 @@ def check_opex(opex_path:str) -> bool:
         return True
 
 def write_opex(path: str, opexxml: lxml.etree.Element) -> str:
+    """
+    Deprecatated
+    Moved to Class
+    """
     opex_path = win_256_check(str(path) + ".opex")
     opex = lxml.etree.indent(opexxml, "  ")
     opex = lxml.etree.tostring(opexxml, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
@@ -91,6 +86,23 @@ def write_opex(path: str, opexxml: lxml.etree.Element) -> str:
         writer.write(opex.decode('UTF-8'))
         logger.info('Saved Opex File to: ' + opex_path)
     return opex_path
+
+def zip_opex(file_path,opex_path = None) -> str:
+    """
+    Deprecatated
+    Moved to Class
+    """
+    zip_file = f"{file_path}.zip"
+    if not os.path.exists(zip_file):
+        with zipfile.ZipFile(zip_file,'w') as z:
+            if os.path.exists(file_path):
+                z.write(file_path,os.path.basename(file_path))
+            if opex_path is not None and os.path.exists(opex_path):
+                z.write(opex_path,os.path.basename(opex_path))
+        logger.debug(f'File has been zipped to: {zip_file}')
+    else:
+        logger.warning(f'A Zip file already exists for: {zip_file}')
+    return zip_file
 
 def running_time(start_time) -> timedelta:
     running_time = datetime.now() - start_time
