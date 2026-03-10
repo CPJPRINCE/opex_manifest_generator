@@ -410,7 +410,9 @@ opex_generate /path/to/root -mdir /path/to/metadata
 
 ### Input Hashes
 
-If you use the column headers `Hash` and `Algorithm` with hash data, when using the `-fx` option in combination with `-i`, the program will read the hashes from the spreadsheet instead of generating them.
+~~If you use the column headers `Hash` and `Algorithm` with hash data, when using the `-fx` option in combination with `-i`, the program will read the hashes from the spreadsheet instead of generating them.~~ *Replaced in v1.3.8*
+
+Using the columns header `Hash:{alg}` with hash data in the cell in conjunction with `-fx` and `-i` options the program will read the hashes from the spreadsheet. This allows for multiple Hashes to be added.
 
 ![Hash Screenshot](assets/Hash%20Headers.png)
 
