@@ -9,6 +9,7 @@ A small Python programme for generating opex manifest files. Used for safe trans
 
 - [Quick Start](#quick-start)
 - [Version & Package Info](#version--package-info)
+- [Recent Changes](#recent-changes)
 - [Why Use This Tool?](#why-use-this-tool)
 - [Additional Features](#additional-features)
 - [Expected Output](#expected-output)
@@ -35,6 +36,7 @@ A small Python programme for generating opex manifest files. Used for safe trans
 - [Future Developments](#future-developments)
 - [Troubleshooting](#troubleshooting)
 - [Developers](#developers)
+  - [opexLib Developer Guide](docs/opexLib.md)
 - [Contributing](#contributing)
 
 ## Quick Start
@@ -78,10 +80,20 @@ Python Version 3.10+ is recommended. Earlier versions may work but are not teste
 To install using Python:
 
 ```bash
-pip install pandas openpyxl pyodf lxml tqdm
+pip install pandas openpyxl odfpy lxml tqdm
 ```
 
 If using Python, ensure it is added to your Environment variables.
+
+## Recent Changes
+
+- Improved PAX support and naming consistency: use `-pax` / `--pax-flag` for PAX-aware processing.
+- Added `--max-workers` to control fixity threading (`0` uses all available CPU cores).
+- Default output is now set to a Progress Bar, use `-v` to run the old way.
+- Added logging controls: `--log-level`, `--log-file`, and `-v` (verbose stream output, progress bar off).
+- Improved CLI behavior and validation around conflicting options (`--input` with `--autoref`, and `-rm` without `--input`).
+- Improved Windows root-path handling: trailing `\` is normalized automatically.
+- opexLib Added!
 
 ### Output
 
@@ -161,8 +173,8 @@ opex_generate "/path/to/folder" -fx SHA-256
 # Generate with MD5 and SHA-256 Hash
 opex_generate "/path/to/folder" -fx MD5 SHA-256
 
-# Generate with SHA-512 for PAX - PAXes can be zipped or a folder titled '.pax'
-opex_generate "/path/to/paxfolders" -fx SHA-1 --pax-fixity
+# Generate with SHA-1 for PAX-aware processing (-pax / --pax-flag)
+opex_generate "/path/to/paxfolders" -fx SHA-1 --pax-flag
 
 # Generate with MD5 and SHA1 for PAX
 opex_generate "/path/to/paxfolders" -fx MD5 SHA-1
@@ -240,7 +252,7 @@ opex_generate /path/to/folder -r catalog
 opex_generate /path/to/folder -r accession -p 2026-X
 
 # Will fill in title, description and security tag data based upon file and folder names and sets to the default security tag 'open'
-opex_generate -c generic /path/to/folder
+opex_generate -r generic /path/to/folder
 ```
 
 ## Input Option
@@ -591,8 +603,12 @@ For Developers, you can also use the tool as a module:
 ```python
 from opex_manifest_generator import OpexManifestGenerator
 
-omg = OpexManifestGenerator(root="/path/to/root", algorithm="SHA-256").main()
+omg = OpexManifestGenerator(root="/path/to/root", fixity=["SHA-256"]).main()
 ```
+
+`opexLib` a low-level reader/writer documentation is available here:
+
+- [opexLib Developer Guide](docs/opexLib.md)
 
 ## Contributing
 
