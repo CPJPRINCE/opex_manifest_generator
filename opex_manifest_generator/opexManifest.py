@@ -29,8 +29,6 @@ from .common import remove_tree,\
 from datetime import datetime
 from .opexLib import OpexDirWriter, OpexFileWriter
 
-
-
 logger = logging.getLogger(__name__)
 
 class ProgressBar():
@@ -75,6 +73,10 @@ class OpexManifestGenerator():
     :param keywords_retain_order: set to continue counting reference, if keyword is used, skips numbers if not
     :param keywords_abbreviation: set int for number of characters to abbreviate to for keywords mode
     :param sort_key: set the sort key, can be any valid function for sorted
+    :param delimiter: set the delimiter for auto_ref, default is "/".
+    :param max_workers: set the number of workers for multithreading, default is 1 to use single thread, set to 0 to use all available cores
+    :param column_sensitivity: set whether column header matching should be case sensitive, default is False
+    :param show_progress_bar: set whether to show a progress bar during generation, default is False
     """
     def __init__(self,
                  root: str,
