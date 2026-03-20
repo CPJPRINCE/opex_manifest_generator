@@ -8,6 +8,9 @@ import os, zipfile
 logger = logging.getLogger(__name__)
 
 class OpexReader():
+    """
+    Don't Use... This is a placeholder class to allow for dynamic assignment of either OpexFileReader or OpexDirReader based on the input path. The __init__ method will attempt to parse the input path as an OPEX file first, and if that fails, it will attempt to parse it as an OPEX directory. If both attempts fail, it will raise an exception.
+    """
     def __init__(self, path: str) -> None:
         if path.startswith(u'\\\\?\\'):
             self.path = path.replace(u'\\\\?\\', "")
@@ -59,11 +62,11 @@ class OpexDirReader():
             self.security_elm = self.tree.find(f'.//{{{self.opexns}}}SecurityDescriptor') if self.tree.find(f'.//{{{self.opexns}}}SecurityDescriptor') is not None else None
             self.security = self.security_elm.text if self.security_elm is not None else None
             self.identifiers_elm = self.tree.findall(f'.//{{{self.opexns}}}Identifiers/{{{self.opexns}}}Identifier') if self.tree.findall(f'.//{{{self.opexns}}}Identifiers/{{{self.opexns}}}Identifier') is not None else None
-            self.identifiers = {} if self.identifiers_elm is not None else None
+            self.identifiers = [] if self.identifiers_elm is not None else None
             self.sourceid_elm = self.tree.find(f'.//{{{self.opexns}}}SourceID') if self.tree.find(f'.//{{{self.opexns}}}SourceID') is not None else None
             self.sourceid = self.sourceid_elm.text if self.sourceid_elm is not None else None
             for ident in self.identifiers_elm or []:
-                self.identifiers.update({ident.attrib.get('type'): ident.text})
+                self.identifiers.append({'type': ident.attrib.get('type'), 'value': ident.text})
             self.descriptive_metadata_xml = self.tree.find(f'.//{{{self.opexns}}}DescriptiveMetadata') if self.tree.find(f'.//{{{self.opexns}}}DescriptiveMetadata') is not None else None
             self.descriptive_metadata = etree.tostring(self.descriptive_metadata_xml) if self.descriptive_metadata_xml is not None else None
         except etree.ParseError as e:
@@ -135,6 +138,25 @@ class OpexDirReader():
         except Exception as e:
             logger.exception(f'Error verifying OPEX version: {e}')
             raise
+    def to_string(self) -> str:
+        return etree.tostring(self.tree, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True).decode('UTF-8')
+    
+    def to_element(self) -> etree._Element:
+        return self.tree.getroot()
+    
+    def to_tree(self) -> etree._ElementTree:
+        return self.tree
+    
+    def to_dict(self) -> dict:
+        return {
+            "title": self.title,
+            "description": self.description,
+            "security_descriptor": self.security,
+            "sourceid": self.sourceid,
+            "identifiers": self.identifiers,
+            "fixities": self.fixities,
+            "descriptive_metadata": str(self.descriptive_metadata)
+        }
 
 class OpexDirWriter():
 
@@ -189,7 +211,7 @@ class OpexDirWriter():
         else:
             self.security_tag = None
 
-        self.identifiers: dict = kwargs.get('identifiers', None)
+        self.identifiers: list = kwargs.get('identifiers', None)
 
         if any([self.title, self.description, self.security_tag, self.identifiers]):
             self.properties_opex = etree.SubElement(self.opex_root, f"{{{self.opexns}}}Properties")
@@ -202,12 +224,16 @@ class OpexDirWriter():
             if self.security_tag:
                 self.security_tag_opex = etree.SubElement(self.properties_opex, f"{{{self.opexns}}}SecurityDescriptor")
                 self.security_tag_opex.text = str(self.security_tag)
-            if self.identifiers:
+            if self.identifiers is not None and isinstance(self.identifiers, list) and len(self.identifiers) > 0:
                 self.identifiers_opex = etree.SubElement(self.properties_opex, f"{{{self.opexns}}}Identifiers")
-                for id_type, id_value in self.identifiers.items():
-                    ident_opex = etree.SubElement(self.identifiers_opex, f"{{{self.opexns}}}Identifier")
-                    ident_opex.set("type", id_type)
-                    ident_opex.text = str(id_value)
+                for ident in self.identifiers:
+                    self.ident_opex = etree.SubElement(self.identifiers_opex, f"{{{self.opexns}}}Identifier")
+                    hash_type = ident.get("type", None)
+                    hash_value = ident.get("value", None)
+                    if hash_type is not None and hash_value is not None:
+                        self.ident_opex.set("type", hash_type)
+                        self.ident_opex.text = str(hash_value)
+
 
         self.descriptive_metadata: Union[str, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
 
@@ -293,7 +319,7 @@ class OpexDirWriter():
             self.fixities_opex = etree.SubElement(self.transfer_opex, f"{{{self.opexns}}}Fixities")
             for filename in pax_list:
                 for fix in self.generate_fixity:
-                    hash_value = HashGenerator(algorithm = fix, buffer = kwargs.get('buffer')).hash_generator(filename)
+                    hash_value = HashGenerator(algorithm = fix, buffer = kwargs.get('buffer', 4096)).hash_generator(filename)
                     self.fixity_opex = etree.SubElement(self.fixities_opex, f"{{{self.opexns}}}Fixity")
                     self.fixity_opex.set("path", os.path.relpath(filename, self.folder_path).replace('\\','/'))
                     self.fixity_opex.set("type", fix)
@@ -329,10 +355,14 @@ class OpexDirWriter():
             return None
         else:
             opex = etree.tostring(self.opex_root, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
-            with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
-                logger.info(f'Writing OPEX manifest to: {opex_path}')
-                writer.write(opex.decode('UTF-8'))
-            return opex_path
+            try:
+                with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
+                    logger.info(f'Writing OPEX manifest to: {opex_path}')
+                    writer.write(opex.decode('UTF-8'))
+                return opex_path
+            except (PermissionError, OSError) as e:
+                logger.exception(f'Failed to write OPEX file: {e}')
+                raise
 
 class OpexFileReader():
     def __init__(self, file_path: str) -> None:
@@ -352,19 +382,19 @@ class OpexFileReader():
             self.security_elm = self.tree.find(f'.//{{{self.opexns}}}SecurityDescriptor') if self.tree.find(f'.//{{{self.opexns}}}SecurityDescriptor') is not None else None
             self.security = self.security_elm.text if self.security_elm is not None else None
             self.identifiers_elm = self.tree.findall(f'.//{{{self.opexns}}}Identifiers/{{{self.opexns}}}Identifier') if self.tree.findall(f'.//{{{self.opexns}}}Identifiers/{{{self.opexns}}}Identifier') is not None else None
-            self.identifiers = {} if self.identifiers_elm is not None else None
+            self.identifiers = [] if self.identifiers_elm is not None else None
             self.sourceid_elm = self.tree.find(f'.//{{{self.opexns}}}SourceID') if self.tree.find(f'.//{{{self.opexns}}}SourceID') is not None else None
             self.sourceid = self.sourceid_elm.text if self.sourceid_elm is not None else None
             if self.identifiers_elm is not None:
                 for ident in self.identifiers_elm or []:
-                    self.identifiers.update({ident.attrib.get('type'): ident.text})
+                    self.identifiers.append({'type': ident.attrib.get('type'), 'value': ident.text})
             self.fixities_elm = self.tree.findall(f'.//{{{self.opexns}}}Fixities/{{{self.opexns}}}Fixity') if self.tree.findall(f'.//{{{self.opexns}}}Fixities/{{{self.opexns}}}Fixity') is not None else None
-            self.fixities = {} if self.fixities_elm is not None else None
+            self.fixities = [] if self.fixities_elm is not None else None
             if self.fixities_elm is not None:
                 for fix in self.fixities_elm:
-                    self.fixities.update({fix.attrib.get('type'): fix.attrib.get('value')})
+                    self.fixities.append({'type': fix.attrib.get('type'), 'value': fix.text})
                     if fix.attrib.get('path') is not None:
-                        self.fixities.update({f"path": fix.attrib.get('path')})
+                        self.fixities[-1].update({'path': fix.attrib.get('path')})
             self.descriptive_metadata_elm = self.tree.find(f'.//{{{self.opexns}}}DescriptiveMetadata') if self.tree.find(f'.//{{{self.opexns}}}DescriptiveMetadata') is not None else None
             self.descriptive_metadata = etree.tostring(self.descriptive_metadata_elm) if self.descriptive_metadata_elm is not None else None
         except etree.ParseError as e:
@@ -420,6 +450,25 @@ class OpexFileReader():
     def get_sourceid(self) -> str:
         return self.sourceid
 
+    def to_string(self) -> str:
+        return etree.tostring(self.tree, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True).decode('UTF-8')
+    
+    def to_element(self) -> etree._Element:
+        return self.tree.getroot()
+    
+    def to_tree(self) -> etree._ElementTree:
+        return self.tree
+    
+    def to_dict(self) -> dict:
+        return {
+            "title": self.title,
+            "description": self.description,
+            "security_descriptor": self.security,
+            "sourceid": self.sourceid,
+            "identifiers": self.identifiers,
+            "fixities": self.fixities,
+            "descriptive_metadata": str(self.descriptive_metadata)
+        }
 
 class OpexFileWriter():
     def __init__(self, file_path: str, title: str = None, description: str = None, security_tag: str = None, opexns: str = "http://www.openpreservationexchange.org/opex/v1.2", **kwargs) -> None:
@@ -443,12 +492,12 @@ class OpexFileWriter():
         self.fixity_list: list[Dict] = kwargs.get('fixity', None)
 
         if self.generate_fixity is not None and self.fixity_list is not None:
-            logger.warning('Both generate_fixity and fixity arguments provided. Will use fixitity_list and ignore generation.')
+            logger.warning('Both generate_fixity and fixity arguments provided. Will use fixity_list and ignore generation.')
             self.generate_fixity = None
         if self.generate_fixity is not None and len(self.generate_fixity) > 0 and (not self.file_path.endswith('.pax') and not self.file_path.endswith('pax.zip')):
             self.fixities_opex = etree.SubElement(self.transfer_opex, f"{{{self.opexns}}}Fixities")
             for fix in self.generate_fixity:
-                hash_value = HashGenerator(algorithm = fix, buffer = kwargs.get('buffer')).hash_generator(self.file_path)
+                hash_value = HashGenerator(algorithm = fix, buffer = kwargs.get('buffer', 4096)).hash_generator(self.file_path)
                 self.fixity_opex = etree.SubElement(self.fixities_opex, f"{{{self.opexns}}}Fixity")
                 self.fixity_opex.set("type", fix)
                 self.fixity_opex.set("value", hash_value)
@@ -457,7 +506,7 @@ class OpexFileWriter():
             for fix in self.generate_fixity:
                 with zipfile.ZipFile(self.file_path, 'r') as z:
                     for zfile in z.filelist:
-                        hash_value = HashGenerator(algorithm = fix, buffer = kwargs.get('buffer')).hash_generator_pax_zip(zfile, z)
+                        hash_value = HashGenerator(algorithm = fix, buffer = kwargs.get('buffer', 4096)).hash_generator_pax_zip(zfile, z)
                         self.fixity_opex = etree.SubElement(self.fixities_opex, f"{{{self.opexns}}}Fixity")
                         self.fixity_opex.set("path", zfile.filename.replace('\\', '/'))
                         self.fixity_opex.set("type", fix)
@@ -485,7 +534,7 @@ class OpexFileWriter():
         else:
             self.security_tag = None
 
-        self.identifiers: dict = kwargs.get('identifiers', None)
+        self.identifiers: list = kwargs.get('identifiers', None)
 
         if any([self.title, self.description, self.security_tag, self.identifiers]):
             self.properties_opex = etree.SubElement(self.opex_root, f"{{{self.opexns}}}Properties")
@@ -498,12 +547,15 @@ class OpexFileWriter():
             if self.security_tag is not None:
                 self.security_tag_opex = etree.SubElement(self.properties_opex, f"{{{self.opexns}}}SecurityDescriptor")
                 self.security_tag_opex.text = str(self.security_tag)
-            if self.identifiers is not None and isinstance(self.identifiers, dict) and len(self.identifiers) > 0:
+            if self.identifiers is not None and isinstance(self.identifiers, list) and len(self.identifiers) > 0:
                 self.identifiers_opex = etree.SubElement(self.properties_opex, f"{{{self.opexns}}}Identifiers")
-                for key, value in self.identifiers.items():
+                for ident in self.identifiers:
                     self.ident_opex = etree.SubElement(self.identifiers_opex, f"{{{self.opexns}}}Identifier")
-                    self.ident_opex.set("type", key)
-                    self.ident_opex.text = str(value)
+                    hash_type = ident.get("type", None)
+                    hash_value = ident.get("value", None)
+                    if hash_type is not None and hash_value is not None:
+                        self.ident_opex.set("type", hash_type)
+                        self.ident_opex.text = str(hash_value)
 
         self.descriptive_metadata: Union[str, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
         if self.descriptive_metadata is not None:
@@ -544,10 +596,14 @@ class OpexFileWriter():
             return None
         else:
             opex = etree.tostring(self.opex_root, pretty_print=True, xml_declaration=True, encoding="UTF-8", standalone=True)
-            with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
-                logger.info(f'Writing OPEX manifest to: {opex_path}')
-                writer.write(opex.decode('UTF-8'))
-            return opex_path
+            try:
+                with open(f'{opex_path}', 'w', encoding="UTF-8") as writer:
+                    logger.info(f'Writing OPEX manifest to: {opex_path}')
+                    writer.write(opex.decode('UTF-8'))
+                return opex_path
+            except (PermissionError, OSError) as e:
+                logger.exception(f'Failed to write OPEX file: {e}')
+                raise
 
     def zip_opex_file(self, compression = zipfile.ZIP_STORED, remove_files: bool = False) -> str:
         zip_file = f"{self.file_path}.zip"
