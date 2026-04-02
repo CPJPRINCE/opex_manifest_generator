@@ -1,8 +1,8 @@
 from lxml import etree
 import logging
-from .common import win_256_check, filter_win_hidden
-from .hash import HashGenerator
-from typing import Optional, Callable, Dict, Union
+from common import win_256_check, filter_manifest
+from hash import HashGenerator
+from typing import Optional, Dict, Union
 import os, zipfile
 
 logger = logging.getLogger(__name__)
@@ -263,7 +263,7 @@ class OpexDirWriter():
         if self.pax_flag is True and self.folder_path.endswith('.pax'):
             logger.debug(f'PAX flag is set to True and folder path ends with .pax, skipping standard manifest generation for this folder and relying on PAX-specific fixity generation method to populate manifest with file entries and fixities.')
             return
-        for f in self._filter_manifest(path, self.include_hidden, self.exclusion_set, self.sort_key):
+        for f in filter_manifest(path, self.include_hidden, self.exclusion_set, self.sort_key):
             f: str
             if os.path.isdir(f):
                 if filter_flag is not None and filter_flag == "only_dirs":
@@ -285,28 +285,6 @@ class OpexDirWriter():
                 file_opex.text = os.path.basename(f)
             else:
                 logger.warning(f'Unknown file type for: {f}')
-
-    def _filter_manifest(self, path: str, include_hidden: Optional[bool] = False,
-                            exclusion_set: Optional[set] = {'opex_generate.exe', 'opex_generate.cmd', 'meta', 'opex_generate.bin', os.path.basename(__file__)},
-                            sort_key: Optional[Callable] = str.casefold,
-                            include_opex: Optional[bool] = True) -> list:
-        try:
-            list_directories = []
-            for f in os.scandir(path):
-                full_path = win_256_check(os.path.join(path, f.name))
-                if f.name in exclusion_set:
-                    continue
-                if include_opex is False and f.name.endswith('.opex'):
-                    continue
-                if include_hidden is False:
-                    if f.name.startswith('.') or filter_win_hidden(full_path):
-                        continue
-                list_directories.append(full_path)
-            return sorted(list_directories, key=sort_key)
-
-        except Exception as e:
-            logger.exception(f'Failed to Filter Directories: {e}')
-            raise
 
     def generate_pax_manifest(self, generate_fixity: list, fixity_list: list, **kwargs) -> None:
         self.generate_fixity = generate_fixity
