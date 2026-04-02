@@ -1,7 +1,7 @@
 from lxml import etree
 import logging
-from common import win_256_check, filter_manifest
-from hash import HashGenerator
+from opex_manifest_generator.common import win_256_check, filter_manifest
+from opex_manifest_generator.hash import HashGenerator
 from typing import Optional, Dict, Union
 import os, zipfile
 

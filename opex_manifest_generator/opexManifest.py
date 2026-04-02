@@ -16,10 +16,10 @@ from typing import Optional, Dict, List, Any
 from auto_reference_generator import ReferenceGenerator
 from auto_reference_generator.common import export_list_txt, export_xl, export_csv, export_json, export_ods, export_xml, define_output_file
 from pandas.api.types import is_datetime64_any_dtype
-from hash import HashGenerator
-from common import remove_tree, win_256_check, check_nan, check_bool, filter_manifest
+from opex_manifest_generator.hash import HashGenerator
+from opex_manifest_generator.common import remove_tree, win_256_check, check_nan, check_bool, filter_manifest
+from opex_manifest_generator.opexLib import OpexDirWriter, OpexFileWriter
 from datetime import datetime
-from opexLib import OpexDirWriter, OpexFileWriter
 
 logger = logging.getLogger(__name__)
 
@@ -888,12 +888,12 @@ class OpexManifestGenerator():
         executor = ThreadPoolExecutor(max_workers=self.max_workers)
         future_map = {}
         try:
-            for entry in entries:
-                index = self._resolve_index(entry.path)
-                if entry.is_dir() and self.pax_flag and entry.name.endswith('.pax'):
-                    future_map[executor.submit(self._threading_write_pax_dir_opex, entry.path, index=index)] = entry.path
-                elif entry.is_file() and not entry.name.endswith('.opex'):
-                    future_map[executor.submit(self._threading_write_file_opex, entry.path, index=index)] = entry.path
+            for entry_path in entries:
+                index = self._resolve_index(entry_path)
+                if os.path.isdir(entry_path) and self.pax_flag and os.path.basename(entry_path).endswith('.pax'):
+                    future_map[executor.submit(self._threading_write_pax_dir_opex, entry_path, index=index)] = entry_path
+                elif os.path.isfile(entry_path) and not os.path.basename(entry_path).endswith('.opex'):
+                    future_map[executor.submit(self._threading_write_file_opex, entry_path, index=index)] = entry_path
 
             pending = set(future_map.keys())
             while pending:
@@ -935,7 +935,7 @@ class OpexManifestGenerator():
             # PAX Directory handling
             opex_file_path = f + '.opex'
             if os.path.isdir(f):
-                if self.pax_flag and f.name.endswith('.pax'):
+                if self.pax_flag and os.path.basename(f).endswith('.pax'):
                     # Avoid generating fixities unnecessarily
                     if os.path.exists(opex_file_path):
                         logger.warning(f'Opex folder PAX already exists at {opex_file_path}, skipping...')

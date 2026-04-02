@@ -6,10 +6,10 @@ license: Apache License 2.0"
 """
 
 import argparse, os, inspect, logging, signal
-from opexManifest import OpexManifestGenerator
+from opex_manifest_generator.opexManifest import OpexManifestGenerator
+from opex_manifest_generator.common import running_time
 from importlib import metadata
 from datetime import datetime
-from common import running_time
 
 logger = logging.getLogger(__name__)
 
