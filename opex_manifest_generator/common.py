@@ -7,7 +7,7 @@ license: Apache License 2.0"
 
 import zipfile, os, sys, stat, shutil, logging, lxml
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,28 @@ def win_256_check(path) -> str:
         else:
             path = u"\\\\?\\" + path
     return path
+
+def filter_manifest(path: str, include_hidden: Optional[bool] = False,
+                        exclusion_set: Optional[set] = {'opex_generate.exe', 'opex_generate.cmd', 'meta', 'opex_generate.bin', os.path.basename(__file__)},
+                        sort_key: Optional[Callable] = str.casefold,
+                        include_opex: Optional[bool] = True) -> list:
+    try:
+        list_directories = []
+        for f in os.scandir(path):
+            full_path = win_256_check(os.path.join(path, f.name))
+            if f.name in exclusion_set:
+                continue
+            if include_opex is False and f.name.endswith('.opex'):
+                continue
+            if include_hidden is False:
+                if f.name.startswith('.') or filter_win_hidden(full_path):
+                    continue
+            list_directories.append(full_path)
+        return sorted(list_directories, key=sort_key)
+
+    except Exception as e:
+        logger.exception(f'Failed to Filter Directories: {e}')
+        raise
 
 def filter_win_hidden(path: str) -> bool:
     if sys.platform =="win32":
