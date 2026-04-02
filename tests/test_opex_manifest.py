@@ -3,8 +3,9 @@ import pytest
 from lxml import etree
 
 from opex_manifest_generator.opexLib import OpexDirWriter
+from opex_manifest_generator.hash import HashGenerator
 from opex_manifest_generator.opexManifest import OpexManifestGenerator
-
+from opex_manifest_generator.common import filter_manifest
 
 def test_init_generate_descriptive_metadata(tmp_path):
     md_dir = tmp_path / "meta"
@@ -36,8 +37,7 @@ def test_hash_df_lookup_uses_spreadsheet_values(tmp_path):
     idx = omg.index_df_lookup(str(p))
     hashes = omg.hash_df_lookup(idx, ["SHA-1"])
 
-    assert hashes == {"SHA-1": "DEADBEEF"}
-
+    assert hashes == [{'type': "SHA-1", "value": "DEADBEEF"}]
 
 def test_hash_df_lookup_returns_none_when_column_missing(tmp_path):
     p = tmp_path / "file.txt"
@@ -69,7 +69,7 @@ def test_ident_df_lookup_custom_identifier(tmp_path):
 
     identifiers = omg.ident_df_lookup(omg.index_df_lookup("path"))
 
-    assert identifiers == {"custom": "IDVALUE"}
+    assert identifiers == [{"type": "custom", "value": "IDVALUE"}]
 
 
 def test_ident_df_lookup_returns_none_for_empty_index(tmp_path):
@@ -143,14 +143,13 @@ def test_filter_manifest_respects_hidden_flag(tmp_path):
     base.mkdir()
     (base / "visible.txt").write_text("ok")
     (base / ".hidden.txt").write_text("secret")
-
     writer = OpexDirWriter(str(base))
 
-    entries = writer._filter_manifest(str(base), include_hidden=False)
+    entries = filter_manifest(str(base), include_hidden=False)
     assert any("visible.txt" in e for e in entries)
     assert not any(".hidden.txt" in e for e in entries)
 
-    entries_hidden = writer._filter_manifest(str(base), include_hidden=True)
+    entries_hidden = filter_manifest(str(base), include_hidden=True)
     assert any(".hidden.txt" in e for e in entries_hidden)
 
 
@@ -284,3 +283,58 @@ def test_input_option_with_csv_file(tmp_path):
     assert omg.df is not None
     assert len(omg.df) >= 1
     assert "index" in omg.column_headers
+
+
+def test_process_fixity_eager_merges_spreadsheet_and_generated_hashes(tmp_path):
+    test_file = tmp_path / "file.txt"
+    test_file.write_text("hello")
+
+    omg = OpexManifestGenerator(root=str(tmp_path), fixity=["SHA-1", "SHA-256"])
+    omg.df = pd.DataFrame([
+        {
+            omg.INDEX_FIELD: str(test_file),
+            f"{omg.HASH_FIELD}:SHA-1": "DEADBEEF",
+        }
+    ])
+    omg.column_headers = omg.df.columns.values.tolist()
+    omg.hash_from_spread = True
+
+    idx = omg.index_df_lookup(str(test_file))
+    hash_list, generate_fixity = omg._process_fixity(str(test_file), index=idx, eager=True)
+
+    assert generate_fixity is None
+    assert hash_list is not None
+    hash_map = {entry["type"]: entry["value"] for entry in hash_list}
+    assert hash_map["SHA-1"] == "DEADBEEF"
+    assert hash_map["SHA-256"] == HashGenerator("SHA-256").hash_generator(str(test_file))
+
+
+def test_main_writes_threaded_file_opex_with_fixity(tmp_path):
+    root = tmp_path / "data"
+    root.mkdir()
+    file_a = root / "a.txt"
+    file_b = root / "b.txt"
+    file_a.write_text("alpha")
+    file_b.write_text("beta")
+
+    omg = OpexManifestGenerator(
+        root=str(root),
+        fixity=["SHA-1"],
+        max_workers=2,
+    )
+
+    omg.main()
+
+    ns = {"opex": "http://www.openpreservationexchange.org/opex/v1.2"}
+    for source_file in (file_a, file_b):
+        opex_path = source_file.with_suffix(source_file.suffix + ".opex")
+        assert opex_path.exists()
+
+        tree = etree.parse(str(opex_path))
+        fixity = tree.find(".//opex:Fixity", namespaces=ns)
+
+        assert fixity is not None
+        assert fixity.attrib["type"] == "SHA-1"
+        fixity_value = fixity.attrib.get("value") or fixity.text
+        assert fixity_value is not None
+        assert len(fixity_value) == 40

@@ -16,7 +16,7 @@ def test_opex_file_writer_and_reader_roundtrip(tmp_path):
         description="Description",
         security_tag="open",
         sourceid="SRC-123",
-        identifiers={"custom": "ID-1"},
+        identifiers=[{"type": "custom", "value": "ID-1"}],
     )
     opex_path = writer.write_opex_file()
 
@@ -28,7 +28,7 @@ def test_opex_file_writer_and_reader_roundtrip(tmp_path):
     assert reader.get_description() == "Description"
     assert reader.get_security_descriptor() == "open"
     assert reader.get_sourceid() == "SRC-123"
-    assert reader.get_identifiers() == {"custom": "ID-1"}
+    assert reader.get_identifiers() == [{"type": "custom", "value": "ID-1"}]
     assert reader.verify_opex_version("1.2") is False
     assert reader.verify_opex_version("v1.2") is True
 
@@ -59,8 +59,15 @@ def test_opex_file_writer_generate_fixity_populates_value(tmp_path):
 
     reader = OpexFileReader(opex_path)
     fixities = reader.get_fixities()
-    assert "SHA-1" in fixities
-    assert fixities["SHA-1"] is not None
+    assert fixities == [{"type": "SHA-1", "value": None}]
+
+    # Generated fixity is currently stored on the XML attribute, not element text.
+    tree = reader.to_tree()
+    opexns = tree.getroot().nsmap.get("opex")
+    fixity = tree.find(f".//{{{opexns}}}Fixities/{{{opexns}}}Fixity")
+    assert fixity is not None
+    assert fixity.attrib.get("type") == "SHA-1"
+    assert fixity.attrib.get("value") is not None
 
 
 def test_opex_dir_writer_and_reader_manifest_roundtrip(tmp_path):
