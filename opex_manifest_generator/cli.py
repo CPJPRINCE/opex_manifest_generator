@@ -5,11 +5,11 @@ author: Christopher Prince
 license: Apache License 2.0"
 """
 
-import argparse, os, inspect, logging
-from .opexManifest import OpexManifestGenerator
+import argparse, os, inspect, logging, signal
+from opexManifest import OpexManifestGenerator
 from importlib import metadata
 from datetime import datetime
-from .common import running_time
+from common import running_time
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,9 @@ def create_parser():
     opexgroup.add_argument("-pax", "--pax-flag", required = False, action = 'store_true', default = False,
                         help="""Enables recognition of PAX Folders and use of PAX fixity generation, in line with Preservica's model.
                         "Files / folders ending in .pax or .pax.zip will have individual files in folder / zip added to Opex.""")
+    opexgroup.add_argument("--buffer", required = False, type=int, default = 4096,
+                        help="Sets the buffer size for reading files during fixity generation." \
+                        "Default is 4096 bytes, increase for larger files to speed up fixity generation, decrease for smaller files to reduce memory usage.")
     opexgroup.add_argument("--max-workers", required = False, nargs='?', type=int, default = 1,
                         help="""Sets the number of Threads to use for Fixity Generation.""")
     opexgroup.add_argument("-z", "--zip", required = False, action = 'store_true',
@@ -159,6 +162,17 @@ def create_parser():
     return parser
 
 def run_cli(args = None):
+
+    def _immediate_sigint_exit(signum, frame):
+        # Avoid logging during signal handling to prevent lock-related hangs.
+        os._exit(130)
+
+    previous_sigint_handler = None
+    try:
+        previous_sigint_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, _immediate_sigint_exit)
+    except Exception:
+        previous_sigint_handler = None
 
     # Configure logging early so other modules inherit the settings
     try:
@@ -302,45 +316,55 @@ def run_cli(args = None):
             logger.info("Confirmation received proceeding to remove empty folders...")
 
     start_time = datetime.now()
-    OpexManifestGenerator(root = args.root,
-                          output_path = args.output,
-                          autoref_flag = args.autoref,
-                          prefix = args.prefix,
-                          suffix = args.suffix,
-                          suffix_option = args.suffix_option,
-                          accession_mode=args.accession_mode,
-                          acc_prefix = acc_prefix,
-                          empty_flag = args.remove_empty,
-                          empty_export_flag = args.disable_empty_export,
-                          removal_flag = args.remove,
-                          removal_export_flag = args.disable_removal_export,
-                          clear_opex_flag = args.clear_opex,
-                          fixity = args.fixity,
-                          pax = args.pax_flag,
-                          fixity_export_flag = args.disable_fixity_export,
-                          start_ref = args.start_ref,
-                          export_flag = args.export_autoref,
-                          meta_dir_flag = args.disable_meta_dir,
-                          metadata_flag = args.metadata,
-                          metadata_dir = args.metadata_dir,
-                          hidden_flag= args.hidden,
-                          zip_flag = args.zip,
-                          zip_file_removal= args.remove_zipped_files,
-                          input = args.input,
-                          output_format = args.output_format,
-                          options_file=args.options_file,
-                          keywords = args.keywords,
-                          keywords_mode = args.keywords_mode,
-                          keywords_retain_order = args.keywords_retain_order,
-                          keywords_case_sensitivity = args.keywords_case_sensitivity,
-                          delimiter = args.delimiter,
-                          keywords_abbreviation_number = args.keywords_abbreviation_number,
-                          sort_key = sort_key,
-                          column_sensitivity= args.column_sensitivity,
-                          show_progress_bar = args.verbose,
-                          max_workers = args.max_workers
-                          ).main()
-    logger.info(f"Run Complete! Ran for: {running_time(start_time)}")
+    try:
+        OpexManifestGenerator(root = args.root,
+                            output_path = args.output,
+                            autoref_flag = args.autoref,
+                            prefix = args.prefix,
+                            suffix = args.suffix,
+                            suffix_option = args.suffix_option,
+                            accession_mode=args.accession_mode,
+                            acc_prefix = acc_prefix,
+                            empty_flag = args.remove_empty,
+                            empty_export_flag = args.disable_empty_export,
+                            removal_flag = args.remove,
+                            removal_export_flag = args.disable_removal_export,
+                            clear_opex_flag = args.clear_opex,
+                            fixity = args.fixity,
+                            pax = args.pax_flag,
+                            buffer = args.buffer,
+                            fixity_export_flag = args.disable_fixity_export,
+                            start_ref = args.start_ref,
+                            export_flag = args.export_autoref,
+                            meta_dir_flag = args.disable_meta_dir,
+                            metadata_flag = args.metadata,
+                            metadata_dir = args.metadata_dir,
+                            hidden_flag= args.hidden,
+                            zip_flag = args.zip,
+                            zip_file_removal= args.remove_zipped_files,
+                            input = args.input,
+                            output_format = args.output_format,
+                            options_file=args.options_file,
+                            keywords = args.keywords,
+                            keywords_mode = args.keywords_mode,
+                            keywords_retain_order = args.keywords_retain_order,
+                            keywords_case_sensitivity = args.keywords_case_sensitivity,
+                            delimiter = args.delimiter,
+                            keywords_abbreviation_number = args.keywords_abbreviation_number,
+                            sort_key = sort_key,
+                            column_sensitivity= args.column_sensitivity,
+                            show_progress_bar = args.verbose,
+                            max_workers = args.max_workers
+                            ).main()
+        logger.info(f"Run Complete! Ran for: {running_time(start_time)}")
+        if not args.verbose:
+            print(f"Run Complete! Ran for: {running_time(start_time)}")
+    finally:
+        if previous_sigint_handler is not None:
+            try:
+                signal.signal(signal.SIGINT, previous_sigint_handler)
+            except Exception:
+                pass
 
 def fixity_helper(x: str):
     x = x.upper()
@@ -430,6 +454,7 @@ def main():
         run_cli(args)
     except KeyboardInterrupt:
         logger.warning("Process interrupted by user, exiting...")
+        os._exit(130)
 
 if __name__ == "__main__":
     main()
