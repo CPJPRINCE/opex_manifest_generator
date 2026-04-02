@@ -742,7 +742,10 @@ class OpexManifestGenerator():
         security = None
         source_id = None
         identifiers = None
-        descriptive_metadata = None
+        if xml_data is not None:
+            descriptive_metadata = xml_data
+        else:
+            descriptive_metadata = None
 
         if index is None:
             index = self._resolve_index(path)
@@ -926,16 +929,26 @@ class OpexManifestGenerator():
 
 
     def _process_loop(self, path) -> None:
+        test_metadata_flag = True
         if any([self.removal_flag, self.ignore_flag]):
             if self._process_removal_and_ignore(path, self.index_df_lookup(path)) is True:
                 return
 
         entries = filter_manifest(path, self.hidden_flag, self.exclusion_set, self.sort_key)
         threaded_entries = []
-
+        
+        if test_metadata_flag is True:
+            metadata_files = [f.path.replace('.metadata', '') for f in os.scandir(path) if f.name.endswith('.metadata')]
         for f in entries:
             f_index = self._resolve_index(f)
-            context = self._build_path_context(path, index=f_index)
+            if f in metadata_files:
+                xml_data = etree.parse(f + '.metadata') if os.path.isfile(f + '.metadata') else None
+            else:
+                xml_data = None
+            context = self._build_path_context(path, index=f_index, xml_data = xml_data)
+            if f.endswith('.metadata'):
+                logger.debug(f'Skipping metadata file from OPEX generation: {f}')
+                continue
             # PAX Directory handling
             opex_file_path = f + '.opex'
             if os.path.isdir(f):

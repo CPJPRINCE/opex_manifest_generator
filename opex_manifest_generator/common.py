@@ -38,14 +38,14 @@ def win_256_check(path) -> str:
     return path
 
 def filter_manifest(path: str, include_hidden: Optional[bool] = False,
-                        exclusion_set: Optional[set] = {'opex_generate.exe', 'opex_generate.cmd', 'meta', 'opex_generate.bin', os.path.basename(__file__)},
+                        exclusion_set: Optional[set] = {'opex_generate.exe', 'opex_generate.cmd', 'meta', '.metadata', 'opex_generate.bin', os.path.basename(__file__)},
                         sort_key: Optional[Callable] = str.casefold,
                         include_opex: Optional[bool] = True) -> list:
     try:
         list_directories = []
         for f in os.scandir(path):
             full_path = win_256_check(os.path.join(path, f.name))
-            if f.name in exclusion_set:
+            if f.name in exclusion_set or any(f.name.endswith(ext) for ext in exclusion_set):
                 continue
             if include_opex is False and f.name.endswith('.opex'):
                 continue
