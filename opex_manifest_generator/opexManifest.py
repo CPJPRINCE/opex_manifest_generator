@@ -171,6 +171,7 @@ class OpexManifestGenerator():
         self.security_flag = False
         self.ignore_flag = False
         self.sourceid_flag = False
+        self.identifiers_flag = False
         self.hash_from_spread = False
         self.filter_flag = None
 
@@ -183,7 +184,7 @@ class OpexManifestGenerator():
         self.progress = None
         self._stop_event = Event()
 
-        self.exclusion_set = {'opex_generate.exe', 'opex_generate.cmd', 'meta', 'opex_generate.bin', os.path.basename(__file__)}
+        self.exclusion_set = {'opex_generate.exe', 'opex_generate.cmd', 'meta', '.metadata', 'opex_generate.bin', os.path.basename(__file__)}
 
     def parse_config(self, options_file: str = os.path.join('options','options.properties')) -> None:
         config = configparser.ConfigParser()
@@ -278,6 +279,8 @@ class OpexManifestGenerator():
             self.sourceid_flag = True
         if self.IGNORE_FIELD in self.column_headers:
             self.ignore_flag = True
+        if any(s in self.column_headers for s in {self.IDENTIFIER_FIELD,self.ARCREF_FIELD,self.ACCREF_FIELD}):
+            self.identifiers_flag = True
         if any(self.HASH_FIELD + ":" in header for header in self.column_headers):
             self.hash_from_spread = True
             logger.info("Hash detected in Spreadsheet; taking hashes from spreadsheet")
@@ -733,7 +736,7 @@ class OpexManifestGenerator():
         else:
             return None
 
-    def _build_path_context(self, path: str, index: Optional[pd.Index] = None) -> Dict[str, Any]:
+    def _build_path_context(self, path: str, index: Optional[pd.Index] = None, xml_data: Optional[etree._ElementTree] = None) -> Dict[str, Any]:
         title = None
         description = None
         security = None
@@ -748,7 +751,8 @@ class OpexManifestGenerator():
             if self.title_flag or self.description_flag or self.security_flag:
                 title, description, security = self.xip_df_lookup(index)
             if self.autoref_flag not in {"generic"} or self.input:
-                identifiers = self.ident_df_lookup(index)
+                if self.identifiers_flag:
+                    identifiers = self.ident_df_lookup(index)
             elif self.autoref_flag in {"generic", "catalog-generic", "accession-generic", "both-generic"}:
                 if title is None:
                     title = os.path.basename(path)
@@ -758,7 +762,7 @@ class OpexManifestGenerator():
                     security = self.GENERIC_DEFAULT_SECURITY
             if self.sourceid_flag:
                 source_id = self.sourceid_df_lookup(index)
-            if self.metadata_flag is not None:
+            if self.metadata_flag is not None and xml_data is None:
                 descriptive_metadata = self.generate_descriptive_metadata(index)
 
         return {
@@ -976,7 +980,7 @@ class OpexManifestGenerator():
                     or self.description_flag \
                     or self.security_flag \
                     or self.sourceid_flag \
-                    or (self.identifiers and len(self.identifiers) > 0) \
+                    or self.identifiers_flag \
                     or self.metadata_flag:
                     # Avoid generating fixities unnecessarily.
                     if os.path.exists(opex_file_path):
@@ -1021,7 +1025,8 @@ class OpexManifestGenerator():
                             include_hidden = self.hidden_flag,
                             sort_key = self.sort_key,
                             filter_flag = self.filter_flag,
-                            pax_flag = self.pax_flag
+                            pax_flag = self.pax_flag,
+                            exclusion_set = self.exclusion_set
                             ).write_opex_manifest()
             if self.progress:
                 self.progress.update()
