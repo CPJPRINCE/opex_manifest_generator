@@ -9,25 +9,17 @@ license: Apache License 2.0"
 
 from lxml import etree
 import pandas as pd
-import os, configparser, logging
+import os, configparser, logging, zipfile
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+from threading import Event
 from typing import Optional, Dict, List, Any
 from auto_reference_generator import ReferenceGenerator
-from auto_reference_generator.common import export_list_txt, \
-    export_xl, \
-    export_csv, \
-    export_json, \
-    export_ods, \
-    export_xml, \
-    define_output_file
+from auto_reference_generator.common import export_list_txt, export_xl, export_csv, export_json, export_ods, export_xml, define_output_file
 from pandas.api.types import is_datetime64_any_dtype
-from .hash import HashGenerator
-from .common import remove_tree,\
-    win_256_check,\
-    filter_win_hidden,\
-    check_nan,\
-    check_bool
+from hash import HashGenerator
+from common import remove_tree, win_256_check, check_nan, check_bool, filter_manifest
 from datetime import datetime
-from .opexLib import OpexDirWriter, OpexFileWriter
+from opexLib import OpexDirWriter, OpexFileWriter
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +163,7 @@ class OpexManifestGenerator():
         self.output_format = output_format
 
         self.show_progress_bar = show_progress_bar
-        self.column_sensitivity = column_sensitivity,
+        self.column_sensitivity = column_sensitivity
 
         # Input Flags
         self.title_flag = False
@@ -189,6 +181,9 @@ class OpexManifestGenerator():
 
         self.parse_config(options_file=os.path.abspath(options_file))
         self.progress = None
+        self._stop_event = Event()
+
+        self.exclusion_set = {'opex_generate.exe', 'opex_generate.cmd', 'meta', 'opex_generate.bin', os.path.basename(__file__)}
 
     def parse_config(self, options_file: str = os.path.join('options','options.properties')) -> None:
         config = configparser.ConfigParser()
@@ -218,6 +213,7 @@ class OpexManifestGenerator():
         self.REMOVALS_SUFFIX = section.get('REMOVALS_SUFFIX', "_Removals")
         self.METAFOLDER = section.get('METAFOLDER', "meta")
         self.GENERIC_DEFAULT_SECURITY = section.get('GENERIC_DEFAULT_SECURITY', "open")
+
         logger.debug(f'Configuration set to: {[{k,v} for k,v in (section.items())]}')
 
     def print_descriptive_xmls(self) -> None:
@@ -308,7 +304,7 @@ class OpexManifestGenerator():
                                         delimiter = self.delimiter,
                                         sort_key = self.sort_key)
                 self.df = ar.init_dataframe()
-                if self.autoref_flag in {"accession", "a", "accession-generic", "ag"}:
+                if self.autoref_flag in {"accession", "accession-generic"}:
                     self.df = self.df.drop(self.ARCREF_FIELD, axis=1)
                 self.column_headers = self.df.columns.values.tolist()
                 self._set_input_flags()
@@ -338,6 +334,7 @@ class OpexManifestGenerator():
                 elif self.input.endswith('.xml'):
                     self.df = pd.read_xml(self.input)
                 self.column_headers = self.df.columns.values.tolist()
+                self._set_input_flags()
 
                 if self.column_sensitivity:
                     self.column_headers = [header.lower() for header in self.column_headers]
@@ -395,14 +392,20 @@ class OpexManifestGenerator():
             raise RuntimeError(log_msg)
         try:
             if idx.empty:
-                pass
+                return None, None, None
             else:
                 if self.title_flag:
                     title = check_nan(self.df.loc[idx,self.TITLE_FIELD].item())
+                else:
+                    title = None
                 if self.description_flag:
                     description = check_nan(self.df.loc[idx,self.DESCRIPTION_FIELD].item())
+                else:
+                    description = None
                 if self.security_flag:
                     security = check_nan(self.df.loc[idx,self.SECURITY_FIELD].item())
+                else:
+                    security = None
             return title,description,security
         except KeyError as e:
             logger.exception(f'Key Error in Removal Lookup: {e}'
@@ -491,7 +494,7 @@ class OpexManifestGenerator():
             logger.exception(f'Error looking up SourceID from Dataframe: {e}')
             raise
 
-    def hash_df_lookup(self, idx: pd.Index, algorithms: list) -> Optional[Dict[str, str]]:
+    def hash_df_lookup(self, idx: pd.Index, algorithms: list) -> Optional[List[Dict[str, str]]]:
         if getattr(self, 'df', None) is None:
             log_msg = 'Dataframe not initialised, cannot perform lookup'
             logger.error(log_msg)
@@ -499,7 +502,7 @@ class OpexManifestGenerator():
         try:
             if idx.empty:
                 return
-            hash_values = dict()
+            hash_values = []
             for alg in algorithms:
                 hash_value = None
                 # prefer the algorithm specified in the spreadsheet for this row
@@ -507,8 +510,8 @@ class OpexManifestGenerator():
                 if any(hash_column in header for header in self.column_headers):
                     hash_value = check_nan(self.df.loc[idx, hash_column].item())
                     logger.debug(f'Using Algorithm from Spreadsheet: {alg} with Hash: {hash_value}')
-                    hash_values.update({alg: hash_value})
-            if hash_values is None or hash_values == {}:
+                    hash_values.append({'type': alg, 'value': hash_value})
+            if hash_values is None or hash_values == []:
                 logger.warning('No Algorithm specified in Spreadsheet for this entry')
                 return None
             return hash_values
@@ -540,23 +543,23 @@ class OpexManifestGenerator():
             if idx.empty:
                 return None
             else:
-                identifiers = {}
+                identifiers = []
                 for header in self.column_headers:
                     ident = None
                     if any(s in header for s in {self.IDENTIFIER_FIELD,self.ARCREF_FIELD,self.ACCREF_FIELD}):
                         if f'{self.IDENTIFIER_FIELD}:' in header:
                             key_name = str(header).split(':',1)[-1]
                         elif self.ARCREF_FIELD in header:
-                            key_name = default_key if default_key else self.ARCREF_FIELD
+                            key_name = default_key if default_key else self.IDENTIFIER_DEFAULT
                         elif self.ACCREF_FIELD in header:
-                            key_name = self.ACCREF_CODE
+                            key_name = self.ACCREF_CODE if default_key else self.ACCREF_CODE
                         elif self.IDENTIFIER_FIELD in header:
                             key_name = default_key if default_key else self.IDENTIFIER_DEFAULT
                         else:
                             key_name = default_key if default_key else self.IDENTIFIER_DEFAULT
                         ident = check_nan(self.df.loc[idx,header].item())
                         logger.debug(f'Adding Identifer: {header}: {ident}')
-                        identifiers.update({key_name: ident})
+                        identifiers.append({'type': key_name, 'value': ident})
                 return identifiers
 
         except KeyError as e:
@@ -715,46 +718,83 @@ class OpexManifestGenerator():
             logger.exception(f'General Error in XML Lookup: {e}')
             raise
 
-    def _process(self, path) -> None:
-
-        self.title = None
-        self.description = None
-        self.security_tag = None
-        self.source_id = None
-        self.identifiers = None
-        self.descriptive_metadata = None
-
-        if any([self.input,
-            self.autoref_flag in {"c","catalog","a","accession","b","both","cg","catalog-generic","ag","accession-generic","bg","both-generic"},
+    def _resolve_index(self, path: str) -> Optional[pd.Index]:
+        if any([
+            self.input,
+            self.autoref_flag in {"catalog", "accession", "both", "catalog-generic", "accession-generic", "both-generic"},
             self.ignore_flag,
             self.removal_flag,
             self.sourceid_flag,
             self.title_flag,
             self.description_flag,
-            self.security_flag]):
-            index = self.index_df_lookup(path)
-
-        elif self.autoref_flag in {None, "g","generic"}:
-            index = None
+            self.security_flag,
+        ]):
+            return self.index_df_lookup(path)
         else:
-            index = None
+            return None
+
+    def _build_path_context(self, path: str, index: Optional[pd.Index] = None) -> Dict[str, Any]:
+        title = None
+        description = None
+        security = None
+        source_id = None
+        identifiers = None
+        descriptive_metadata = None
+
+        if index is None:
+            index = self._resolve_index(path)
 
         if self.autoref_flag or self.input:
             if self.title_flag or self.description_flag or self.security_flag:
-                self.title, self.description, self.security_tag = self.xip_df_lookup(index)
-            if self.autoref_flag not in {"generic", "g"} or self.input:
-                self.identifiers = self.ident_df_lookup(index)
-            elif self.autoref_flag in {"generic", "g", "catalog-generic", "cg", "accession-generic", "ag", "both-generic", "bg"}:
-                if self.title is None:
-                    self.title = os.path.basename(path)
-                if self.description is None:
-                    self.description = os.path.basename(path)
-                if self.security_tag is None:
-                    self.security_tag = self.GENERIC_DEFAULT_SECURITY
+                title, description, security = self.xip_df_lookup(index)
+            if self.autoref_flag not in {"generic"} or self.input:
+                identifiers = self.ident_df_lookup(index)
+            elif self.autoref_flag in {"generic", "catalog-generic", "accession-generic", "both-generic"}:
+                if title is None:
+                    title = os.path.basename(path)
+                if description is None:
+                    description = os.path.basename(path)
+                if security is None:
+                    security = self.GENERIC_DEFAULT_SECURITY
             if self.sourceid_flag:
-                self.source_id = self.sourceid_df_lookup(index)
+                source_id = self.sourceid_df_lookup(index)
             if self.metadata_flag is not None:
-                self.descriptive_metadata = self.generate_descriptive_metadata(index)
+                descriptive_metadata = self.generate_descriptive_metadata(index)
+
+        return {
+            'Index': index,
+            'Title': title,
+            'Description': description,
+            'Security': security,
+            'Source ID': source_id,
+            'Identifiers': identifiers,
+            'Descriptive Metadata': descriptive_metadata,
+        }
+
+    def _generate_fixity_values(self, path: str, algorithms: List[str]) -> List[Dict[str, str]]:
+        hash_list = []
+        for alg in algorithms:
+            hash_generator = HashGenerator(algorithm=alg, buffer=self.buffer, stop_event=self._stop_event)
+            if self.pax_flag and path.endswith('.pax') and os.path.isdir(path):
+                for root, _, files in os.walk(path):
+                    for file_name in sorted(files):
+                        file_path = os.path.join(root, file_name)
+                        hash_list.append({
+                            'type': alg,
+                            'value': hash_generator.hash_generator(file_path),
+                            'path': os.path.relpath(file_path, path).replace('\\', '/'),
+                        })
+            elif self.pax_flag and path.endswith('.pax.zip') and os.path.isfile(path):
+                with zipfile.ZipFile(path, 'r') as zfile:
+                    for member in zfile.filelist:
+                        hash_list.append({
+                            'type': alg,
+                            'value': hash_generator.hash_generator_pax_zip(member.filename, zfile),
+                            'path': member.filename.replace('\\', '/'),
+                        })
+            else:
+                hash_list.append({'type': alg, 'value': hash_generator.hash_generator(path)})
+        return hash_list
 
     def _process_removal_and_ignore(self, path, index) -> None:
 
@@ -774,135 +814,215 @@ class OpexManifestGenerator():
                 return True
         return False
 
-    def _process_fixity(self, path) -> None:
+    def _process_fixity(self, path, index: Optional[pd.Index] = None, eager: bool = False) -> None:
+        # If Lookup from Spreadsheet is enabled and fixity algorithms are specified, attempt to retrieve hash values from spreadsheet. If eager is True, any missing hash values will be generated immediately, otherwise they will be deferred until manifest generation.
         if self.hash_from_spread is True and self.fixity and any(f'{self.HASH_FIELD}:{alg}' in self.column_headers for alg in self.fixity):
             hash_list = []
-            if self.index is None:
-                self.index = self.index_df_lookup(path)
-            generate_fixity = []
+            if index is None:
+                index = self.index_df_lookup(path)
+            generate_fixity_list = []
+            hash_list = self.hash_df_lookup(index, self.fixity)
             for alg in self.fixity:
-                hash_value = self.hash_df_lookup(self.index, [alg])
-                hash_list.append({'type': alg, 'value': hash_value})
+                hash_value = next((hv for hv in hash_list if hv.get('type') == alg), None) if hash_list is not None else None
                 if hash_value is None:
-                    generate_fixity.append(alg)
-            if len(generate_fixity) == 0:
-                generate_fixity = None
-        elif self.hash_map is not None and len(self.hash_map) > 0:
-            hash_list = []
-            for alg in self.fixity:
-                if isinstance(self.hash_map.get(alg).get(path), list):
-                    for zipfile in self.hash_map.get(alg).get(path):
-                        hash_list.append({'type': alg, 'value': zipfile.get('value'), 'path': zipfile.get('path')})
-                else:
-                    hash_list.append({'type': alg, 'value': self.hash_map.get(alg).get(path).get('value')})
-            generate_fixity = None
+                    generate_fixity_list.append(alg)
+            if eager and generate_fixity_list:
+                hash_list.extend(self._generate_fixity_values(path, generate_fixity_list))
+                generate_fixity_list = None
+            if len(hash_list) == 0:
+                hash_list = None
+            if generate_fixity_list is not None and len(generate_fixity_list) == 0:
+                generate_fixity_list = None
+        # If Lookup from Spreadsheet is not enabled but fixity algorithms are specified, generate hash values immediately if eager is True, otherwise defer until manifest generation.
         elif self.fixity:
-            hash_list = None
-            generate_fixity = self.fixity
+            if eager:
+                hash_list = self._generate_fixity_values(path, self.fixity)
+                generate_fixity_list = None
+            else:
+                hash_list = None
+                generate_fixity_list = self.fixity
         else:
             hash_list = None
-            generate_fixity = None
-        return hash_list, generate_fixity
+            generate_fixity_list = None
+        return hash_list, generate_fixity_list
 
-    def _process_multithread_fixity(self, path_list) -> None:
-        for alg in self.fixity:
-            hash_results = HashGenerator(self.fixity, self.buffer).hash_generator_multithread(path_list, self.max_workers, self.pax_flag)
-            if alg not in self.hash_map:
-                self.hash_map[alg] = {}
-            self.hash_map[alg].update(hash_results)
+    def _threading_write_file_opex(self, path: str, index: Optional[pd.Index] = None) -> None:
+        if os.path.exists(path + '.opex'):
+            logger.warning(f'File {path} already has an OPEX file, skipping write.')
+            return
+        context = self._build_path_context(path, index=index)
+        hash_list, generate_fixity = self._process_fixity(path, index=index, eager=True)
+        OpexFileWriter(path,
+                        title=context.get('Title'),
+                        description=context.get('Description'),
+                        security=context.get('Security'),
+                        sourceid=context.get('Source ID'),
+                        identifiers=context.get('Identifiers'),
+                        descriptive_metadata=context.get('Descriptive Metadata'),
+                        fixity=hash_list,
+                        generate_fixity=generate_fixity,
+                        pax_flag=self.pax_flag,
+                        buffer=self.buffer
+                        ).write_opex_file()
+
+    def _threading_write_pax_dir_opex(self, path: str, index: Optional[pd.Index] = None) -> None:
+        context = self._build_path_context(path, index=index)
+        hash_list, generate_fixity = self._process_fixity(path, index=index, eager=True)
+        OpexDirWriter(path,
+                    title=context.get('Title'),
+                    description=context.get('Description'),
+                    security=context.get('Security'),
+                    sourceid=context.get('Source ID'),
+                    identifiers=context.get('Identifiers'),
+                    descriptive_metadata=context.get('Descriptive Metadata'),
+                    include_hidden=self.hidden_flag,
+                    sort_key=self.sort_key,
+                    filter_flag=self.filter_flag,
+                    generate_fixity=generate_fixity if self.pax_flag else None,
+                    fixity_list=hash_list if self.pax_flag else None,
+                    pax_flag=self.pax_flag,
+                    buffer=self.buffer
+                    ).write_opex_manifest(path + '.opex')
+
+    def _process_threaded_entries(self, path: str, entries: List[os.DirEntry]) -> None:
+        executor = ThreadPoolExecutor(max_workers=self.max_workers)
+        future_map = {}
+        try:
+            for entry in entries:
+                index = self._resolve_index(entry.path)
+                if entry.is_dir() and self.pax_flag and entry.name.endswith('.pax'):
+                    future_map[executor.submit(self._threading_write_pax_dir_opex, entry.path, index=index)] = entry.path
+                elif entry.is_file() and not entry.name.endswith('.opex'):
+                    future_map[executor.submit(self._threading_write_file_opex, entry.path, index=index)] = entry.path
+
+            pending = set(future_map.keys())
+            while pending:
+                done, pending = wait(pending, timeout=0.1, return_when=FIRST_COMPLETED)
+                if not done:
+                    continue
+                for future in done:
+                    entry_path = future_map[future]
+                    try:
+                        future.result()
+                    except BaseException:
+                        logger.exception(f'Failed to generate OPEX in worker for: {entry_path}')
+                        raise
+                    finally:
+                        if self.progress:
+                            self.progress.update()
+        except KeyboardInterrupt:
+            self._stop_event.set()
+            logger.warning('Keyboard Interrupt received, shutting down threads...')
+            for future in future_map:
+                future.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
+
 
     def _process_loop(self, path) -> None:
         if any([self.removal_flag, self.ignore_flag]):
             if self._process_removal_and_ignore(path, self.index_df_lookup(path)) is True:
                 return
-        if self.fixity and self.max_workers > 1:
-            # Check if Column for Hash{Algorithm} exists in Spreadsheet, if so use that instead of generating new hash values.
-            # If not, identify which algorithms are missing and return a list of the file paths.
-            if self.hash_from_spread is True:
-                missing_algorithms = []
-                for alg in self.fixity:
-                    if not any(f'{self.HASH_FIELD}:{alg}' in header for header in self.column_headers):
-                        missing_algorithms.append(alg)
-                if len(missing_algorithms) > 0:
-                    logger.warning(f'Hash from spreadsheet enabled but no columns found for algorithms: {missing_algorithms}. Proceeding to generate fixity for these algorithms.')
-                    f_list = [f.path for f in os.scandir(path) if f.is_file() and not f.name.endswith('.opex')]
-                    if self.pax_flag:
-                        logger.debug('PAX fixity enabled, generating fixity for all files in directory and subdirectories.')
-                        f_list.extend([f.path for f in os.scandir(path) if f.is_dir() and f.name.endswith('.pax')])
-                    self._process_multithread_fixity(f_list)
-                else:
-                    logger.debug('Hash from spreadsheet enabled and columns found for all algorithms, skipping fixity generation.')
-            else:
-                f_list = [f.path for f in os.scandir(path) if f.is_file() and not f.name.endswith('.opex')]
-                if self.pax_flag:
-                    logger.debug('PAX fixity enabled, generating fixity for all files in directory and subdirectories.')
-                    f_list.extend([f.path for f in os.scandir(path) if f.is_dir() and f.name.endswith('.pax')])
-                self._process_multithread_fixity(f_list)
-                logger.debug('Multithreading enabled for fixity generation, gathering file list.')
 
-        for f in os.scandir(path):
-            if f.is_dir():
+        entries = filter_manifest(path, self.hidden_flag, self.exclusion_set, self.sort_key)
+        threaded_entries = []
+
+        for f in entries:
+            f_index = self._resolve_index(f)
+            context = self._build_path_context(path, index=f_index)
+            # PAX Directory handling
+            opex_file_path = f + '.opex'
+            if os.path.isdir(f):
                 if self.pax_flag and f.name.endswith('.pax'):
-                    hash_list,generate_fixity = self._process_fixity(f.path)
-                    OpexDirWriter(f.path,
-                                title = self.title,
-                                description = self.description,
-                                security_tag = self.security_tag,
-                                source_id = self.source_id,
-                                identifers = self.identifiers,
-                                descriptive_metadata = self.descriptive_metadata,
-                                include_hidden = self.hidden_flag,
-                                sort_key = self.sort_key,
-                                filter_flag = self.filter_flag,
-                                generate_fixity = generate_fixity if self.pax_flag else None,
-                                fixity_list = hash_list if self.pax_flag else None,
-                                pax_flag = self.pax_flag
-                                ).write_opex_manifest(f.path + '.opex')
+                    # Avoid generating fixities unnecessarily
+                    if os.path.exists(opex_file_path):
+                        logger.warning(f'Opex folder PAX already exists at {opex_file_path}, skipping...')
+                        continue
+                    if self.fixity and self.max_workers > 1:
+                        threaded_entries.append(f)
+                    else:
+                        hash_list, generate_fixity = self._process_fixity(f, index=f_index, eager=True)
+                        OpexDirWriter(f,
+                                    title=context.get('Title'),
+                                    description=context.get('Description'),
+                                    security=context.get('Security'),
+                                    sourceid=context.get('Source ID'),
+                                    identifiers=context.get('Identifiers'),
+                                    descriptive_metadata=context.get('Descriptive Metadata'),
+                                    include_hidden=self.hidden_flag,
+                                    sort_key=self.sort_key,
+                                    filter_flag=self.filter_flag,
+                                    generate_fixity=generate_fixity if self.pax_flag else None,
+                                    fixity_list=hash_list if self.pax_flag else None,
+                                    pax_flag=self.pax_flag,
+                                    buffer=self.buffer
+                                    ).write_opex_manifest(f + '.opex')
+                        if self.progress:
+                            self.progress.update()
                     continue
-                self._process_loop(f.path)
-            elif f.is_file() and f.name.endswith('.opex'):
-                logger.debug(f'Skipping file with .opex extension: {f.path}, prevents opexes generating opexes')
+                else:
+                    self._process_loop(f)
+            # Avoid generating OPEXes for OPEX files
+            elif os.path.isfile(f) and f.endswith('.opex'):
+                logger.debug(f'Avoided OPEX generation for OPEX file: {f}')
                 continue
-            elif f.is_file():
-                self._process(f.path)
+            # File Handling
+            elif os.path.isfile(f):
                 if self.input \
                     or self.fixity \
                     or self.title_flag \
                     or self.description_flag \
                     or self.security_flag \
                     or self.sourceid_flag \
-                    or (self.identifiers is not None and len(self.identifiers) > 0) \
-                    or self.metadata_flag is not None:
+                    or (self.identifiers and len(self.identifiers) > 0) \
+                    or self.metadata_flag:
+                    # Avoid generating fixities unnecessarily.
+                    if os.path.exists(opex_file_path):
+                        logger.warning(f'Opex file already exists at {opex_file_path}, skipping...')
+                        continue
+                    if self.fixity and self.max_workers > 1:
+                        threaded_entries.append(f)
+                    else:
+                        hash_list, generate_fixity = self._process_fixity(f, index=f_index, eager=True)
+                        OpexFileWriter(f,
+                                        title=context.get('Title'),
+                                        description=context.get('Description'),
+                                        security=context.get('Security'),
+                                        sourceid=context.get('Source ID'),
+                                        identifiers=context.get('Identifiers'),
+                                        descriptive_metadata=context.get('Descriptive Metadata'),
+                                        fixity=hash_list,
+                                        generate_fixity=generate_fixity,
+                                        pax_flag=self.pax_flag,
+                                        buffer=self.buffer
+                                        ).write_opex_file()
+                        if self.progress:
+                            self.progress.update()
+        # Multi-threading for Fixities and Opex Creation
+        if threaded_entries:
+            self._process_threaded_entries(path, threaded_entries)
 
-                    hash_list,generate_fixity = self._process_fixity(f.path)
-                    OpexFileWriter(f.path,
-                                    title = self.title,
-                                    description = self.description,
-                                    security_tag = self.security_tag,
-                                    source_id = self.source_id,
-                                    identifers = self.identifiers,
-                                    descriptive_metadata = self.descriptive_metadata,
-                                    fixity = hash_list,
-                                    generate_fixity = generate_fixity,
-                                    pax_flag = self.pax_flag
-                                    ).write_opex_file()
-                if self.progress:
-                    self.progress.update()
-
-        if os.path.isdir(path):
-            self._process(path)
-            OpexDirWriter(path,
-                        title = self.title,
-                        description = self.description,
-                        security_tag = self.security_tag,
-                        source_id = self.source_id,
-                        identifers = self.identifiers,
-                        descriptive_metadata = self.descriptive_metadata,
-                        include_hidden = self.hidden_flag,
-                        sort_key = self.sort_key,
-                        filter_flag = self.filter_flag,
-                        pax_flag = self.pax_flag
-                        ).write_opex_manifest()
+        # Folder Manifest Generation
+        if os.path.isdir(path) and not path == 'meta':
+            context = self._build_path_context(path, index=self._resolve_index(path))
+            opex_path = os.path.join(path, os.path.basename(path) + '.opex')
+            if os.path.exists(opex_path):
+                logger.warning(f'Opex manifest already exists at {opex_path}, skipping...')
+            else:
+                OpexDirWriter(path,
+                            title = context.get('Title'),
+                            description = context.get('Description'),
+                            security = context.get('Security'),
+                            sourceid = context.get('Source ID'),
+                            identifiers = context.get('Identifiers'),
+                            descriptive_metadata = context.get('Descriptive Metadata'),
+                            include_hidden = self.hidden_flag,
+                            sort_key = self.sort_key,
+                            filter_flag = self.filter_flag,
+                            pax_flag = self.pax_flag
+                            ).write_opex_manifest()
             if self.progress:
                 self.progress.update()
 
@@ -926,7 +1046,7 @@ class OpexManifestGenerator():
         if self.empty_flag:
             logger.debug('Removing empty directories as per empty flag.')
             ReferenceGenerator(self.root, self.output_path, meta_dir_flag = self.meta_dir_flag).remove_empty_directories(self.empty_export_flag)
-        if not self.autoref_flag in {"g", "generic"}:
+        if not self.autoref_flag in {"generic"}:
             logger.debug('Auto Reference flag not set to generic, checking for Dataframe requirement.')
             self.init_df()
 
@@ -945,17 +1065,16 @@ class OpexManifestGenerator():
             self.init_generate_descriptive_metadata()
         else:
             pass
-        self.hash_map: Dict[str,Dict] = {}
-
-        # If Multithreading goes at top will lose continous running...
-        # if self.fixity and self.max_workers > 1:
-        #     file_list = [os.path.join(dir, file) for dir, _, files in os.walk(self.root) for file in files if not file.endswith('.opex')]
-        #     self._process_multithread_fixity(file_list, hash_map = self.hash_map)
 
         if self.show_progress_bar:
             self.display_progress()
+        self._stop_event.clear()
         try:
             self._process_loop(self.root)
+        except KeyboardInterrupt:
+            self._stop_event.set()
+            logger.warning('Keyboard Interrupt received, stopping generation immediately.')
+            raise
         finally:
             if self.progress:
                 self.progress.close()
