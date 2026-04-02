@@ -9,13 +9,15 @@ import hashlib, logging, os
 from opex_manifest_generator.common import win_256_check
 from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 from typing import Iterable, Optional, Dict
+from threading import Event
 import zipfile
 logger = logging.getLogger(__name__)
 
 class HashGenerator():
-    def __init__(self, algorithm: str = "SHA-1", buffer: int = 4096):
+    def __init__(self, algorithm: str = "SHA-1", buffer: int = 4096, stop_event: Optional[Event] = None):
         self.algorithm = algorithm
         self.buffer = buffer
+        self.stop_event = stop_event
 
     def hash_generator(self, file_path: str) -> str:
         file_path = win_256_check(file_path)
@@ -33,6 +35,8 @@ class HashGenerator():
         try:
             with open(file_path, 'rb') as f:
                 while True:
+                    if self.stop_event is not None and self.stop_event.is_set():
+                        raise KeyboardInterrupt
                     buff = f.read(self.buffer)
                     if not buff:
                         break
@@ -68,6 +72,8 @@ class HashGenerator():
             logger.info(f'Generating Fixity using {self.algorithm} for: {filename}')
             with z.open(filename, 'r') as data:
                 while True:
+                    if self.stop_event is not None and self.stop_event.is_set():
+                        raise KeyboardInterrupt
                     buff = data.read(self.buffer)
                     if not buff:
                         break
@@ -86,7 +92,8 @@ class HashGenerator():
         except Exception as e:
             logger.exception(f'Error Generating Hash: {e}')
             raise
-
+    """
+    Removed
     def hash_generator_multithread(self, files_list: Iterable[str], max_workers: Optional[int] = 1, pax_flag: Optional[bool] = False) -> Dict[str, str]:
         try:
             if max_workers is None or int(max_workers) == 0:
@@ -164,3 +171,4 @@ class HashGenerator():
         except Exception as e:
             logger.exception(f'Error Generating Hash: {e}')
             raise
+    """
