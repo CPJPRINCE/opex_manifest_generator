@@ -162,7 +162,7 @@ class OpexDirWriter():
 
     def __init__(self, folder_path: str, title: Optional[str] = None, description: Optional[str] = None, security_tag: Optional[str] = None, opexns: Optional[str] = "http://www.openpreservationexchange.org/opex/v1.2", **kwargs) -> None:
 
-        self.DEFAULT_EXCLUSIONS = {'opex_generate.exe', 'opex_generate.cmd', 'meta', '.metadata', 'opex_generate.bin', os.path.basename(__file__)}
+        self.DEFAULT_EXCLUSIONS = {'opex_generate.exe', 'opex_generate.cmd', 'meta', 'opex_generate.bin', os.path.basename(__file__)}
 
         ### Generation Presets
         self.sort_key = kwargs.get('sort_key', str.casefold)
@@ -263,8 +263,7 @@ class OpexDirWriter():
         if self.pax_flag is True and self.folder_path.endswith('.pax'):
             logger.debug(f'PAX flag is set to True and folder path ends with .pax, skipping standard manifest generation for this folder and relying on PAX-specific fixity generation method to populate manifest with file entries and fixities.')
             return
-        entries = filter_manifest(path, self.include_hidden, self.exclusion_set, self.sort_key)
-        for f in entries:
+        for f in filter_manifest(path, self.include_hidden, self.exclusion_set, self.sort_key):
             f: str
             if os.path.isdir(f):
                 if filter_flag is not None and filter_flag == "only_dirs":
