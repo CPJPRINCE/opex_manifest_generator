@@ -254,7 +254,7 @@ class OpexDirWriter():
                     raise
             elif isinstance(self.descriptive_metadata, (etree._Element, etree._ElementTree)):
                 try:
-                    self.descmeta_opex.append(self.descriptive_metadata.getroot())
+                    self.descmeta_opex.append(self.descriptive_metadata)
                 except etree.ParseError as e:
                     logger.exception(f'Failed to parse descriptive metadata XML tree: {e}')
                     raise
@@ -553,7 +553,7 @@ class OpexFileWriter():
                     raise
             elif isinstance(self.descriptive_metadata, (etree._Element, etree._ElementTree)):
                 try:
-                    self.descmeta_opex.append(self.descriptive_metadata.getroot())
+                    self.descmeta_opex.append(self.descriptive_metadata)
                 except etree.ParseError as e:
                     logger.exception(f'Failed to parse descriptive metadata XML tree: {e}')
                     raise

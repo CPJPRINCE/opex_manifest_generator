@@ -197,8 +197,19 @@ def test_generate_descriptive_metadata_exact_mode(tmp_path):
     }]
 
     idx = omg.index_df_lookup("file")
-    with pytest.raises(TypeError):
-        omg.generate_descriptive_metadata(idx)
+    result = omg.generate_descriptive_metadata(idx)
+    
+    # Should return an XML string containing the populated metadata
+    assert result is not None
+    assert isinstance(result, str)
+    # Should contain the updated value
+    assert "VALUE" in result
+    assert 'xmlns="urn:test"' in result
+    # Parse and verify structure
+    root_elem = etree.fromstring(result)
+    a_elem = root_elem.find('.//{urn:test}a')
+    assert a_elem is not None
+    assert a_elem.text == "VALUE"
 
 
 def test_generate_descriptive_metadata_missing_element_does_not_raise(tmp_path):
@@ -219,8 +230,14 @@ def test_generate_descriptive_metadata_missing_element_does_not_raise(tmp_path):
     }]
 
     idx = omg.index_df_lookup("file")
-    with pytest.raises(TypeError):
-        omg.generate_descriptive_metadata(idx)
+    # Should not raise an error when element is missing, just log a warning
+    result = omg.generate_descriptive_metadata(idx)
+    
+    # Should still return an XML string (with original content unchanged)
+    assert result is not None
+    assert isinstance(result, str)
+    # Original value should remain since update failed
+    assert "<a>1</a>" in result
 
 
 def test_clear_opex(tmp_path):

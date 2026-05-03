@@ -406,10 +406,10 @@ class OpexManifestGenerator():
                 else:
                     description = None
                 if self.security_flag:
-                    security = check_nan(self.df.loc[idx,self.SECURITY_FIELD].item())
+                    security_tag = check_nan(self.df.loc[idx,self.SECURITY_FIELD].item())
                 else:
-                    security = None
-            return title,description,security
+                    security_tag = None
+            return title,description,security_tag
         except KeyError as e:
             logger.exception(f'Key Error in Removal Lookup: {e}'
             '\n Please ensure column header\'s are an exact match.')
@@ -653,16 +653,16 @@ class OpexManifestGenerator():
         This version returns an XML element containing the descriptive metadata, which can be included in the Opex manifest. It iterates through the list of matching elements generated in init_generate_descriptive_metadata, looks up the corresponding value in the spreadsheet for each element, and inserts it into the XML file at the correct path. If any issues are encountered during this process, such as missing columns or invalid data, appropriate warnings are logged and the function continues processing the remaining elements. If a critical error occurs, such as a KeyError or IndexError, it is logged and raised to ensure that the issue can be addressed.
         """
         try:
-            xml_desc_elem = etree.Element()
+            #xml_desc_elem = etree.Element(f"{{{self.opexns}}}DescriptiveMetadata")
+            xml_desc_str = ""           
             for xml_file in self.xml_files:
                 xml_file: Dict[str, Any]
                 xml_data = xml_file.get('data')
                 #xnames: list[Optional[str]] = []
                 #xnames = [x.get('XName') for x in xml_data if isinstance(x, dict)] if xml_data is not None else []
                 localname = xml_file.get('localname')
-                localns = xml_file.get('localns')
-                if localname is None or localns is None:
-                    logger.warning(f'Missing localname or localns for XML file: {xml_file.get("xmlfile")}, skipping XML Generation for this file.')
+                if localname is None:
+                    logger.warning(f'Missing localname for XML file: {xml_file.get("xmlfile")}, skipping XML Generation for this file.')
                     continue
                 if len(xml_data) == 0 or xml_data is None:
                     logger.warning(f'No matching columns found for XML file: {xml_file.get("xmlfile")}, skipping XML Generation for this file.')
@@ -705,8 +705,9 @@ class OpexManifestGenerator():
                                 continue
                         if elem is not None:
                             elem.text = str(val)
-                    xml_desc_elem.append(xml_new.find('.'))
-            return xml_desc_elem
+                    xml_desc_str += etree.tostring(xml_new.getroot(), encoding='unicode')
+                    #xml_desc_elem.append(xml_new.find('.'))
+            return xml_desc_str
         except KeyError as e:
             logger.exception(f'Key Error in XML Lookup: {e}' \
             '\n Please ensure column header\'s are an exact match.')
@@ -739,7 +740,7 @@ class OpexManifestGenerator():
     def _build_path_context(self, path: str, index: Optional[pd.Index] = None, xml_data: Optional[etree._ElementTree] = None) -> Dict[str, Any]:
         title = None
         description = None
-        security = None
+        security_tag = None
         source_id = None
         identifiers = None
         descriptive_metadata = None
@@ -749,7 +750,7 @@ class OpexManifestGenerator():
 
         if self.autoref_flag or self.input:
             if self.title_flag or self.description_flag or self.security_flag:
-                title, description, security = self.xip_df_lookup(index)
+                title, description, security_tag = self.xip_df_lookup(index)
             if self.autoref_flag not in {"generic"} or self.input:
                 if self.identifiers_flag:
                     identifiers = self.ident_df_lookup(index)
@@ -758,8 +759,8 @@ class OpexManifestGenerator():
                     title = os.path.basename(path)
                 if description is None:
                     description = os.path.basename(path)
-                if security is None:
-                    security = self.GENERIC_DEFAULT_SECURITY
+                if security_tag is None:
+                    security_tag = self.GENERIC_DEFAULT_SECURITY
             if self.sourceid_flag:
                 source_id = self.sourceid_df_lookup(index)
             if self.metadata_flag is not None and xml_data is None:
@@ -769,7 +770,7 @@ class OpexManifestGenerator():
             'Index': index,
             'Title': title,
             'Description': description,
-            'Security': security,
+            'Security': security_tag,
             'Source ID': source_id,
             'Identifiers': identifiers,
             'Descriptive Metadata': descriptive_metadata,
@@ -859,7 +860,7 @@ class OpexManifestGenerator():
         OpexFileWriter(path,
                         title=context.get('Title'),
                         description=context.get('Description'),
-                        security=context.get('Security'),
+                        security_tag=context.get('Security'),
                         sourceid=context.get('Source ID'),
                         identifiers=context.get('Identifiers'),
                         descriptive_metadata=context.get('Descriptive Metadata'),
@@ -875,7 +876,7 @@ class OpexManifestGenerator():
         OpexDirWriter(path,
                     title=context.get('Title'),
                     description=context.get('Description'),
-                    security=context.get('Security'),
+                    security_tag=context.get('Security'),
                     sourceid=context.get('Source ID'),
                     identifiers=context.get('Identifiers'),
                     descriptive_metadata=context.get('Descriptive Metadata'),
@@ -951,7 +952,7 @@ class OpexManifestGenerator():
                         OpexDirWriter(f,
                                     title=context.get('Title'),
                                     description=context.get('Description'),
-                                    security=context.get('Security'),
+                                    security_tag=context.get('Security'),
                                     sourceid=context.get('Source ID'),
                                     identifiers=context.get('Identifiers'),
                                     descriptive_metadata=context.get('Descriptive Metadata'),
@@ -993,7 +994,7 @@ class OpexManifestGenerator():
                         OpexFileWriter(f,
                                         title=context.get('Title'),
                                         description=context.get('Description'),
-                                        security=context.get('Security'),
+                                        security_tag=context.get('Security'),
                                         sourceid=context.get('Source ID'),
                                         identifiers=context.get('Identifiers'),
                                         descriptive_metadata=context.get('Descriptive Metadata'),
@@ -1018,7 +1019,7 @@ class OpexManifestGenerator():
                 OpexDirWriter(path,
                             title = context.get('Title'),
                             description = context.get('Description'),
-                            security = context.get('Security'),
+                            security_tag = context.get('Security'),
                             sourceid = context.get('Source ID'),
                             identifiers = context.get('Identifiers'),
                             descriptive_metadata = context.get('Descriptive Metadata'),
