@@ -654,7 +654,7 @@ class OpexManifestGenerator():
         """
         try:
             #xml_desc_elem = etree.Element(f"{{{self.opexns}}}DescriptiveMetadata")
-            xml_desc_str = ""           
+            xml_desc_list = []           
             for xml_file in self.xml_files:
                 xml_file: Dict[str, Any]
                 xml_data = xml_file.get('data')
@@ -705,9 +705,10 @@ class OpexManifestGenerator():
                                 continue
                         if elem is not None:
                             elem.text = str(val)
-                    xml_desc_str += etree.tostring(xml_new.getroot(), encoding='unicode')
+                    etree.indent(xml_new.getroot(), space="    ")
+                    xml_desc_list.append(etree.tostring(xml_new.getroot(), encoding='unicode', pretty_print=True))
                     #xml_desc_elem.append(xml_new.find('.'))
-            return xml_desc_str
+            return xml_desc_list
         except KeyError as e:
             logger.exception(f'Key Error in XML Lookup: {e}' \
             '\n Please ensure column header\'s are an exact match.')

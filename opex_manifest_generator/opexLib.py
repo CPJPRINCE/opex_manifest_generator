@@ -535,7 +535,7 @@ class OpexFileWriter():
                         self.ident_opex.set("type", hash_type)
                         self.ident_opex.text = str(hash_value)
 
-        self.descriptive_metadata: Union[str, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
+        self.descriptive_metadata: Union[str, list, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
         if self.descriptive_metadata is not None:
             self.descmeta_opex = etree.SubElement(self.opex_root, f"{{{self.opexns}}}DescriptiveMetadata")
             if isinstance(self.descriptive_metadata, str):
@@ -544,6 +544,22 @@ class OpexFileWriter():
                 except etree.ParseError as e:
                     logger.exception(f'Failed to parse descriptive metadata XML string: {e}')
                     raise
+            elif isinstance(self.descriptive_metadata, list):
+                for item in self.descriptive_metadata:
+                    if isinstance(item, str):
+                        try:
+                            self.descmeta_opex.append(etree.fromstring(item))
+                        except etree.ParseError as e:
+                            logger.exception(f'Failed to parse descriptive metadata XML string in list: {e}')
+                            raise
+                    elif isinstance(item, (etree._Element, etree._ElementTree)):
+                        try:
+                            self.descmeta_opex.append(item)
+                        except etree.ParseError as e:
+                            logger.exception(f'Failed to parse descriptive metadata XML tree in list: {e}')
+                            raise
+                    else:
+                        logger.warning(f'Unsupported type in descriptive_metadata list: {type(item)}')
             elif isinstance(self.descriptive_metadata, str) and self.descriptive_metadata.endswith('.xml'):
                 try:
                     tree = etree.parse(self.descriptive_metadata)
