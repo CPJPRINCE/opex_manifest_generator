@@ -201,12 +201,12 @@ def test_generate_descriptive_metadata_exact_mode(tmp_path):
     
     # Should return an XML string containing the populated metadata
     assert result is not None
-    assert isinstance(result, str)
+    assert isinstance(result, list)
     # Should contain the updated value
-    assert "VALUE" in result
-    assert 'xmlns="urn:test"' in result
+    assert "VALUE" in result[0]
+    assert 'xmlns="urn:test"' in result[0]
     # Parse and verify structure
-    root_elem = etree.fromstring(result)
+    root_elem = etree.fromstring(result[0])
     a_elem = root_elem.find('.//{urn:test}a')
     assert a_elem is not None
     assert a_elem.text == "VALUE"
@@ -235,9 +235,9 @@ def test_generate_descriptive_metadata_missing_element_does_not_raise(tmp_path):
     
     # Should still return an XML string (with original content unchanged)
     assert result is not None
-    assert isinstance(result, str)
+    assert isinstance(result, list)
     # Original value should remain since update failed
-    assert "<a>1</a>" in result
+    assert "<a>1</a>" in result[0]
 
 
 def test_clear_opex(tmp_path):
