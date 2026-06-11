@@ -228,11 +228,11 @@ class OpexDirWriter():
                 self.identifiers_opex = etree.SubElement(self.properties_opex, f"{{{self.opexns}}}Identifiers")
                 for ident in self.identifiers:
                     self.ident_opex = etree.SubElement(self.identifiers_opex, f"{{{self.opexns}}}Identifier")
-                    hash_type = ident.get("type", None)
-                    hash_value = ident.get("value", None)
-                    if hash_type is not None and hash_value is not None:
-                        self.ident_opex.set("type", hash_type)
-                        self.ident_opex.text = str(hash_value)
+                    ident_type = ident.get("type", None)
+                    ident_value = ident.get("value", None)
+                    if ident_type is not None and ident_value is not None:
+                        self.ident_opex.set("type", ident_type)
+                        self.ident_opex.set("value", ident_value)
 
 
         self.descriptive_metadata: Union[str, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
@@ -365,12 +365,12 @@ class OpexFileReader():
             self.sourceid = self.sourceid_elm.text if self.sourceid_elm is not None else None
             if self.identifiers_elm is not None:
                 for ident in self.identifiers_elm or []:
-                    self.identifiers.append({'type': ident.attrib.get('type'), 'value': ident.text})
+                    self.identifiers.append({'type': ident.attrib.get('type'), 'value': ident.attrib.get('value')})
             self.fixities_elm = self.tree.findall(f'.//{{{self.opexns}}}Fixities/{{{self.opexns}}}Fixity') if self.tree.findall(f'.//{{{self.opexns}}}Fixities/{{{self.opexns}}}Fixity') is not None else None
             self.fixities = [] if self.fixities_elm is not None else None
             if self.fixities_elm is not None:
                 for fix in self.fixities_elm:
-                    self.fixities.append({'type': fix.attrib.get('type'), 'value': fix.text})
+                    self.fixities.append({'type': fix.attrib.get('type'), 'value': fix.attrib.get('value')})
                     if fix.attrib.get('path') is not None:
                         self.fixities[-1].update({'path': fix.attrib.get('path')})
             self.descriptive_metadata_elm = self.tree.find(f'.//{{{self.opexns}}}DescriptiveMetadata') if self.tree.find(f'.//{{{self.opexns}}}DescriptiveMetadata') is not None else None
@@ -497,7 +497,7 @@ class OpexFileWriter():
                     if fix.get("path") is not None:
                         self.fixity_opex.set("path", fix.get("path", None))
                     self.fixity_opex.set("type", fix.get("type", None))
-                    self.fixity_opex.text = fix.get("value", None)
+                    self.fixity_opex.set("value", fix.get("value", None))
 
         if title is not None:
             self.title = title
@@ -529,11 +529,11 @@ class OpexFileWriter():
                 self.identifiers_opex = etree.SubElement(self.properties_opex, f"{{{self.opexns}}}Identifiers")
                 for ident in self.identifiers:
                     self.ident_opex = etree.SubElement(self.identifiers_opex, f"{{{self.opexns}}}Identifier")
-                    hash_type = ident.get("type", None)
-                    hash_value = ident.get("value", None)
-                    if hash_type is not None and hash_value is not None:
-                        self.ident_opex.set("type", hash_type)
-                        self.ident_opex.text = str(hash_value)
+                    ident_type = ident.get("type", None)
+                    ident_value = ident.get("value", None)
+                    if ident_type is not None and ident_value is not None:
+                        self.ident_opex.set("type", ident_type)
+                        self.ident_opex.set("value", ident_value)
 
         self.descriptive_metadata: Union[str, list, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
         if self.descriptive_metadata is not None:
