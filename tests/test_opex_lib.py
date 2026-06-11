@@ -50,6 +50,7 @@ def test_opex_file_writer_does_not_overwrite_existing_by_default(tmp_path):
 def test_opex_file_writer_generate_fixity_populates_value(tmp_path):
     content_file = tmp_path / "doc.txt"
     content_file.write_text("hello")
+    content_file_hash = "AAF4C61DDCC5E8A2DABEDE0F3B482CD9AEA9434D"  # SHA-1 for "hello"
 
     writer = OpexFileWriter(
         str(content_file),
@@ -59,7 +60,7 @@ def test_opex_file_writer_generate_fixity_populates_value(tmp_path):
 
     reader = OpexFileReader(opex_path)
     fixities = reader.get_fixities()
-    assert fixities == [{"type": "SHA-1", "value": None}]
+    assert fixities == [{"type": "SHA-1", "value": content_file_hash}]
 
     # Generated fixity is currently stored on the XML attribute, not element text.
     tree = reader.to_tree()
