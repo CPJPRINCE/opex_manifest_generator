@@ -232,7 +232,7 @@ class OpexDirWriter():
                     ident_value = ident.get("value", None)
                     if ident_type is not None and ident_value is not None:
                         self.ident_opex.set("type", ident_type)
-                        self.ident_opex.set("value", ident_value)
+                        self.ident_opex.text = ident_value
 
 
         self.descriptive_metadata: Union[str, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
@@ -533,7 +533,7 @@ class OpexFileWriter():
                     ident_value = ident.get("value", None)
                     if ident_type is not None and ident_value is not None:
                         self.ident_opex.set("type", ident_type)
-                        self.ident_opex.set("value", ident_value)
+                        self.ident_opex.text = ident_value
 
         self.descriptive_metadata: Union[str, list, etree._ElementTree, etree._Element] = kwargs.get('descriptive_metadata', None)
         if self.descriptive_metadata is not None:
