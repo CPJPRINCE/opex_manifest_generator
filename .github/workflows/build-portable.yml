@@ -285,7 +285,7 @@ jobs:
           tar -czf "opex_generate_macos_${version}.tar.gz" -C build opex_generate
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: opex_generate-macos
           path: opex_generate_macos_*.tar.gz
