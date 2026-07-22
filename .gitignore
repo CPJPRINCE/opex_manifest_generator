@@ -7,3 +7,4 @@ opex_manifest_generator.egg-info/
 opex_manifest_generator.code-workspace
 build/
 *.pyc
+uv.lock

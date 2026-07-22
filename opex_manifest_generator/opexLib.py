@@ -365,7 +365,7 @@ class OpexFileReader():
             self.sourceid = self.sourceid_elm.text if self.sourceid_elm is not None else None
             if self.identifiers_elm is not None:
                 for ident in self.identifiers_elm or []:
-                    self.identifiers.append({'type': ident.attrib.get('type'), 'value': ident.attrib.get('value')})
+                    self.identifiers.append({'type': ident.attrib.get('type'), 'value': ident.text})
             self.fixities_elm = self.tree.findall(f'.//{{{self.opexns}}}Fixities/{{{self.opexns}}}Fixity') if self.tree.findall(f'.//{{{self.opexns}}}Fixities/{{{self.opexns}}}Fixity') is not None else None
             self.fixities = [] if self.fixities_elm is not None else None
             if self.fixities_elm is not None:
