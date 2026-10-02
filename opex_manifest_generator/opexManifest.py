@@ -858,7 +858,7 @@ class OpexManifestGenerator():
             return
         context = self._build_path_context(path, index=index)
         hash_list, generate_fixity = self._process_fixity(path, index=index, eager=True)
-        OpexFileWriter(path,
+        opex = OpexFileWriter(path,
                         title=context.get('Title'),
                         description=context.get('Description'),
                         security_tag=context.get('Security'),
@@ -869,7 +869,11 @@ class OpexManifestGenerator():
                         generate_fixity=generate_fixity,
                         pax_flag=self.pax_flag,
                         buffer=self.buffer
-                        ).write_opex_file()
+                        )
+        if self.zip_flag:
+            opex.zip_opex_file(remove_files=self.zip_file_removal)
+        else:
+            opex.write_opex_file()
 
     def _threading_write_pax_dir_opex(self, path: str, index: Optional[pd.Index] = None) -> None:
         context = self._build_path_context(path, index=index)
@@ -992,7 +996,7 @@ class OpexManifestGenerator():
                         threaded_entries.append(f)
                     else:
                         hash_list, generate_fixity = self._process_fixity(f, index=f_index, eager=True)
-                        OpexFileWriter(f,
+                        opex = OpexFileWriter(f,
                                         title=context.get('Title'),
                                         description=context.get('Description'),
                                         security_tag=context.get('Security'),
@@ -1003,7 +1007,11 @@ class OpexManifestGenerator():
                                         generate_fixity=generate_fixity,
                                         pax_flag=self.pax_flag,
                                         buffer=self.buffer
-                                        ).write_opex_file()
+                                        )
+                        if self.zip_flag:
+                            opex.zip_opex_file(remove_files=self.zip_file_removal)
+                        else:
+                            opex.write_opex_file()
                         if self.progress:
                             self.progress.update()
         # Multi-threading for Fixities and Opex Creation
