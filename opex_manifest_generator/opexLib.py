@@ -242,9 +242,25 @@ class OpexDirWriter():
             if isinstance(self.descriptive_metadata, str):
                 try:
                     self.descmeta_opex.append(etree.fromstring(self.descriptive_metadata))
-                except etree.ParseError as e:
+                except Exception as e:
                     logger.exception(f'Failed to parse descriptive metadata XML string: {e}')
                     raise
+            elif isinstance(self.descriptive_metadata, list):
+                for item in self.descriptive_metadata:
+                    if isinstance(item, str):
+                        try:
+                            self.descmeta_opex.append(etree.fromstring(item))
+                        except etree.ParseError as e:
+                            logger.exception(f'Failed to parse descriptive metadata XML string in list: {e}')
+                            raise
+                    elif isinstance(item, (etree._Element, etree._ElementTree)):
+                        try:
+                            self.descmeta_opex.append(item)
+                        except etree.ParseError as e:
+                            logger.exception(f'Failed to parse descriptive metadata XML tree in list: {e}')
+                            raise
+                    else:
+                        logger.warning(f'Unsupported type in descriptive_metadata list: {type(item)}')
             elif isinstance(self.descriptive_metadata, str) and self.descriptive_metadata.endswith('.xml'):
                 try:
                     tree = etree.parse(self.descriptive_metadata)
