@@ -681,10 +681,10 @@ class OpexManifestGenerator():
                             continue
                         if self.metadata_flag in {'exact'}:
                             val_series = self.df.loc[idx,path]
-                            val = check_nan(val_series.item())
                         elif self.metadata_flag in {'flat'}:
                             val_series = self.df.loc[idx,name]
-                            val = check_nan(val_series.item())
+                        # This will limit the value to the first item in the series
+                        val = check_nan(val_series.get(0))
                         if pd.isnull(val) or val is None:
                             continue
                         else:
