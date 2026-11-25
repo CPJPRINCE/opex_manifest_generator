@@ -33,8 +33,11 @@ opex_generate = "opex_manifest_generator.cli:main"
 
 [tool.setuptools.packages.find]
 where = ['.']
-include = ['opex_manifest_generator']
+include = ['opex_manifest_generator*']
 exclude = []
+
+[tool.setuptools.package-data]
+opex_manifest_generator = ["metadata/**/*", "metadata/*", "options/**/*", "options/*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
