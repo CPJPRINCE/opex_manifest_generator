@@ -684,27 +684,34 @@ class OpexManifestGenerator():
                         elif self.metadata_flag in {'flat'}:
                             val_series = self.df.loc[idx,name]
                         # This will limit the value to the first item in the series
-                        val = check_nan(val_series.get(0))
-                        if pd.isnull(val) or val is None:
+                        if val_series.empty:
                             continue
                         else:
-                            if is_datetime64_any_dtype(val_series):
-                                val = pd.to_datetime(val)
-                                val = datetime.strftime(val, "%Y-%m-%dT%H:%M:%S.000Z")
-                        if self.metadata_flag in {'exact'}:
-                            n = path.replace(localname + ":", f"{{{elmns}}}")
-                            elem = xml_new.find(f'./{n}')
-                            if elem is None:
-                                logger.warning(f'XML element not found for path: {n, path} in {xml_file}')
+                            if len(val_series.values) == 1:
+                                val = check_nan(val_series.values[0])
+                            else:
+                                logger.warning(f'Multiple values found for {val_series}, using the first one.')
+                                val = check_nan(val_series.values[0])
+                            if pd.isnull(val) or val is None:
                                 continue
-                        elif self.metadata_flag in {'flat'}:
-                            n = name.split(':')[-1]
-                            elem = xml_new.find(f'.//{{{elmns}}}{n}')
-                            if elem is None:
-                                logger.warning(f'XML element not found for name: {name, path} in {xml_file}')
-                                continue
-                        if elem is not None:
-                            elem.text = str(val)
+                            else:
+                                if is_datetime64_any_dtype(val_series):
+                                    val = pd.to_datetime(val)
+                                    val = datetime.strftime(val, "%Y-%m-%dT%H:%M:%S.000Z")
+                            if self.metadata_flag in {'exact'}:
+                                n = path.replace(localname + ":", f"{{{elmns}}}")
+                                elem = xml_new.find(f'./{n}')
+                                if elem is None:
+                                    logger.warning(f'XML element not found for path: {n, path} in {xml_file}')
+                                    continue
+                            elif self.metadata_flag in {'flat'}:
+                                n = name.split(':')[-1]
+                                elem = xml_new.find(f'.//{{{elmns}}}{n}')
+                                if elem is None:
+                                    logger.warning(f'XML element not found for name: {name, path} in {xml_file}')
+                                    continue
+                            if elem is not None:
+                                elem.text = str(val)
                     etree.indent(xml_new.getroot(), space="    ")
                     xml_desc_list.append(etree.tostring(xml_new.getroot(), encoding='unicode', pretty_print=True))
                     #xml_desc_elem.append(xml_new.find('.'))
