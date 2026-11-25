@@ -74,8 +74,8 @@ def win_path_delimiter() -> str:
     else:
         return "/"
 
-def check_nan(value) -> Optional[str]:
-    if str(value).lower() in {"nan","nat"}:
+def check_nan(value) -> str | None:
+    if str(value).lower() in {"nan","nat"} or value is None:
         value = None
     return value
 
